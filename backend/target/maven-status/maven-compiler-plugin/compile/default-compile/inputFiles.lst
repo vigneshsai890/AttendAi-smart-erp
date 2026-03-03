@@ -1,0 +1,14 @@
+f:\Face\backend\src\main\java\com\smartclass\dto\LoginRequest.java
+f:\Face\backend\src\main\java\com\smartclass\model\Role.java
+f:\Face\backend\src\main\java\com\smartclass\controller\AuthController.java
+f:\Face\backend\src\main\java\com\smartclass\config\DataSeeder.java
+f:\Face\backend\src\main\java\com\smartclass\dto\AttendanceRequest.java
+f:\Face\backend\src\main\java\com\smartclass\controller\AttendanceController.java
+f:\Face\backend\src\main\java\com\smartclass\repository\AttendanceRepository.java
+f:\Face\backend\src\main\java\com\smartclass\repository\StudentRepository.java
+f:\Face\backend\src\main\java\com\smartclass\model\Student.java
+f:\Face\backend\src\main\java\com\smartclass\model\User.java
+f:\Face\backend\src\main\java\com\smartclass\controller\AdminController.java
+f:\Face\backend\src\main\java\com\smartclass\model\AttendanceRecord.java
+f:\Face\backend\src\main\java\com\smartclass\repository\UserRepository.java
+f:\Face\backend\src\main\java\com\smartclass\SmartClassApplication.java
