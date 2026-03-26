@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  password       String
+  name           String
+  role           String          @default("STUDENT") // ADMIN, HOD, FACULTY, STUDENT
+  avatar         String?
+  phone          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  twoFactorEnabled Boolean       @default(false)
+  twoFactorSecret  String?
+  backupCodes      String?       // JSON array of hashed backup codes
+
+  student        Student?
+  faculty        Faculty?
+  auditLogs      AuditLog[]
+  attendanceRecords AttendanceRecord[]
+  notifications  Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Department {
+  id          String    @id @default(uuid())
+  code        String    @unique  // SE, CSE_AIDS, CSE_AIML, CS, KALVIUM, CSE
+  name        String
+  description String?
+  hodId       String?
+  createdAt   DateTime  @default(now())
+
+  students    Student[]
+  faculty     Faculty[]
+  courses     Course[]
+  sections    Section[]
+}
+
+model Student {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  rollNumber    String   @unique
+  regNumber     String   @unique
+  year          Int      // 1, 2, 3, 4
+  semester      Int      // 1-8
+  sectionId     String
+  departmentId  String
+  batchYear     Int      // e.g. 2024
+  guardianName  String?
+  guardianPhone String?
+  bloodGroup    String?
+  address       String?
+  dob           DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section       Section    @relation(fields: [sectionId], references: [id])
+  department    Department @relation(fields: [departmentId], references: [id])
+  enrollments   Enrollment[]
+
+  @@index([departmentId])
+  @@index([year])
+  @@index([sectionId])
+}
+
+model Faculty {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  employeeId    String   @unique
+  designation   String   // Professor, Associate Professor, Assistant Professor
+  departmentId  String
+  qualification String?
+  specialization String?
+  joinDate      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department    Department @relation(fields: [departmentId], references: [id])
+  courses       CourseAssignment[]
+  attendanceSessions AttendanceSession[]
+
+  @@index([departmentId])
+}
+
+model Section {
+  id           String     @id @default(uuid())
+  name         String     // CSE A, CSE B, AIML A, etc.
+  departmentId String
+  year         Int
+  batchYear    Int
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  students     Student[]
+  schedules    Schedule[]
+
+  @@unique([name, departmentId, year, batchYear])
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  code         String   @unique  // BTCT2901, BTCT2702, etc.
+  name         String
+  credits      Int      @default(3)
+  courseType    String   @default("LECTURE") // LECTURE, LAB, TUTORIAL, PRACTICAL, WORKSHOP, STUDIO
+  departmentId String
+  semester     Int
+  description  String?
+  createdAt    DateTime @default(now())
+
+  department   Department @relation(fields: [departmentId], references: [id])
+  enrollments  Enrollment[]
+  schedules    Schedule[]
+  assignments  CourseAssignment[]
+  attendanceSessions AttendanceSession[]
+
+  @@index([departmentId])
+  @@index([semester])
+}
+
+model CourseAssignment {
+  id        String  @id @default(uuid())
+  courseId   String
+  facultyId  String
+  academicYear Int
+  semester   Int
+
+  course    Course  @relation(fields: [courseId], references: [id])
+  faculty   Faculty @relation(fields: [facultyId], references: [id])
+
+  @@unique([courseId, facultyId, academicYear, semester])
+}
+
+model Enrollment {
+  id        String  @id @default(uuid())
+  studentId String
+  courseId   String
+  academicYear Int
+  semester   Int
+  grade     String?  // A+, A, B+, B, C, F
+  marks     Float?
+  status    String   @default("ACTIVE") // ACTIVE, DROPPED, COMPLETED
+
+  student   Student @relation(fields: [studentId], references: [id])
+  course    Course  @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId, academicYear, semester])
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model Schedule {
+  id         String  @id @default(uuid())
+  courseId    String
+  sectionId  String
+  dayOfWeek  Int     // 0=Sunday, 1=Monday, ..., 6=Saturday
+  startTime  String  // "09:00"
+  endTime    String  // "10:00"
+  room       String
+  academicYear Int
+  semester   Int
+
+  course     Course  @relation(fields: [courseId], references: [id])
+  section    Section @relation(fields: [sectionId], references: [id])
+
+  @@index([sectionId, dayOfWeek])
+}
+
+model AttendanceSession {
+  id           String   @id @default(uuid())
+  courseId      String
+  facultyId     String
+  sessionDate   DateTime
+  startTime     String
+  endTime       String
+  qrCode        String?    // Current active QR token
+  qrExpiry      DateTime?
+  latitude      Float?
+  longitude     Float?
+  geoRadius     Float?     @default(100) // meters
+  status        String     @default("ACTIVE") // ACTIVE, CLOSED
+  createdAt     DateTime   @default(now())
+
+  course        Course    @relation(fields: [courseId], references: [id])
+  faculty       Faculty   @relation(fields: [facultyId], references: [id])
+  records       AttendanceRecord[]
+
+  @@index([courseId, sessionDate])
+  @@index([facultyId])
+}
+
+model AttendanceRecord {
+  id              String   @id @default(uuid())
+  sessionId       String
+  userId          String
+  status          String   @default("PRESENT") // PRESENT, ABSENT, LATE, PROXY
+  markedAt        DateTime @default(now())
+  markedBy        String?  // Who marked (faculty/self-QR)
+  deviceFingerprint String?
+  ipAddress       String?
+  latitude        Float?
+  longitude       Float?
+  riskScore       Float    @default(0) // 0-100 proxy risk
+  flagged         Boolean  @default(false)
+
+  session         AttendanceSession @relation(fields: [sessionId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+  proxyAlerts     ProxyAlert[]
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model ProxyAlert {
+  id              String   @id @default(uuid())
+  recordId        String
+  alertType       String   // TIMING, LOCATION, BUDDY_PATTERN, DEVICE, VELOCITY
+  severity        String   // LOW, MEDIUM, HIGH, CRITICAL
+  description     String
+  evidence        String?  // JSON with detection details
+  status          String   @default("PENDING") // PENDING, REVIEWED, CONFIRMED, DISMISSED
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  record          AttendanceRecord @relation(fields: [recordId], references: [id])
+
+  @@index([status])
+  @@index([alertType])
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  name        String
+  courseCode   String
+  examType    String   // INTERNAL, MIDTERM, FINAL, QUIZ, ASSIGNMENT
+  maxMarks    Float
+  date        DateTime?
+  semester    Int
+  academicYear Int
+  createdAt   DateTime @default(now())
+
+  results     ExamResult[]
+}
+
+model ExamResult {
+  id          String   @id @default(uuid())
+  examId      String
+  studentRoll String
+  marks       Float
+  grade       String?
+  remarks     String?
+
+  exam        Exam @relation(fields: [examId], references: [id])
+
+  @@unique([examId, studentRoll])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, ALERT, REMINDER
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+}
