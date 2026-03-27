@@ -8,15 +8,15 @@ export default withAuth(
 
     // Role-based route protection
     if (path.startsWith("/admin") && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login?error=unauthorized", req.url));
+      return NextResponse.redirect(new URL(token?.role === "FACULTY" ? "/faculty/dashboard" : "/student/dashboard", req.url));
     }
 
     if (path.startsWith("/faculty") && token?.role !== "FACULTY" && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login?error=unauthorized", req.url));
+      return NextResponse.redirect(new URL(token?.role === "STUDENT" ? "/student/dashboard" : "/admin", req.url));
     }
 
     if (path.startsWith("/student") && token?.role !== "STUDENT" && token?.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/login?error=unauthorized", req.url));
+      return NextResponse.redirect(new URL(token?.role === "FACULTY" ? "/faculty/dashboard" : "/admin", req.url));
     }
 
     return NextResponse.next();
