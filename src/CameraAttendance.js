@@ -485,114 +485,100 @@ function CameraAttendance({ user }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header Card */}
+      <div className="glass rounded-2xl p-6 mb-6" style={{ border: '1px solid rgba(99,102,241,0.2)' }}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Camera className="w-8 h-8 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-800">Face Recognition Attendance</h2>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold font-display text-white">Face Recognition Attendance</h2>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>AI-powered biometric attendance marking</p>
+            </div>
           </div>
           {isScanning && selectedClass && selectedSubject && (
-            <div className="bg-purple-100 px-4 py-2 rounded-lg">
-              <span className="text-sm text-purple-700 font-medium">
-                📚 {selectedClass} | {selectedSubject} | {new Date().toLocaleDateString()}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              <span className="text-sm font-medium" style={{ color: '#a78bfa' }}>
+                {selectedClass} · {selectedSubject}
               </span>
             </div>
           )}
         </div>
         
         {loadingModels && (
-          <div className="flex items-center gap-2 text-blue-600 mb-4">
-            <Loader className="w-5 h-5 animate-spin" />
-            <span>Loading face recognition models...</span>
+          <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: '#818cf8' }}>
+            <Loader className="w-4 h-4 animate-spin" />
+            <span>Loading face recognition AI models...</span>
           </div>
         )}
         
         {cameraError && (
-          <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded mb-4">
-            <AlertCircle className="w-5 h-5" />
+          <div className="flex items-center gap-2 p-3 rounded-xl mb-4 text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <AlertCircle className="w-4 h-4" />
             <span>{cameraError}</span>
           </div>
         )}
         
         {message && !cameraError && (
-          <div className={`p-3 rounded mb-4 ${message.includes('❌') || message.includes('⚠️') ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'}`}>
+          <div className={`p-3 rounded-xl mb-4 text-sm`}
+            style={message.includes('❌') || message.includes('⚠️')
+              ? { background: 'rgba(245,158,11,0.08)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }
+              : { background: 'rgba(16,185,129,0.08)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)' }}>
             {message}
           </div>
         )}
         
-        {/* Stats */}
-        <div className="flex gap-4 mb-4">
-          <div className="bg-blue-50 px-4 py-2 rounded-lg">
-            <span className="text-sm text-gray-600">Registered Faces: </span>
-            <span className="font-bold text-blue-600">{getRegisteredCount()}/{students.length}</span>
+        {/* Stats badges */}
+        <div className="flex gap-3 mb-5 flex-wrap">
+          <div className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.2)' }}>
+            Registered Faces: <strong>{getRegisteredCount()}/{students.length}</strong>
           </div>
           {faceMatcher && (
-            <div className="bg-green-50 px-4 py-2 rounded-lg">
-              <span className="text-sm text-gray-600">Face Matcher: </span>
-              <span className="font-bold text-green-600">Ready ✓</span>
+            <div className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)' }}>
+              Face Matcher: <strong>Ready ✓</strong>
             </div>
           )}
         </div>
         
         {/* Controls */}
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-end">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Class</label>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="border rounded-lg px-4 py-2 w-48"
-              disabled={isScanning}
-            >
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>SELECT CLASS</label>
+            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}
+              className="dark-input px-4 py-2.5 rounded-xl text-sm w-48" disabled={isScanning}>
               <option value="">Choose a class...</option>
-              {classes.map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
+              {classes.map(cls => <option key={cls} value={cls}>{cls}</option>)}
             </select>
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Period</label>
-            <select
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="border rounded-lg px-4 py-2 w-48"
-              disabled={isScanning}
-            >
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>SELECT PERIOD</label>
+            <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}
+              className="dark-input px-4 py-2.5 rounded-xl text-sm w-48" disabled={isScanning}>
               <option value="">Choose period...</option>
-              {subjects.map(sub => (
-                <option key={sub} value={sub}>{sub}</option>
-              ))}
+              {subjects.map(sub => <option key={sub} value={sub}>{sub}</option>)}
             </select>
           </div>
-          
           {!isScanning ? (
-            <button
-              onClick={startScanning}
+            <button onClick={startScanning}
               disabled={!modelsLoaded || !selectedClass || !selectedSubject}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-            >
-              <Play className="w-5 h-5" />
-              Start Recognition
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 4px 20px rgba(5,150,105,0.3)' }}>
+              <Play className="w-4 h-4" /> Start Recognition
             </button>
           ) : (
-            <button
-              onClick={stopScanning}
-              className="flex items-center gap-2 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 mt-6"
-            >
-              <Square className="w-5 h-5" />
-              Stop Scanning
+            <button onClick={stopScanning}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #dc2626, #ef4444)', boxShadow: '0 4px 20px rgba(239,68,68,0.3)' }}>
+              <Square className="w-4 h-4" /> Stop Scanning
             </button>
           )}
-          
-          <button
-            onClick={() => setAttendanceMarked([])}
-            className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 mt-6"
-          >
-            <RefreshCw className="w-5 h-5" />
-            Reset
+          <button onClick={() => setAttendanceMarked([])}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-muted)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <RefreshCw className="w-4 h-4" /> Reset
           </button>
         </div>
       </div>
@@ -600,24 +586,34 @@ function CameraAttendance({ user }) {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Camera View */}
-        <div className="lg:col-span-2 bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Camera className="w-5 h-5 text-blue-600" />
+        <div className="lg:col-span-2 glass rounded-2xl p-6" style={{ border: '1px solid rgba(99,102,241,0.15)' }}>
+          <h3 className="text-lg font-bold font-display text-white mb-4 flex items-center gap-2">
+            <Camera className="w-5 h-5 text-indigo-400" />
             Camera Feed
+            {isScanning && (
+              <span className="flex items-center gap-1.5 text-xs ml-2" style={{ color: '#22d3ee' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                LIVE SCANNING
+              </span>
+            )}
             {recognizedStudents.length > 0 && (
-              <span className="ml-2 text-sm text-green-600">
-                ({recognizedStudents.length} identified)
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-lg" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
+                {recognizedStudents.length} identified
               </span>
             )}
           </h3>
           
-          <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
+          <div className="relative rounded-xl overflow-hidden aspect-video" style={{ background: '#0a0a14' }}>
+            {isScanning && (
+              <div className="absolute inset-0 z-10 pointer-events-none">
+                <div className="absolute inset-4 border-2 rounded-xl animate-pulse" style={{ borderColor: 'rgba(99,102,241,0.4)' }} />
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs" style={{ background: 'rgba(10,10,20,0.8)', color: '#22d3ee' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block" />
+                  REC
+                </div>
+              </div>
+            )}
+            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover"
               onLoadedMetadata={() => {
                 if (canvasRef.current && videoRef.current) {
                   canvasRef.current.width = videoRef.current.videoWidth;
@@ -625,67 +621,59 @@ function CameraAttendance({ user }) {
                 }
               }}
             />
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
-            />
+            <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
             
             {!isScanning && !isRegistering && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-80">
-                <div className="text-center text-white">
-                  <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Camera is off</p>
-                  <p className="text-sm text-gray-400">Click "Start Recognition" to begin</p>
+              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(10,10,20,0.9)' }}>
+                <div className="text-center">
+                  <Camera className="w-16 h-16 mx-auto mb-4 opacity-20 text-white" />
+                  <p className="text-lg font-semibold text-white">Camera is off</p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>Select class + period, then click "Start Recognition"</p>
                 </div>
               </div>
             )}
             
             {isRegistering && (
-              <div className="absolute inset-0 flex items-center justify-center bg-blue-900 bg-opacity-70">
-                <div className="text-center text-white">
-                  <Loader className="w-16 h-16 mx-auto mb-4 animate-spin" />
-                  <p className="text-lg">Registering face for {registeringStudent?.firstName}...</p>
-                  <p className="text-sm text-blue-200">Look directly at the camera</p>
+              <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(30,27,75,0.9)' }}>
+                <div className="text-center">
+                  <Loader className="w-16 h-16 mx-auto mb-4 animate-spin text-indigo-400" />
+                  <p className="text-lg font-semibold text-white">Registering {registeringStudent?.firstName}...</p>
+                  <p className="text-sm mt-1" style={{ color: '#818cf8' }}>Look directly at the camera</p>
                 </div>
               </div>
             )}
           </div>
           
           {/* Detection Stats */}
-          <div className="mt-4 flex gap-4">
-            <div className="bg-blue-50 rounded-lg p-3 flex-1 text-center">
-              <p className="text-2xl font-bold text-blue-600">{detectedFaces.length}</p>
-              <p className="text-sm text-gray-600">Faces Detected</p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-3 flex-1 text-center">
-              <p className="text-2xl font-bold text-purple-600">{recognizedStudents.length}</p>
-              <p className="text-sm text-gray-600">Identified</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-3 flex-1 text-center">
-              <p className="text-2xl font-bold text-green-600">{attendanceMarked.length}</p>
-              <p className="text-sm text-gray-600">Marked Present</p>
-            </div>
-            <div className="bg-orange-50 rounded-lg p-3 flex-1 text-center">
-              <p className="text-2xl font-bold text-orange-600">{students.length - attendanceMarked.length}</p>
-              <p className="text-sm text-gray-600">Remaining</p>
-            </div>
+          <div className="mt-4 grid grid-cols-4 gap-3">
+            {[
+              { label: 'Detected', value: detectedFaces.length, color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
+              { label: 'Identified', value: recognizedStudents.length, color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
+              { label: 'Marked', value: attendanceMarked.length, color: '#34d399', bg: 'rgba(16,185,129,0.1)' },
+              { label: 'Remaining', value: students.length - attendanceMarked.length, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className="p-3 rounded-xl text-center" style={{ background: bg, border: `1px solid ${color}22` }}>
+                <p className="text-2xl font-bold font-display" style={{ color }}>{value}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
         
         {/* Student List */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            Students ({selectedClass})
+        <div className="glass rounded-2xl p-6" style={{ border: '1px solid rgba(99,102,241,0.15)' }}>
+          <h3 className="text-lg font-bold font-display text-white mb-3 flex items-center gap-2">
+            <Users className="w-5 h-5 text-indigo-400" />
+            {selectedClass || 'Students'}
           </h3>
           
-          <div className="text-xs text-gray-500 mb-3 p-2 bg-yellow-50 rounded">
-            💡 Click "Register Face" to capture student face for recognition
+          <div className="text-xs p-2.5 rounded-xl mb-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)', color: '#fbbf24' }}>
+            💡 Click "Reg" to capture student face data
           </div>
           
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
             {students.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No students in this class</p>
+              <p className="text-center py-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>No students in this class</p>
             ) : (
               students.map(student => {
                 const isMarked = attendanceMarked.find(a => a.id === student.id);
@@ -693,53 +681,48 @@ function CameraAttendance({ user }) {
                 const isCurrentlyRecognized = recognizedStudents.find(r => r.student.id === student.id);
                 
                 return (
-                  <div 
-                    key={student.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      isMarked ? 'bg-green-50 border-green-200' : 
-                      isCurrentlyRecognized ? 'bg-blue-50 border-blue-300 animate-pulse' :
-                      'bg-gray-50 border-gray-200'
-                    }`}
+                  <div key={student.id}
+                    className="flex items-center justify-between p-3 rounded-xl transition-all"
+                    style={isMarked
+                      ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }
+                      : isCurrentlyRecognized
+                        ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)' }
+                        : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
-                    <div className="flex items-center gap-3">
-                      {isMarked ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-gray-400" />
-                      )}
+                    <div className="flex items-center gap-2.5">
+                      {isMarked
+                        ? <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        : <XCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />}
                       <div>
-                        <p className="font-medium text-gray-800">
+                        <p className="font-semibold text-white text-sm">
                           {student.firstName} {student.lastName}
                           {isCurrentlyRecognized && (
-                            <span className="ml-2 text-xs bg-blue-600 text-white px-2 py-0.5 rounded">
+                            <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded" style={{ background: '#6366f1', color: 'white' }}>
                               LIVE {isCurrentlyRecognized.confidence}%
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Roll: {student.rollNumber}
-                          {hasRegisteredFace && <span className="ml-2 text-green-600">• Face ✓</span>}
-                          {isMarked && ` • ${isMarked.markedAt}`}
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                          {student.rollNumber}
+                          {hasRegisteredFace && <span className="ml-1.5 text-emerald-400">• Face ✓</span>}
+                          {isMarked && <span className="ml-1"> · {isMarked.markedAt}</span>}
                         </p>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 flex-shrink-0">
                       {!hasRegisteredFace && (
-                        <button
-                          onClick={() => registerFace(student)}
+                        <button onClick={() => registerFace(student)}
                           disabled={isRegistering || isScanning}
-                          className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
-                        >
-                          <UserPlus className="w-3 h-3" />
-                          Register Face
+                          className="text-xs px-2 py-1 rounded-lg disabled:opacity-40"
+                          style={{ background: 'rgba(99,102,241,0.2)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}>
+                          <UserPlus className="w-3 h-3 inline mr-0.5" />Reg
                         </button>
                       )}
                       {hasRegisteredFace && !isMarked && (
-                        <button
-                          onClick={() => markStudentPresent(student, 100)}
-                          className="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700"
-                        >
+                        <button onClick={() => markStudentPresent(student, 100)}
+                          className="text-xs px-2 py-1 rounded-lg"
+                          style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
                           Manual
                         </button>
                       )}
