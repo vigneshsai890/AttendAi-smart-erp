@@ -27,20 +27,51 @@ function LoginForm() {
   }, [searchParams]);
 
   // Quick Login pre-fill logic
-  const handleQuickLogin = (role: "ADMIN" | "FACULTY" | "STUDENT") => {
+  const handleQuickLogin = async (role: "ADMIN" | "FACULTY" | "STUDENT") => {
     setError("");
+    let loginEmail = "";
+    let loginPassword = "";
     if (role === "ADMIN") {
-      setEmail("admin@apollo.edu");
-      setPassword("admin123");
+      loginEmail = "admin@apollo.edu";
+      loginPassword = "admin123";
     } else if (role === "FACULTY") {
-      setEmail("mehta@apollo.edu");
-      setPassword("faculty123");
+      loginEmail = "mehta@apollo.edu";
+      loginPassword = "faculty123";
     } else {
-      setEmail("alex@apollo.edu");
-      setPassword("student123");
+      loginEmail = "alex@apollo.edu";
+      loginPassword = "student123";
     }
-    // Automatically jump to 2FA for the "Wow" factor
-    setStep("TOTP");
+    setEmail(loginEmail);
+    setPassword(loginPassword);
+    setLoading(true);
+
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: loginEmail,
+        password: loginPassword,
+        totp: "",
+      });
+
+      if (res?.error === "2FA_REQUIRED") {
+        // User has 2FA enabled — show TOTP step
+        setStep("TOTP");
+      } else if (res?.error) {
+        setError("Invalid credentials");
+        setStep("CREDENTIALS");
+      } else {
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        const userRole = session?.user?.role;
+        if (userRole === "ADMIN") router.push("/admin");
+        else if (userRole === "FACULTY") router.push("/faculty/dashboard");
+        else router.push("/student/dashboard");
+      }
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
