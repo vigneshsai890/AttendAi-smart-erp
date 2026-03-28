@@ -1,13 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CopySlash, BookOpen, LifeBuoy, MessageSquareText, Clock } from "lucide-react";
 
-export default function Navbar() {
+function NavbarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const isStudent = pathname?.includes("/student");
   if (!isStudent) return null;
 
@@ -47,3 +48,12 @@ export default function Navbar() {
     </nav>
   );
 }
+
+export default function Navbar() {
+  return (
+    <Suspense fallback={null}>
+      <NavbarInner />
+    </Suspense>
+  );
+}
+

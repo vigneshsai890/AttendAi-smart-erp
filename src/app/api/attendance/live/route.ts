@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -46,23 +47,26 @@ export async function GET(req: Request) {
       (r) => r.status === "PRESENT" || r.status === "PROXY"
     );
 
-    return NextResponse.json({
-      sessionId,
-      status: attendanceSession.status,
-      courseName: attendanceSession.course.name,
-      courseCode: attendanceSession.course.code,
-      totalPresent: present.length,
-      records: present.map((r) => ({
-        id: r.id,
-        userId: r.userId,
-        name: r.user.name,
-        rollNumber: r.user.student?.rollNumber ?? "—",
-        status: r.status,
-        markedAt: r.markedAt,
-        flagged: r.flagged,
-        riskScore: r.riskScore,
-      })),
-    });
+    return NextResponse.json(
+      {
+        sessionId,
+        status: attendanceSession.status,
+        courseName: attendanceSession.course.name,
+        courseCode: attendanceSession.course.code,
+        totalPresent: present.length,
+        records: present.map((r) => ({
+          id: r.id,
+          userId: r.userId,
+          name: r.user.name,
+          rollNumber: r.user.student?.rollNumber ?? "—",
+          status: r.status,
+          markedAt: r.markedAt,
+          flagged: r.flagged,
+          riskScore: r.riskScore,
+        })),
+      },
+      { headers: { "Cache-Control": "private, max-age=2, stale-while-revalidate=5" } }
+    );
   } catch (error) {
     console.error("Live attendance error:", error);
     return NextResponse.json({ error: "Failed to fetch live attendance" }, { status: 500 });

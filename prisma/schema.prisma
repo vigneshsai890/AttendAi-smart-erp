@@ -160,6 +160,7 @@ model Enrollment {
   @@unique([studentId, courseId, academicYear, semester])
   @@index([studentId])
   @@index([courseId])
+  @@index([studentId, status])           // dashboard enrollment filter
 }
 
 model Schedule {
@@ -223,6 +224,8 @@ model AttendanceRecord {
   @@unique([sessionId, userId])
   @@index([userId])
   @@index([sessionId])
+  @@index([sessionId, status])          // fast PRESENT/ABSENT aggregation
+  @@index([flagged])                    // proxy alert queries
 }
 
 model ProxyAlert {

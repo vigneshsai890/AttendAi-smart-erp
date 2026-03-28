@@ -1,8 +1,10 @@
+export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { emitToSession } from "@/lib/socket";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3;
@@ -16,6 +18,18 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Rate limit: max 5 mark attempts per user per 60 seconds
+  const rl = checkRateLimit(`mark:${session.user.id}`, 5, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait before trying again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) },
+      }
+    );
+  }
 
   try {
     const body = await req.json();
