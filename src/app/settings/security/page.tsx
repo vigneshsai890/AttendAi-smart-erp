@@ -16,7 +16,7 @@ export default function SecuritySettings() {
   useEffect(() => {
     fetch("/api/auth/session")
       .then(r => r.json())
-      .then(s => {
+      .then(() => {
         // We'd need an endpoint to check 2FA status; for now use session
       });
   }, []);
@@ -90,6 +90,7 @@ export default function SecuritySettings() {
                   Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
                 </p>
                 <div className="inline-block p-3 rounded-2xl bg-white mb-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCode} alt="2FA QR Code" className="w-[180px] h-[180px]" />
                 </div>
                 <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] mb-4">

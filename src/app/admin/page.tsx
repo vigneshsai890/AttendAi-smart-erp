@@ -44,7 +44,10 @@ export default function AdminPanel() {
     setLoading(false);
   }, [tab, search, showToast]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData(); 
+  }, [fetchData]);
 
   const handleCreate = async () => {
     setLoading(true);

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { emitToSession } from "@/lib/socket";
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3;
@@ -143,6 +144,31 @@ export async function POST(req: Request) {
         });
       }
     }
+
+    // ── REAL-TIME: emit to all clients watching this session ──
+    const studentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        student: { select: { rollNumber: true } },
+      },
+    });
+
+    emitToSession(sessionId, "attendance:new", {
+      id: record.id,
+      userId: session.user.id,
+      name: studentUser?.name ?? "Unknown",
+      rollNumber: studentUser?.student?.rollNumber ?? "—",
+      status,
+      markedAt: record.markedAt,
+      flagged: isFlagged,
+      riskScore,
+    });
+
+    console.log(
+      `[MARK] Student ${studentUser?.name} marked ${status} for session ${sessionId} | risk=${riskScore}`
+    );
 
     return NextResponse.json({
       status,
