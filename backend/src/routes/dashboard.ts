@@ -11,7 +11,7 @@ import { Exam } from '../models/Exam';
 import { ExamResult } from '../models/ExamResult';
 import { Notification } from '../models/Notification';
 import { ProxyAlert } from '../models/ProxyAlert';
-import { authenticator } from 'otplib';
+const { authenticator } = require('otplib');
 import QRCode from 'qrcode';
 import mongoose from 'mongoose';
 
