@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+          const backendUrl = process.env.BACKEND_URL || "http://localhost:5001";
 
           // If OTP is provided, verify it, otherwise check credentials
           const endpoint = credentials.totp ? "/api/auth/verify-otp" : "/api/auth/login";

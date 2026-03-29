@@ -62,7 +62,7 @@ export default function FacultyDashboard() {
   // Handle Socket for real-time updates
   useEffect(() => {
     if (activeSessionId) {
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000");
+      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5001");
       socketRef.current.emit("join-session", activeSessionId);
 
       socketRef.current.on("attendance_marked", (newRecord: any) => {
