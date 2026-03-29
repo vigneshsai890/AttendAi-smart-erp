@@ -10,8 +10,8 @@ import QRCode from "qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Check, Users, ShieldAlert, Activity, LayoutDashboard, QrCode } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL = "http://localhost:5001/api";
+const SOCKET_URL = "http://localhost:5001";
 
 interface Course {
   _id: string;
