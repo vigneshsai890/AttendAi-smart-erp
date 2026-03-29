@@ -49,10 +49,11 @@ function LoginForm() {
         totp: loginOtp,
       });
 
-      if (res?.error === "OTP_REQUIRED") {
+      if (res?.error === "OTP_REQUIRED" || res?.error?.includes("OTP_REQUIRED")) {
         setStep("TOTP");
         setOtpTimer(30);
       } else if (res?.error) {
+        console.log("[LOGIN] Signin error:", res.error);
         setError(res.error === "CredentialsSignin" ? "Invalid credentials" : res.error);
       } else {
         const s = await fetch("/api/auth/session").then(r => r.json());

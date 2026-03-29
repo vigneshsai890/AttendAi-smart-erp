@@ -21,20 +21,29 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const backendUrl = process.env.BACKEND_URL || "http://localhost:5001";
+          console.log("[AUTH] Attempting login for:", credentials.email);
+          console.log("[AUTH] Using backendUrl:", backendUrl);
 
-          // If OTP is provided, verify it, otherwise check credentials
           const endpoint = credentials.totp ? "/api/auth/verify-otp" : "/api/auth/login";
           const payload = credentials.totp
             ? { email: credentials.email, otp: credentials.totp }
             : { email: credentials.email, password: credentials.password };
 
-          const res = await axios.post(`${backendUrl}${endpoint}`, payload);
+          console.log("[AUTH] Endpoint:", endpoint);
+
+          const res = await axios.post(`${backendUrl}${endpoint}`, payload, {
+            timeout: 5000 // 5 second timeout
+          });
+          
+          console.log("[AUTH] Backend response status:", res.status);
           const user = res.data;
 
           if (user.requiresOTP) {
-            throw new Error("OTP_REQUIRED");
+            console.log("[AUTH] OTP_REQUIRED detected");
+            console.log("[AUTH] THROWING OTP_REQUIRED"); throw new Error("OTP_REQUIRED");
           }
 
+          console.log("[AUTH] Login successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
@@ -42,8 +51,16 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
           };
         } catch (error: any) {
+          console.error("[AUTH] Error in authorize:", error.message);
+          if (error.response) {
+            console.error("[AUTH] Error response status:", error.response.status);
+            console.error("[AUTH] Error response data:", error.response.data);
+          }
+          
           if (error.message === "OTP_REQUIRED") throw error;
-          throw new Error(error.response?.data?.error || "Invalid credentials");
+          
+          const msg = error.response?.data?.error || error.message || "Invalid credentials";
+          throw new Error(msg);
         }
       },
     }),
