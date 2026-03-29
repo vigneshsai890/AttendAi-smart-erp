@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 async function checkAdmin() {
@@ -12,47 +12,21 @@ async function checkAdmin() {
 
 export async function GET() {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const departments = await prisma.department.findMany({
-    include: {
-      sections: { orderBy: { name: "asc" } },
-      _count: { select: { students: true, faculty: true, courses: true } },
-    },
-    orderBy: { code: "asc" },
-  });
-
-  return NextResponse.json({ departments });
+  try {
+    const res = await backend.get("/admin/departments");
+    return NextResponse.json(res.data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to fetch departments" }, { status: error.response?.status || 500 });
+  }
 }
 
 export async function POST(req: Request) {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
     const body = await req.json();
-    const { code, name, description, sections } = body;
-
-    if (!code || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const existing = await prisma.department.findUnique({ where: { code } });
-    if (existing) return NextResponse.json({ error: "Department code already exists" }, { status: 400 });
-
-    const dept = await prisma.department.create({
-      data: {
-        code, name, description,
-        sections: sections ? {
-          create: sections.map((s: { name: string; year: number; batchYear: number }) => ({
-            name: s.name, year: s.year || 1, batchYear: s.batchYear || new Date().getFullYear(),
-          })),
-        } : undefined,
-      },
-      include: { sections: true },
-    });
-
-    return NextResponse.json({ department: dept }, { status: 201 });
-  } catch (error) {
-    console.error("Create department error:", error);
-    return NextResponse.json({ error: "Failed to create department" }, { status: 500 });
+    const res = await backend.post("/admin/departments", body);
+    return NextResponse.json(res.data, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to create department" }, { status: error.response?.status || 500 });
   }
 }

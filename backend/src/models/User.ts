@@ -5,8 +5,13 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   role: { type: String, enum: ['ADMIN', 'FACULTY', 'STUDENT'], required: true },
   passwordHash: { type: String, required: true },
-});
+  avatar: { type: String, default: null },
+  isActive: { type: Boolean, default: true },
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: { type: String, default: null },
+}, { timestamps: true });
 
-userSchema.index({ role: 1 }); // Optimize queries filtering by role
+userSchema.index({ role: 1 });
+userSchema.index({ email: 1 });
 
 export const User = mongoose.model('User', userSchema);

@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { backend } from "@/lib/backend";
+import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -10,22 +10,12 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const courseId = searchParams.get("courseId");
-
   if (!courseId) return NextResponse.json({ error: "Course ID required" }, { status: 400 });
 
-  const records = await prisma.attendanceRecord.findMany({
-    where: { session: { courseId } },
-    include: { user: true, session: true, proxyAlerts: true },
-    orderBy: { markedAt: "desc" },
-  });
-
-  const csvHeader = "Name,Email,Date,Time,Status,IP Address,Device Flags,Risk Score\n";
-  const csvRows = records.map(r => {
-    const flags = r.proxyAlerts.map(a => a.alertType).join(" | ");
-    return `"${r.user.name}","${r.user.email}","${r.session.sessionDate.toISOString().split("T")[0]}","${r.markedAt.toLocaleTimeString()}","${r.status}","${r.ipAddress || ""}","${flags}","${r.riskScore}"`;
-  });
-
-  const csvContent = csvHeader + csvRows.join("\n");
-
-  return NextResponse.json({ csv: csvContent });
+  try {
+    const res = await backend.get("/dashboard/faculty/reports", { params: { courseId } });
+    return NextResponse.json(res.data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to fetch reports" }, { status: error.response?.status || 500 });
+  }
 }

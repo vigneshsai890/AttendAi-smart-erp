@@ -1,10 +1,9 @@
 export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
-// GET /api/attendance/live?sessionId=... — returns current present list for a session
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -19,56 +18,11 @@ export async function GET(req: Request) {
   }
 
   try {
-    const attendanceSession = await prisma.attendanceSession.findUnique({
-      where: { id: sessionId },
-      include: {
-        course: true,
-        records: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                student: { select: { rollNumber: true } },
-              },
-            },
-          },
-          orderBy: { markedAt: "asc" },
-        },
-      },
+    const res = await backend.get("/attendance/live", { params: { sessionId } });
+    return NextResponse.json(res.data, {
+      headers: { "Cache-Control": "private, max-age=2, stale-while-revalidate=5" },
     });
-
-    if (!attendanceSession) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
-    }
-
-    const present = attendanceSession.records.filter(
-      (r) => r.status === "PRESENT" || r.status === "PROXY"
-    );
-
-    return NextResponse.json(
-      {
-        sessionId,
-        status: attendanceSession.status,
-        courseName: attendanceSession.course.name,
-        courseCode: attendanceSession.course.code,
-        totalPresent: present.length,
-        records: present.map((r) => ({
-          id: r.id,
-          userId: r.userId,
-          name: r.user.name,
-          rollNumber: r.user.student?.rollNumber ?? "—",
-          status: r.status,
-          markedAt: r.markedAt,
-          flagged: r.flagged,
-          riskScore: r.riskScore,
-        })),
-      },
-      { headers: { "Cache-Control": "private, max-age=2, stale-while-revalidate=5" } }
-    );
-  } catch (error) {
-    console.error("Live attendance error:", error);
-    return NextResponse.json({ error: "Failed to fetch live attendance" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to fetch live attendance" }, { status: error.response?.status || 500 });
   }
 }

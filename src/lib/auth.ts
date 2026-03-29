@@ -1,8 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
-import { verify } from "otplib";
+import axios from "axios";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -21,41 +19,23 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Missing credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !(await bcrypt.compare(credentials.password, user.password))) {
-          throw new Error("Invalid credentials");
-        }
-
-        if (user.twoFactorEnabled) {
-          // If 2FA is enabled but no TOTP provided, we return user info partially 
-          // to prompt the frontend to ask for the 2FA token
-          if (!credentials.totp) {
-            throw new Error("2FA_REQUIRED");
-          }
-
-          if (!user.twoFactorSecret) {
-             throw new Error("2FA configuration error");
-          }
-
-          const isValid = verify({
-            token: credentials.totp,
-            secret: user.twoFactorSecret,
+        try {
+          const res = await axios.post("http://localhost:5000/api/auth/login", {
+            email: credentials.email,
+            password: credentials.password,
           });
 
-          if (!isValid) {
-            throw new Error("Invalid 2FA token");
-          }
-        }
+          const user = res.data;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          };
+        } catch (error: any) {
+          throw new Error(error.response?.data?.error || "Invalid credentials");
+        }
       },
     }),
   ],
@@ -78,5 +58,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "supersecretkey123",
 };

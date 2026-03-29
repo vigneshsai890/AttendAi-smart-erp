@@ -1,10 +1,25 @@
 import mongoose from 'mongoose';
 
-const sessionSchema = new mongoose.Schema({
-  courseName: { type: String, required: true },
-  facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const attendanceSessionSchema = new mongoose.Schema({
+  courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
+  facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty', required: true },
+  sessionDate: { type: Date, default: Date.now },
+  startTime: { type: String, default: '' },
+  endTime: { type: String, default: '' },
+  qrCode: { type: String, default: null },
+  qrExpiry: { type: Date, default: null },
+  latitude: { type: Number, default: null },
+  longitude: { type: Number, default: null },
+  geoRadius: { type: Number, default: 100 },
+  status: { type: String, enum: ['ACTIVE', 'CLOSED'], default: 'ACTIVE' },
+  // Legacy field for backward compat with old Session model
+  courseName: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now }
-});
+}, { timestamps: true });
 
-export const Session = mongoose.model('Session', sessionSchema);
+attendanceSessionSchema.index({ courseId: 1, status: 1 });
+attendanceSessionSchema.index({ facultyId: 1 });
+
+export const AttendanceSession = mongoose.model('AttendanceSession', attendanceSessionSchema);
+// Keep backward compat alias
+export const Session = AttendanceSession;

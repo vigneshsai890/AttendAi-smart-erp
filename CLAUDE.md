@@ -13,56 +13,64 @@ npm run dev      # Start dev server on 0.0.0.0:3000
 npm run build    # Production build
 npm run lint     # ESLint (next core-web-vitals + typescript rules)
 
-# Database
-npx prisma migrate dev   # Apply migrations
-npx prisma generate      # Regenerate Prisma client after schema changes
-npx prisma db seed       # Seed with tsx prisma/seed.ts
-npx prisma studio        # GUI to inspect DB
+# Backend (Express/MongoDB) — run from backend/ directory
+cd backend && npm run dev    # Start backend dev server on port 5000
+cd backend && npm run build  # Compile TypeScript
 ```
 
 ## Architecture
 
-**Smart ERP** is a college management system built with Next.js (App Router), Prisma ORM, PostgreSQL, and NextAuth.js. It manages attendance, courses, exams, and notifications for three roles: `ADMIN`, `FACULTY`, and `STUDENT`.
+**Smart ERP** is a college management system with a **decoupled architecture**:
+- **Frontend**: Next.js (App Router) + NextAuth.js — handles auth and proxies API calls
+- **Backend**: Express + Mongoose + MongoDB + Socket.io — handles all DB operations
+- The Next.js API routes act as **auth-aware proxies**: they verify the session via NextAuth, then forward requests to the Express backend at `http://localhost:5000`
 
 ### Auth & routing
 
 - NextAuth with JWT sessions + credentials provider (`src/lib/auth.ts`)
-- Optional TOTP 2FA via `otplib`; login throws `"2FA_REQUIRED"` if enabled but no token supplied
-- Middleware in `src/middleware.ts` enforces role-based route protection:
+- Auth calls Express backend at `/api/auth/login` for credential verification
+- Optional TOTP 2FA via `otplib` (handled by backend)
+- Proxy in `src/proxy.ts` enforces role-based route protection:
   - `/admin/*` → ADMIN only
   - `/faculty/*` → FACULTY or ADMIN
   - `/student/*` → STUDENT or ADMIN
   - `/settings/*` → any authenticated user
 - `session.user` is extended with `id` and `role` (declared in `src/types/next-auth.d.ts`)
 
-### Data model (`prisma/schema.prisma`)
+### Data model (MongoDB/Mongoose — `backend/src/models/`)
 
-Core entities and their relationships:
-- **User** → has one `Student` or `Faculty` profile (role string: `ADMIN | HOD | FACULTY | STUDENT`)
-- **Department** → has many Students, Faculty, Courses, Sections
-- **Section** → groups students by department + year + batchYear (e.g. "CSE A")
-- **Course** → belongs to Department; types: `LECTURE | LAB | TUTORIAL | PRACTICAL | WORKSHOP | STUDIO`
-- **CourseAssignment** → links Faculty to Course per academic year/semester
-- **Enrollment** → links Student to Course; tracks grade + status
-- **Schedule** → maps Course+Section to a day/time/room slot
-- **AttendanceSession** → created by faculty per class; supports QR codes and geo-fencing (lat/lon/radius)
-- **AttendanceRecord** → per-student record in a session; includes `riskScore` and `flagged` for proxy detection
-- **ProxyAlert** → raised on suspicious attendance; types: `TIMING | LOCATION | BUDDY_PATTERN | DEVICE | VELOCITY`
+Core entities:
+- **User** — name, email, role (ADMIN|FACULTY|STUDENT), passwordHash, 2FA fields
+- **Student** — rollNumber, regNumber, year, semester, linked to User/Department/Section
+- **Faculty** — employeeId, designation, linked to User/Department
+- **Department** — code, name, description
+- **Section** — name, year, batchYear, linked to Department
+- **Course** — code, name, credits, courseType, department
+- **CourseAssignment** — links Faculty to Course per academic year/semester
+- **Enrollment** — links Student to Course; tracks status + grade
+- **Schedule** — maps Course+Section to a day/time/room slot
+- **AttendanceSession** — created by faculty; supports QR codes and geo-fencing
+- **AttendanceRecord** — per-student record; includes riskScore and flagged
+- **ProxyAlert** — raised on suspicious attendance (TIMING|LOCATION|BUDDY_PATTERN|DEVICE)
 - **Exam / ExamResult** — exam tracking with grade/marks
-- **Notification, AuditLog** — system-wide messaging and action logging
+- **Notification** — system-wide messaging
 
-### API routes (`src/app/api/`)
+### API routes (`src/app/api/`) — Auth-aware proxy layer
 
-| Prefix | Purpose |
-|---|---|
-| `auth/[...nextauth]` | NextAuth handler |
-| `auth/2fa/` | 2FA setup/verify |
-| `admin/courses`, `admin/departments`, `admin/faculty`, `admin/students` | Admin CRUD |
-| `attendance/session/` | Faculty creates/manages sessions |
-| `attendance/mark/` | Students mark attendance (QR + geo) |
-| `student/dashboard/`, `student/reports/` | Student data views |
-| `faculty/dashboard/` | Faculty data views |
-| `network-ip/` | Utility for capturing client IP |
+All API routes authenticate via `getServerSession(authOptions)` then proxy to the Express backend using `@/lib/backend` (axios).
+
+| Prefix | Backend target | Purpose |
+|---|---|---|
+| `auth/[...nextauth]` | — | NextAuth handler (no proxy) |
+| `auth/2fa/` | `/dashboard/2fa/*` | 2FA setup/verify |
+| `admin/*` | `/admin/*` | Admin CRUD |
+| `attendance/session/*` | `/attendance/session/*` | Session lifecycle |
+| `attendance/mark` | `/attendance/mark` | Mark attendance (QR + geo) |
+| `attendance/live` | `/attendance/live` | Live attendance feed |
+| `student/dashboard` | `/dashboard/student` | Student dashboard |
+| `faculty/dashboard` | `/dashboard/faculty` | Faculty dashboard |
+| `faculty/reports` | `/dashboard/faculty/reports` | CSV export |
+| `network-ip/` | — | Client IP utility (no proxy) |
 
 ### Page routes
 
@@ -75,16 +83,18 @@ Core entities and their relationships:
 
 ### Key shared utilities
 
-- `src/lib/prisma.ts` — singleton PrismaClient (global cache in dev)
-- `src/lib/auth.ts` — `authOptions` (import this in API routes with `getServerSession`)
+- `src/lib/backend.ts` — axios instance pointing to Express backend (BACKEND_URL)
+- `src/lib/auth.ts` — `authOptions` (NextAuth config, calls backend for login)
 - `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge)
+- `src/lib/rate-limit.ts` — in-memory sliding window rate limiter
+- `src/lib/socket.ts` — Socket.io client-side utilities
 - `src/components/` — `Navbar`, `Toast`, `Background` shared UI components
 
 ### Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `PRISMA_DATABASE_URL` | Pooled PostgreSQL connection (Prisma) |
-| `DATABASE_URL` | Direct PostgreSQL connection (migrations) |
 | `NEXTAUTH_SECRET` | JWT signing secret |
-| `NEXTAUTH_URL` | App base URL |
+| `NEXTAUTH_URL` | App base URL (default: http://localhost:3000) |
+| `BACKEND_URL` | Express backend URL (default: http://localhost:5000) |
+| `MONGO_URI` | MongoDB connection (backend, default: mongodb://127.0.0.1:27017/attendance_db) |

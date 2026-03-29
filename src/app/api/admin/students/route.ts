@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
 async function checkAdmin() {
   const session = await getServerSession(authOptions);
@@ -13,74 +12,28 @@ async function checkAdmin() {
 
 export async function GET(req: Request) {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { searchParams } = new URL(req.url);
-  const search = searchParams.get("search") || "";
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "50");
-
-  const where = search ? {
-    OR: [
-      { user: { name: { contains: search } } },
-      { user: { email: { contains: search } } },
-      { rollNumber: { contains: search } },
-    ],
-  } : {};
-
-  const [students, total] = await Promise.all([
-    prisma.student.findMany({
-      where,
-      include: {
-        user: { select: { id: true, name: true, email: true, isActive: true } },
-        department: { select: { code: true, name: true } },
-        section: { select: { name: true } },
+  try {
+    const { searchParams } = new URL(req.url);
+    const res = await backend.get("/admin/students", {
+      params: {
+        search: searchParams.get("search") || "",
+        page: searchParams.get("page") || "1",
+        limit: searchParams.get("limit") || "50",
       },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { rollNumber: "asc" },
-    }),
-    prisma.student.count({ where }),
-  ]);
-
-  return NextResponse.json({ students, total, page, limit });
+    });
+    return NextResponse.json(res.data);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to fetch students" }, { status: error.response?.status || 500 });
+  }
 }
 
 export async function POST(req: Request) {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
     const body = await req.json();
-    const { name, email, password, rollNumber, regNumber, year, semester, sectionId, departmentId, batchYear } = body;
-
-    if (!name || !email || !password || !rollNumber || !regNumber || !sectionId || !departmentId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return NextResponse.json({ error: "Email already exists" }, { status: 400 });
-
-    const existingRoll = await prisma.student.findUnique({ where: { rollNumber } });
-    if (existingRoll) return NextResponse.json({ error: "Roll number already exists" }, { status: 400 });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        name, email, password: hashedPassword, role: "STUDENT",
-        student: {
-          create: {
-            rollNumber, regNumber,
-            year: year || 1, semester: semester || 1,
-            sectionId, departmentId, batchYear: batchYear || new Date().getFullYear(),
-          },
-        },
-      },
-      include: { student: { include: { department: true, section: true } } },
-    });
-
-    return NextResponse.json({ student: user.student, user: { id: user.id, name: user.name, email: user.email } }, { status: 201 });
-  } catch (error) {
-    console.error("Create student error:", error);
-    return NextResponse.json({ error: "Failed to create student" }, { status: 500 });
+    const res = await backend.post("/admin/students", body);
+    return NextResponse.json(res.data, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.response?.data?.error || "Failed to create student" }, { status: error.response?.status || 500 });
   }
 }

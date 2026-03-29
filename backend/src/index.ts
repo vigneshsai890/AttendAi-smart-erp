@@ -8,7 +8,11 @@ import { Server } from 'socket.io';
 
 import { sessionRouter } from './routes/session';
 import { attendanceRouter, setIo } from './routes/attendance';
+import { attendanceFullRouter, setIo as setIoFull } from './routes/attendance-full';
 import { debugRouter } from './routes/debug';
+import { authRouter } from './routes/auth';
+import { adminRouter } from './routes/admin';
+import { dashboardRouter } from './routes/dashboard';
 
 dotenv.config();
 
@@ -32,7 +36,7 @@ mongoose.connect(MONGO_URI)
 
 io.on('connection', (socket: any) => {
   console.log(`Socket connected: ${socket.id}`);
-  
+
   socket.on('join-session', (sessionId: string) => {
     socket.join(sessionId);
     console.log(`Socket ${socket.id} joined room ${sessionId}`);
@@ -44,10 +48,15 @@ io.on('connection', (socket: any) => {
 });
 
 setIo(io);
+setIoFull(io);
 
 app.use('/api/session', sessionRouter);
 app.use('/api/attendance', attendanceRouter);
+app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
