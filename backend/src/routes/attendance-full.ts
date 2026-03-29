@@ -47,7 +47,7 @@ function nowHHMM(): string {
 // ---------------------------------------------------------------------------
 router.post('/session/create', async (req: Request, res: Response) => {
   try {
-    const { courseId, facultyUserId, latitude, longitude, geoRadius } = req.body;
+    const { courseId, facultyUserId, latitude, longitude, geoRadius, department, section, period, courseName } = req.body;
 
     const faculty = await Faculty.findOne({ userId: facultyUserId });
     if (!faculty) {
@@ -55,11 +55,15 @@ router.post('/session/create', async (req: Request, res: Response) => {
     }
 
     const session = await AttendanceSession.create({
-      courseId,
+      courseId: courseId || null,
       facultyId: faculty._id,
       sessionDate: new Date(),
       startTime: nowHHMM(),
       endTime: '',
+      department: department || '',
+      section: section || '',
+      period: period || '',
+      courseName: courseName || '',
       qrCode: uuidv4(),
       qrExpiry: new Date(Date.now() + 15 * 1000),
       latitude: latitude ?? null,
@@ -299,12 +303,14 @@ router.get('/session/:id/qr', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No active QR code for this session' });
     }
 
-    const course = session.courseId as any;
-
     const payload = JSON.stringify({
       sessionId: session._id,
       token: session.qrCode,
       exp: session.qrExpiry,
+      subject: session.courseName || '',
+      period: session.period || '',
+      department: session.department || '',
+      section: session.section || '',
     });
 
     const qrDataUrl = await QRCode.toDataURL(payload);
@@ -315,8 +321,8 @@ router.get('/session/:id/qr', async (req: Request, res: Response) => {
       sessionId: session._id,
       token: session.qrCode,
       expiresAt: session.qrExpiry,
-      courseName: course?.name ?? session.courseName ?? '',
-      courseCode: course?.code ?? '',
+      courseName: session.courseName || '',
+      period: session.period || '',
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: (error as Error).message });
@@ -354,11 +360,11 @@ router.post('/mark', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Attendance already marked for this session' });
     }
 
-    // ---- Proxy detection ----
+    // ---- Proxy detection (STRICT) ----
     let riskScore = 0;
     const flags: string[] = [];
 
-    // 1. Geo check
+    // 1. Geo check - HARD FAIL if way off, FLAG if slightly off
     if (
       session.latitude != null &&
       session.longitude != null &&
@@ -367,13 +373,24 @@ router.post('/mark', async (req: Request, res: Response) => {
     ) {
       const distance = getDistance(session.latitude, session.longitude, latitude, longitude);
       const radius = session.geoRadius ?? 100;
+
+      if (distance > 2000) { // HARD FAIL: > 2km away
+        return res.status(403).json({
+          error: 'Location verification failed: You are too far from the classroom.',
+          distance: Math.round(distance)
+        });
+      }
+
       if (distance > radius) {
-        riskScore += 40;
+        riskScore += 45;
         flags.push(`LOCATION: ${Math.round(distance)}m away (radius ${radius}m)`);
       }
+    } else if (session.latitude != null) {
+      // Require location if session has it set
+      return res.status(400).json({ error: 'Location data is required for this session.' });
     }
 
-    // 2. Device check – same fingerprint used by a different user in this session
+    // 2. Device check – Strict binding: One device per student per session
     if (deviceFingerprint) {
       const deviceDuplicate = await AttendanceRecord.findOne({
         sessionId: session._id,
@@ -381,22 +398,25 @@ router.post('/mark', async (req: Request, res: Response) => {
         userId: { $ne: userId },
       });
       if (deviceDuplicate) {
-        riskScore += 35;
-        flags.push('DEVICE: Same device fingerprint used by another student');
+        riskScore += 55; // Immediate PROXY status
+        flags.push('DEVICE: Multiple students detected on this device');
       }
+    } else {
+      riskScore += 20;
+      flags.push('SECURITY: Device fingerprint missing');
     }
 
-    // 3. IP clustering – more than 3 records from the same IP within 30 seconds
-    if (ip) {
-      const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
+    // 3. IP clustering – STRICT: Only 2 marks per IP per 2 minutes (preventing hotspot proxying)
+    if (ip && ip !== 'unknown') {
+      const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
       const ipCount = await AttendanceRecord.countDocuments({
         sessionId: session._id,
         ipAddress: ip,
-        markedAt: { $gte: thirtySecsAgo },
+        markedAt: { $gte: twoMinsAgo },
       });
-      if (ipCount > 3) {
-        riskScore += 25;
-        flags.push(`IP_CLUSTER: ${ipCount + 1} marks from same IP in 30s`);
+      if (ipCount >= 2) {
+        riskScore += 35;
+        flags.push(`IP_CLUSTER: Multiple marks (${ipCount + 1}) from IP ${ip} detected.`);
       }
     }
 

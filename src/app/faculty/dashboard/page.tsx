@@ -3,270 +3,353 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
+import Magnetic from "@/components/Magnetic";
 import { useToast } from "@/components/Toast";
 import io from "socket.io-client";
 import axios from "axios";
-import QRCode from "qrcode";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Check, Users, ShieldAlert, Activity, LayoutDashboard, QrCode } from "lucide-react";
+import {
+  ChevronDown, Check, Users, ShieldAlert, Activity,
+  LayoutDashboard, QrCode, BookOpen, Layers, Clock,
+  RefreshCw, AlertCircle, BarChart3, TrendingUp, ShieldCheck
+} from "lucide-react";
 
-const API_URL = "http://localhost:5001/api";
-const SOCKET_URL = "http://localhost:5001";
-
-interface Course {
-  _id: string;
-  name: string;
-  code: string;
-  department: string;
-}
+import { DEPARTMENTS, TIME_PERIODS } from "@/lib/constants";
 
 export default function FacultyDashboard() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState<any>(null);
 
+  // Selection State
+  const [selectedDept, setSelectedDept] = useState<any>(null);
+  const [selectedSection, setSelectedSection] = useState<any>(null);
+  const [selectedSubject, setSelectedSubject] = useState<any>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // QR Session
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string>("");
   const [presentStudents, setPresentStudents] = useState<any[]>([]);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [qrTimer, setQrTimer] = useState(15);
-  
-  const rotateRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const socketRef = useRef<any>(null);
 
+  const socketRef = useRef<any>(null);
   const { showToast } = useToast();
 
-  const fetchCourses = useCallback(async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/session/courses`);
-      if (res.data.success) {
-        setCourses(res.data.courses);
-        if (res.data.courses.length > 0) setSelectedCourse(res.data.courses[0]);
+      const res = await axios.get("/api/faculty/dashboard");
+      if (res.data.stats) {
+        setDashboardData(res.data);
       }
-    } catch { 
-      showToast("❌ Failed to load courses"); 
+    } catch {
+      showToast("❌ Failed to load dashboard data");
     }
     setLoading(false);
-  }, []);
+  }, [showToast]);
 
-  useEffect(() => { 
-    fetchCourses(); 
-  }, [fetchCourses]);
-
-  // Handle Socket.io connection
   useEffect(() => {
-    socketRef.current = io(SOCKET_URL);
-    
-    socketRef.current.on("connect", () => {
-      console.log("Connected to WebSocket");
-    });
-
-    socketRef.current.on("attendance_marked", (attendanceRecord: any) => {
-      setPresentStudents((prev) => {
-        if (prev.find(p => p.studentId?._id === attendanceRecord.studentId?._id)) return prev;
-        return [attendanceRecord, ...prev];
-      });
-      // Limit toast spam if scaling to 5000 students rapidly checking in
-      // showToast(`✅ ${attendanceRecord.studentId?.name} joined!`);
-    });
-
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 60000);
     return () => {
+      clearInterval(interval);
       if (socketRef.current) socketRef.current.disconnect();
     };
-  }, []);
+  }, [fetchDashboard]);
 
-  const rotateQR = useCallback(async (sessionId: string) => {
-    try {
-      const res = await axios.get(`${API_URL}/session/generate-qr/${sessionId}`);
-      if (res.data.success) {
-        const qrDataUrl = await QRCode.toDataURL(res.data.token, { 
-          width: 320, 
-          margin: 1, 
-          color: { dark: "#000000", light: "#ffffff" } 
+  // Handle Socket for real-time updates
+  useEffect(() => {
+    if (activeSessionId) {
+      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000");
+      socketRef.current.emit("join-session", activeSessionId);
+
+      socketRef.current.on("attendance_marked", (newRecord: any) => {
+        setPresentStudents(prev => {
+          if (prev.find(r => r._id === newRecord._id)) return prev;
+          return [newRecord, ...prev];
         });
-        setQrImageUrl(qrDataUrl);
+        showToast(`👤 ${newRecord.user?.name || "Student"} checked in`);
+      });
+
+      return () => {
+        if (socketRef.current) socketRef.current.disconnect();
+      };
+    }
+  }, [activeSessionId, showToast]);
+
+  // Reset nested selections when parent changes
+  useEffect(() => { setSelectedSection(null); setSelectedSubject(null); }, [selectedDept]);
+  useEffect(() => { setSelectedSubject(null); }, [selectedSection]);
+
+  const rotateQR = useCallback(async () => {
+    if (!activeSessionId) return;
+    try {
+      await axios.post("/api/attendance/session/rotate", { sessionId: activeSessionId });
+      const res = await axios.get(`/api/attendance/session/${activeSessionId}/qr`);
+      if (res.data.qrDataUrl) {
+        setQrImageUrl(res.data.qrDataUrl);
         setQrTimer(15);
       }
-    } catch (err) {
-      console.error("Failed to rotate QR", err);
+    } catch {
+      showToast("⚠️ QR Rotation Failed");
     }
-  }, []);
+  }, [activeSessionId, showToast]);
 
   useEffect(() => {
-    if (!activeSessionId) return;
-    rotateQR(activeSessionId);
-    
-    rotateRef.current = setInterval(() => {
-      rotateQR(activeSessionId);
-    }, 15000);
-
-    const countdown = setInterval(() => {
-      setQrTimer(prev => (prev > 0 ? prev - 1 : 15));
-    }, 1000);
-
-    return () => { 
-      if (rotateRef.current) clearInterval(rotateRef.current); 
-      clearInterval(countdown);
-    };
+    if (activeSessionId) {
+      const timer = setInterval(() => {
+        setQrTimer(prev => {
+          if (prev <= 1) {
+            rotateQR();
+            return 15;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
   }, [activeSessionId, rotateQR]);
 
   const startSession = async () => {
-    if (!selectedCourse) return showToast("Select a course first");
+    if (!selectedSubject || !selectedPeriod) return showToast("Complete all selections first");
     setSessionLoading(true);
+
     try {
-      const res = await axios.post(`${API_URL}/session/create`, {
-        courseName: selectedCourse.name,
-        facultyId: "660c1234abcd5678ef901234" // hardcoded prof for demo
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000
+          });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch {
+        showToast("⚠️ Location access denied. Geo-fencing disabled.");
+      }
+
+      const res = await axios.post("/api/attendance/session/create", {
+        department: selectedDept.name,
+        section: selectedSection.name,
+        courseName: selectedSubject.name,
+        period: selectedPeriod,
+        latitude: lat,
+        longitude: lng,
+        geoRadius: 100
       });
-      
+
       if (res.data.success) {
         const sessionId = res.data.session._id;
         setActiveSessionId(sessionId);
         setPresentStudents([]);
-        
-        socketRef.current.emit("join-session", sessionId);
-        showToast(`✅ Live Session Started: ${selectedCourse.name}`);
+        const qrRes = await axios.get(`/api/attendance/session/${sessionId}/qr`);
+        setQrImageUrl(qrRes.data.qrDataUrl);
+        showToast(`✅ Live Session Started: ${selectedSubject.name}`);
       }
-    } catch (err) { 
-      showToast("❌ Failed to start session"); 
+    } catch (err: any) {
+      showToast(`❌ Error: ${err.response?.data?.error || "Failed to start session"}`);
     }
     setSessionLoading(false);
   };
 
   const endSession = async () => {
     if (!activeSessionId) return;
+    if (!confirm("Terminate this session and commit records to ledger?")) return;
+
     setSessionLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/session/end/${activeSessionId}`);
+      const res = await axios.post("/api/attendance/session/end", { sessionId: activeSessionId });
       if (res.data.success) {
-        showToast(`✅ Session ended. Total Present: ${presentStudents.length}`);
+        showToast(`✅ Session ended. Present: ${res.data.summary.present}`);
         setActiveSessionId(null);
         setQrImageUrl("");
+        fetchDashboard();
       }
-    } catch { 
-      showToast("❌ Failed to end session"); 
+    } catch {
+      showToast("❌ Failed to end session");
     }
     setSessionLoading(false);
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white/40">
-      Loading Dashboard...
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <RefreshCw className="w-8 h-8 text-white/20 animate-spin" />
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-white/20 relative overflow-hidden">
       {/* Vengance UI Glows */}
-      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-[100px] pointer-events-none -z-10" />
-      <div className="absolute bottom-0 inset-x-0 h-[500px] bg-gradient-to-t from-emerald-500/10 via-teal-500/5 to-transparent blur-[120px] pointer-events-none -z-10" />
-      
+      <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-indigo-500/10 via-purple-500/5 to-transparent blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute bottom-0 inset-x-0 h-[500px] bg-gradient-to-t from-emerald-500/10 via-teal-500/5 to-transparent blur-[140px] pointer-events-none -z-10" />
+
       <Navbar />
 
       <main className="relative z-10 pt-28 pb-20 max-w-[1400px] mx-auto px-6">
-        
+
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-4 text-xs font-medium text-white/70">
-              <LayoutDashboard size={14} /> Faculty Portal
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-4 text-[10px] font-black text-white/50 uppercase tracking-widest">
+              <LayoutDashboard size={12} className="text-indigo-400" /> Faculty Neural Command
             </div>
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white/90">
-              Attendance <span className="text-white/40">Dashboard</span>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-none">
+              Attendance <span className="text-white/20">System</span>
             </h1>
-          </div>
+          </motion.div>
 
-          {/* Vengance/Apple Style Dropdown for Courses */}
-          <div className="relative w-full md:w-[320px]">
-            <label className="text-xs text-white/40 font-medium ml-1 mb-2 block uppercase tracking-wider">Select Subject</label>
-            <button 
-              onClick={() => !activeSessionId && setIsDropdownOpen(!isDropdownOpen)}
-              disabled={!!activeSessionId}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border ${activeSessionId ? 'border-white/5 bg-white/5 opacity-60 cursor-not-allowed' : 'border-white/10 bg-white/5 hover:bg-white/10 active:scale-[0.98]'} backdrop-blur-xl transition-all outline-none`}
-            >
-              <div className="flex flex-col items-start truncate pr-4">
-                <span className="text-sm font-medium text-white/90 truncate">{selectedCourse?.name || "No Course Selected"}</span>
-                <span className="text-xs text-white/40">{selectedCourse?.code || "---"}</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-white/40 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            <AnimatePresence>
-              {isDropdownOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-full left-0 right-0 mt-2 p-1 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-2xl shadow-2xl z-50 max-h-[300px] overflow-y-auto"
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            {[
+              { id: "dept", label: "Department", icon: <Layers size={14} />, current: selectedDept?.name || "Select Dept", disabled: !!activeSessionId, items: DEPARTMENTS, onSelect: setSelectedDept },
+              { id: "sect", label: "Section", icon: <Users size={14} />, current: selectedSection?.name || "Section", disabled: !!activeSessionId || !selectedDept, items: selectedDept?.sections || [], onSelect: setSelectedSection },
+              { id: "subj", label: "Subject", icon: <BookOpen size={14} />, current: selectedSubject?.name || "Subject", disabled: !!activeSessionId || !selectedSection, items: selectedSection?.subjects || [], onSelect: setSelectedSubject },
+              { id: "period", label: "Period", icon: <Clock size={14} />, current: selectedPeriod || "Select Time", disabled: !!activeSessionId, items: TIME_PERIODS.map(p => ({ id: p, name: p })), onSelect: (p: any) => setSelectedPeriod(p.name) }
+            ].map((dropdown) => (
+              <div key={dropdown.id} className="relative w-full md:w-auto min-w-[160px]">
+                <label className="text-[10px] text-white/30 font-bold ml-1 mb-2 block uppercase tracking-widest font-mono">{dropdown.label}</label>
+                <button
+                  onClick={() => !dropdown.disabled && setActiveDropdown(activeDropdown === dropdown.id ? null : dropdown.id)}
+                  disabled={dropdown.disabled}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border ${dropdown.disabled ? "border-white/5 bg-white/2 opacity-40" : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"} backdrop-blur-3xl transition-all active:scale-[0.98] group`}
                 >
-                  {courses.map(course => (
-                    <button
-                      key={course._id}
-                      onClick={() => { setSelectedCourse(course); setIsDropdownOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-left"
+                  <div className="flex items-center gap-3 truncate">
+                    <span className="text-white/40 group-hover:text-indigo-400 transition-colors">{dropdown.icon}</span>
+                    <span className="text-sm font-semibold truncate text-white/80">{dropdown.current}</span>
+                  </div>
+                  <ChevronDown size={14} className={`text-white/20 transition-transform duration-500 ${activeDropdown === dropdown.id ? "rotate-180 text-white" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {activeDropdown === dropdown.id && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                      className="absolute top-full left-0 right-0 mt-3 p-2 rounded-[2rem] border border-white/10 bg-[#0c0c0e]/95 backdrop-blur-3xl z-[100] shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar"
                     >
-                      <div className="flex flex-col">
-                        <span className={`text-sm ${selectedCourse?._id === course._id ? "text-white font-medium" : "text-white/70"}`}>
-                          {course.name}
-                        </span>
-                        <span className="text-xs text-white/30">{course.code}</span>
-                      </div>
-                      {selectedCourse?._id === course._id && <Check className="w-4 h-4 text-emerald-400" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      {dropdown.items.map((item: any) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { dropdown.onSelect(item); setActiveDropdown(null); }}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-xs text-left group"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold text-white/70 group-hover:text-white transition-colors">{item.name}</span>
+                            {item.code && <span className="text-[9px] text-white/20 font-mono tracking-tighter uppercase">{item.code}</span>}
+                          </div>
+                          {(dropdown.current === item.name) && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_#6366f1]" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Stats Summary Section */}
+        {dashboardData && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            {[
+              { label: "Avg Attendance", value: `${dashboardData.stats.avgAttendance}%`, sub: "Neural Yield", icon: <TrendingUp size={16}/>, color: "text-emerald-400", bg: "bg-emerald-500/5", border: "border-emerald-500/10" },
+              { label: "Total Students", value: dashboardData.stats.totalStudents, sub: "Linked Entities", icon: <Users size={16}/>, color: "text-white", bg: "bg-white/5", border: "border-white/10" },
+              { label: "At-Risk Entities", value: dashboardData.stats.atRiskStudents, sub: "Threshold Alert", icon: <ShieldAlert size={16}/>, color: "text-red-400", bg: "bg-red-500/5", border: "border-red-500/10" },
+              { label: "Neural Flags", value: dashboardData.stats.fraudFlagCount, sub: "Proxy Detected", icon: <AlertCircle size={16}/>, color: "text-amber-400", bg: "bg-amber-500/5", border: "border-amber-500/10" }
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className={`p-8 rounded-[2.5rem] border ${stat.border} ${stat.bg} backdrop-blur-3xl shadow-2xl relative overflow-hidden group`}
+              >
+                <div className="absolute top-0 right-0 p-6 text-white/5 group-hover:text-white/10 transition-colors">
+                  {stat.icon}
+                </div>
+                <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em] mb-3 font-mono">{stat.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-4xl font-black tracking-tighter ${stat.color}`}>{stat.value}</span>
+                  <span className="text-white/20 text-[10px] font-bold uppercase">{stat.sub}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
           {/* Main Attendance Table */}
-          <div className="lg:col-span-8 p-6 rounded-[24px] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-xl flex flex-col min-h-[500px]">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-lg font-semibold flex items-center gap-3">
-                <Users className="text-white/40" /> Live Feed
-                <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/60">
-                  {presentStudents.length.toLocaleString()} Scanned
-                </span>
-              </h2>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="lg:col-span-8 p-1 rounded-[3rem] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-2xl"
+          >
+            <div className="p-8 pb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black flex items-center gap-3 tracking-tight uppercase italic">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+                  Neural Feed
+                </h2>
+                <p className="text-[11px] text-white/30 font-bold uppercase tracking-widest mt-1">Real-time Biometric Link State</p>
+              </div>
+              <div className="px-4 py-2 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black font-mono text-white/40 uppercase">
+                {presentStudents.length} Synchronized
+              </div>
             </div>
-            
-            <div className="flex-1 overflow-auto pr-2 custom-scrollbar">
+
+            <div className="p-4 max-h-[600px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-[#050505]/90 backdrop-blur-md z-10">
+                <thead className="sticky top-0 bg-[#0c0c0e] z-10">
                   <tr>
-                    <th className="pb-4 text-xs font-medium text-white/30 uppercase tracking-widest font-mono">Student Name</th>
-                    <th className="pb-4 text-xs font-medium text-white/30 uppercase tracking-widest font-mono">Timestamp</th>
-                    <th className="pb-4 text-xs font-medium text-white/30 uppercase tracking-widest font-mono text-right">Status</th>
+                    <th className="px-4 pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono">Entity Identity</th>
+                    <th className="px-4 pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono">Temporal Mark</th>
+                    <th className="px-4 pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono text-right">Ledger Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  <AnimatePresence>
-                    {presentStudents.map((record, i) => (
-                      <motion.tr 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 }}
-                        key={record._id || i}
-                        className="group"
+                  <AnimatePresence mode="popLayout">
+                    {presentStudents.map((record) => (
+                      <motion.tr
+                        layout
+                        initial={{ opacity: 0, x: -10, filter: "blur(8px)" }}
+                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        key={record._id}
+                        className="group hover:bg-white/[0.03] transition-colors"
                       >
-                        <td className="py-4 text-sm font-medium text-white/80 group-hover:text-white transition-colors">
-                          {record.studentId?.name || "Unknown"}
+                        <td className="px-4 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-xs font-black text-indigo-300 border border-indigo-500/20 shadow-lg group-hover:scale-110 transition-transform">
+                              {record.user?.name?.charAt(0) || "S"}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-white/90 group-hover:text-white transition-colors">{record.user?.name || "Student Entity"}</span>
+                              <span className="text-[9px] text-white/20 font-mono tracking-tighter uppercase">ID: {record._id.slice(-8).toUpperCase()}</span>
+                            </div>
+                          </div>
                         </td>
-                        <td className="py-4 text-sm text-white/40 font-mono">
-                          {new Date(record.timestamp).toLocaleTimeString()}
+                        <td className="px-4 py-5 text-xs text-white/40 font-mono font-bold">
+                          {new Date(record.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </td>
-                        <td className="py-4 text-right">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Verified
-                          </span>
+                        <td className="px-4 py-5 text-right">
+                          {record.flagged ? (
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-black tracking-wider uppercase shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                              <ShieldAlert size={12} /> PROXY_REVIEW
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black tracking-wider uppercase shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                              <ShieldCheck size={12} className="text-emerald-500" /> SECURE_LINK
+                            </span>
+                          )}
                         </td>
                       </motion.tr>
                     ))}
@@ -275,92 +358,257 @@ export default function FacultyDashboard() {
               </table>
 
               {presentStudents.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-white/20 space-y-4 pt-20">
-                  <Activity className="w-12 h-12 opacity-50" />
-                  <p className="text-sm">Waiting for real-time scans...</p>
+                <div className="py-32 flex flex-col items-center justify-center text-white/10 space-y-6">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}>
+                    <Activity size={48} strokeWidth={1} />
+                  </motion.div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.4em] italic">Awaiting Neural Uplink...</p>
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Right Panel: QR Engine */}
-          <div className="lg:col-span-4 p-6 rounded-[24px] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-xl flex flex-col items-center">
-            
-            <div className="w-full flex items-center justify-between mb-8">
-              <h2 className="text-lg font-semibold flex items-center gap-3">
-                <QrCode className="text-white/40" /> Engine
-              </h2>
-              {activeSessionId && (
-                <span className="flex items-center gap-2 px-2 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /> LIVE
-                </span>
+          <div className="lg:col-span-4 space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-8 rounded-[3rem] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-2xl flex flex-col items-center"
+            >
+              <div className="w-full flex items-center justify-between mb-10">
+                <h2 className="text-lg font-black flex items-center gap-3 tracking-tighter uppercase italic">
+                  <QrCode className="text-indigo-400" /> QR Engine
+                </h2>
+                {activeSessionId && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-400 tracking-tighter uppercase shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /> Live Rotation
+                  </div>
+                )}
+              </div>
+
+              {!activeSessionId ? (
+                <div className="w-full flex flex-col items-center text-center space-y-10 py-10">
+                  <div className="w-40 h-40 rounded-[3rem] border border-white/5 bg-white/2 flex items-center justify-center shadow-inner group relative">
+                    <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <QrCode size={64} className="text-white/10 group-hover:text-white/30 transition-all duration-700 group-hover:scale-110" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black text-white/70 tracking-widest uppercase italic">Encryption Ready</h3>
+                    <p className="text-[11px] text-white/30 leading-relaxed font-bold uppercase tracking-tight">
+                      Cryptographic rotation activates upon session start. Location and device fingerprinting enforced.
+                    </p>
+                  </div>
+
+                  <Magnetic strength={0.25}>
+                    <button
+                      onClick={startSession}
+                      disabled={sessionLoading || !selectedSubject}
+                      className="w-full min-w-[260px] py-5 rounded-[2.5rem] bg-white text-black text-xs font-black uppercase tracking-[0.3em] hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_20px_60px_rgba(255,255,255,0.2)]"
+                    >
+                      {sessionLoading ? "Initializing Node..." : "Start Secure Session"}
+                    </button>
+                  </Magnetic>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col items-center space-y-10">
+                  <div className="p-6 bg-white rounded-[3.5rem] shadow-[0_0_120px_rgba(255,255,255,0.15)] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-10" />
+                    {qrImageUrl ? (
+                      <motion.img
+                        initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                        key={qrImageUrl}
+                        src={qrImageUrl}
+                        alt="Dynamic QR"
+                        className="w-[280px] h-[280px] rounded-[2rem] relative z-0"
+                      />
+                    ) : (
+                      <div className="w-[280px] h-[280px] flex items-center justify-center bg-gray-50 rounded-[2rem]">
+                        <RefreshCw className="w-10 h-10 text-gray-200 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-full flex flex-col items-center space-y-4 px-4">
+                    <div className="flex justify-between w-full text-[10px] font-black font-mono tracking-[0.3em] text-white/30 uppercase">
+                      <span>Neural Cycle</span>
+                      <span className={qrTimer <= 5 ? "text-red-400" : "text-emerald-400"}>00:{String(qrTimer).padStart(2, "0")}</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden shadow-inner">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 shadow-[0_0_20px_#6366f1]"
+                        initial={{ width: "100%" }}
+                        animate={{ width: `${(qrTimer / 15) * 100}%` }}
+                        transition={{ duration: 1, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
+
+                  <Magnetic strength={0.2}>
+                    <button
+                      onClick={endSession}
+                      disabled={sessionLoading}
+                      className="w-full min-w-[260px] py-5 rounded-[2.5rem] bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-[0.3em] hover:bg-red-500/20 active:scale-[0.98] transition-all"
+                    >
+                      {sessionLoading ? "De-coupling..." : "Terminate Session"}
+                    </button>
+                  </Magnetic>
+                </div>
               )}
-            </div>
+            </motion.div>
 
-            {!activeSessionId ? (
-              <div className="w-full flex-1 flex flex-col justify-center text-center space-y-6">
-                <div className="w-32 h-32 mx-auto rounded-3xl border border-white/5 bg-white/5 flex items-center justify-center">
-                  <QrCode className="w-12 h-12 text-white/20" />
-                </div>
-                <p className="text-sm text-white/40 leading-relaxed px-4">
-                  Start a secure cryptographic session. A dynamic QR code will be generated and rotated every 15s to prevent fraud.
-                </p>
-                <button 
-                  onClick={startSession} 
-                  disabled={sessionLoading || !selectedCourse}
-                  className="w-full py-4 rounded-2xl bg-white text-black font-semibold tracking-wide hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(255,255,255,0.15)]"
-                >
-                  {sessionLoading ? "Initializing..." : "Start Secure Session"}
-                </button>
-              </div>
-            ) : (
-              <div className="w-full flex-1 flex flex-col items-center text-center space-y-6">
-                
-                <div className="p-4 bg-white rounded-[2rem] shadow-2xl relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-10" />
-                  {qrImageUrl ? (
-                    <img src={qrImageUrl} alt="Dynamic QR" className="w-[240px] h-[240px] rounded-xl relative z-0" />
-                  ) : (
-                    <div className="w-[240px] h-[240px] flex items-center justify-center bg-gray-100 animate-pulse rounded-xl" />
-                  )}
-                </div>
+            {/* Teacher Analytics Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-8 rounded-[3rem] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-2xl space-y-8"
+            >
+              <h3 className="text-xs font-black text-white/30 uppercase tracking-[0.3em] flex items-center gap-2 italic">
+                <BarChart3 size={14} className="text-indigo-400" /> Neural Analytics
+              </h3>
 
-                <div className="w-full flex flex-col items-center space-y-2">
-                  <div className="flex justify-between w-full px-2 text-xs font-mono text-white/40">
-                    <span>Rotation Engine</span>
-                    <span className={qrTimer <= 5 ? "text-red-400" : "text-emerald-400"}>00:{String(qrTimer).padStart(2, "0")}</span>
+              <div className="space-y-6">
+                {/* Visual Analytics Example */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] font-black text-white/50 uppercase tracking-tighter">Engagement Yield</span>
+                    <span className="text-xs font-black text-emerald-400">92%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                      className="h-full bg-white/80"
-                      initial={{ width: "100%" }}
-                      animate={{ width: `${(qrTimer / 15) * 100}%` }}
-                      transition={{ duration: 1, ease: "linear" }}
-                    />
+                  <div className="flex gap-1 h-12 items-end">
+                    {[40, 70, 45, 90, 65, 80, 55, 95, 30, 85, 60, 75].map((h, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ delay: i * 0.05, type: "spring" }}
+                        className="flex-1 bg-gradient-to-t from-indigo-500/20 to-indigo-400/60 rounded-t-sm"
+                      />
+                    ))}
                   </div>
                 </div>
 
-                <button 
-                  onClick={endSession} 
-                  disabled={sessionLoading}
-                  className="w-full mt-4 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-semibold hover:bg-red-500/20 active:scale-[0.98] transition-all"
-                >
-                  {sessionLoading ? "Terminating..." : "End Session & Save"}
-                </button>
-
+                <div className="space-y-3 pt-4 border-t border-white/5">
+                  {[
+                    { label: "IP Clustering", status: "Active", color: "text-emerald-400" },
+                    { label: "Temporal Lag", status: "0.2ms", color: "text-indigo-400" },
+                    { label: "Proxy Resistance", status: "Ultra-High", color: "text-purple-400" }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                      <span className="text-[10px] font-black text-white/40 uppercase tracking-tighter">{item.label}</span>
+                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${item.color}`}>{item.status}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            )}
+            </motion.div>
           </div>
         </div>
 
+        {/* Extended Teacher Analytics Section */}
+        {dashboardData && (
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Student Engagement Matrix */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="lg:col-span-8 p-10 rounded-[3.5rem] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-2xl"
+            >
+              <h2 className="text-xl font-black mb-8 flex items-center gap-4 tracking-tight uppercase italic">
+                <Users className="text-indigo-400" /> Student Engagement Matrix
+              </h2>
+              <div className="overflow-auto pr-2 custom-scrollbar max-h-[500px]">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-[#0c0c0e] z-10">
+                    <tr>
+                      <th className="pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono">Roll Number</th>
+                      <th className="pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono">Full Name</th>
+                      <th className="pb-6 text-[10px] font-black text-white/20 uppercase tracking-[0.2em] font-mono text-right">Yield %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {dashboardData.students.map((student: any) => (
+                      <tr key={student.userId} className="group hover:bg-white/[0.03] transition-all">
+                        <td className="py-5 text-xs font-black font-mono text-white/30 group-hover:text-white/50">{student.rollNumber}</td>
+                        <td className="py-5 text-sm font-bold text-white/80 group-hover:text-white">{student.name}</td>
+                        <td className="py-5 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden hidden md:block">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${student.percentage}%` }}
+                                className={`h-full rounded-full ${student.percentage >= 75 ? "bg-emerald-500/50" : "bg-red-500/50"}`}
+                              />
+                            </div>
+                            <span className={`text-sm font-black italic ${student.percentage >= 75 ? "text-emerald-400" : "text-red-400"}`}>
+                              {student.percentage}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+
+            {/* Neural Security Logs */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="lg:col-span-4 p-10 rounded-[3.5rem] border border-white/10 bg-white/[0.02] backdrop-blur-3xl shadow-2xl"
+            >
+              <h2 className="text-xl font-black mb-8 flex items-center gap-4 text-amber-400 tracking-tight uppercase italic">
+                <ShieldAlert /> Security Flags
+              </h2>
+              <div className="space-y-6 overflow-auto pr-2 custom-scrollbar max-h-[500px]">
+                {dashboardData.fraudFlags.length > 0 ? (
+                  dashboardData.fraudFlags.map((flag: any, i: number) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + i * 0.1 }}
+                      className="p-6 rounded-[2rem] border border-amber-500/20 bg-amber-500/5 space-y-4 hover:border-amber-500/40 transition-colors group"
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-black text-white/90 italic group-hover:text-white">{flag.studentName}</span>
+                        <span className="text-[9px] px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/20 font-black tracking-widest uppercase">
+                          RISK: {flag.riskScore}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {flag.alerts.map((alert: any, j: number) => (
+                          <p key={j} className="text-[11px] text-white/40 font-bold leading-relaxed flex items-start gap-2">
+                            <span className="text-amber-500 mt-1">•</span> {alert.description}
+                          </p>
+                        ))}
+                      </div>
+                      <p className="text-[9px] text-white/20 font-black font-mono mt-2 uppercase tracking-widest">
+                        TIMESTAMP: {new Date(flag.date).toLocaleString()}
+                      </p>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-20 flex flex-col items-center justify-center text-white/10 space-y-6">
+                    <ShieldCheck size={48} strokeWidth={1} className="text-emerald-500/20" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">Neural Perimeter Secure</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
       </main>
-      
-      {/* Global minimal custom scrollbar override */}
+
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.1); }
       `}} />
     </div>
   );

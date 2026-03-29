@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email", placeholder: "student@college.edu" },
         password: { label: "Password", type: "password" },
-        totp: { label: "2FA Token", type: "text", placeholder: "123456", optional: true }
+        totp: { label: "OTP", type: "text", optional: true }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -20,12 +20,20 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const res = await axios.post("http://localhost:5000/api/auth/login", {
-            email: credentials.email,
-            password: credentials.password,
-          });
+          const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
 
+          // If OTP is provided, verify it, otherwise check credentials
+          const endpoint = credentials.totp ? "/api/auth/verify-otp" : "/api/auth/login";
+          const payload = credentials.totp
+            ? { email: credentials.email, otp: credentials.totp }
+            : { email: credentials.email, password: credentials.password };
+
+          const res = await axios.post(`${backendUrl}${endpoint}`, payload);
           const user = res.data;
+
+          if (user.requiresOTP) {
+            throw new Error("OTP_REQUIRED");
+          }
 
           return {
             id: user.id,
@@ -34,6 +42,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
           };
         } catch (error: any) {
+          if (error.message === "OTP_REQUIRED") throw error;
           throw new Error(error.response?.data?.error || "Invalid credentials");
         }
       },
