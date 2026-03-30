@@ -15,6 +15,7 @@ function NavbarInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
   const role = session?.user?.role;
   const currentTab = searchParams.get("tab") || "classroom";
@@ -56,8 +57,11 @@ function NavbarInner() {
         initial={{ y: 100, opacity: 0, scale: 0.9 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: "spring", damping: 18, stiffness: 120, delay: 0.5 }}
-        className="pointer-events-auto bg-[#0c0c0e]/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] px-5 py-4 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5"
+        className="pointer-events-auto bg-[#0c0c0e]/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] px-5 py-4 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5 relative overflow-hidden group/nav"
       >
+        {/* Navbar internal spotlight */}
+        <div className="absolute inset-0 opacity-0 group-hover/nav:opacity-100 transition-opacity duration-700 pointer-events-none bg-[radial-gradient(400px_circle_at_var(--mouse-x)_var(--mouse-y),rgba(99,102,241,0.05),transparent_40%)]" />
+
         {tabs.map((tab) => {
           const isActive = (pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "")).includes(tab.path) ||
                           (tab.id === "classroom" && pathname === "/student/dashboard" && !searchParams.get("tab")) ||
@@ -67,13 +71,17 @@ function NavbarInner() {
             <Magnetic key={tab.id} strength={0.15}>
               <button
                 onClick={() => router.push(tab.path)}
+                onMouseEnter={() => setHoveredTab(tab.id)}
+                onMouseLeave={() => setHoveredTab(null)}
                 className="relative px-6 py-4 rounded-[2rem] flex flex-col items-center gap-2 transition-all group active:scale-90"
               >
                 <AnimatePresence>
-                  {isActive && (
+                  {(isActive || hoveredTab === tab.id) && (
                     <motion.div
                       layoutId="nav-glow"
-                      className="absolute inset-0 bg-indigo-500/[0.08] border border-indigo-500/20 rounded-[2rem] -z-10 shadow-[0_0_30px_rgba(79,70,229,0.2)]"
+                      className={`absolute inset-0 border rounded-[2rem] -z-10 shadow-[0_0_30px_rgba(79,70,229,0.2)] ${
+                        isActive ? "bg-indigo-500/[0.08] border-indigo-500/20" : "bg-white/[0.02] border-white/5"
+                      }`}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}

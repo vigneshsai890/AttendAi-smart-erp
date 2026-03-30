@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ToastProvider } from "@/components/Toast";
 import CustomCursor from "@/components/CustomCursor";
 import PageWrapper from "@/components/PageWrapper";
+import SplashScreen from "@/components/SplashScreen";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -36,6 +37,7 @@ export default function RootLayout({
         dmSans.variable
       )}>
         <ToastProvider>
+          <SplashScreen />
           <CustomCursor />
           <PageWrapper>
             {children}
