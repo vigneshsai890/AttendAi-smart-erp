@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/Toast";
+import { ShieldCheck } from "lucide-react";
 
 export default function SecuritySettings() {
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);

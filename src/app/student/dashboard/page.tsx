@@ -9,7 +9,7 @@ import Background from "@/components/Background";
 import {
   Activity, GraduationCap, LayoutDashboard,
   BookOpen, Clock, ShieldAlert, CheckCircle2,
-  ChevronRight, Bell, User, History
+  ChevronRight, Bell, User, History, Zap
 } from "lucide-react";
 
 interface Subject {
