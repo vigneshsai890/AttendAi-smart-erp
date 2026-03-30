@@ -5,6 +5,7 @@ import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import Magnetic from "@/components/Magnetic";
 import { useToast } from "@/components/Toast";
+import TiltCard from "@/components/TiltCard";
 import io from "socket.io-client";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
@@ -280,29 +281,27 @@ export default function FacultyDashboard() {
               { label: "At-Risk Entities", value: dashboardData.stats.atRiskStudents, sub: "Threshold Alert", icon: <ShieldAlert size={16}/>, color: "text-red-400", bg: "bg-red-500/5", border: "border-red-500/10", glow: "rgba(239,68,68,0.15)" },
               { label: "Neural Flags", value: dashboardData.stats.fraudFlagCount, sub: "Proxy Detected", icon: <AlertCircle size={16}/>, color: "text-amber-400", bg: "bg-amber-500/5", border: "border-amber-500/10", glow: "rgba(245,158,11,0.15)" }
             ].map((stat, i) => (
-              <motion.div
+              <TiltCard
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -5 }}
-                className={`p-10 rounded-[3rem] border ${stat.border} ${stat.bg} backdrop-blur-3xl shadow-2xl relative overflow-hidden group`}
+                glowColor={stat.glow}
+                className="rounded-[3rem]"
               >
-                {/* Spotlight Overlay */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${stat.glow}, transparent 40%)` }}
-                />
-
-                <div className="absolute top-0 right-0 p-8 text-white/5 group-hover:text-white/10 transition-colors relative z-10">
-                  {stat.icon}
-                </div>
-                <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mb-4 font-mono relative z-10">{stat.label}</p>
-                <div className="flex items-baseline gap-2 relative z-10">
-                  <span className={`text-5xl font-black tracking-tighter ${stat.color} italic drop-shadow-2xl`}>{stat.value}</span>
-                  <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">{stat.sub}</span>
-                </div>
-              </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`p-10 rounded-[3rem] border ${stat.border} ${stat.bg} backdrop-blur-3xl shadow-2xl relative overflow-hidden h-full`}
+                >
+                  <div className="absolute top-0 right-0 p-8 text-white/5 group-hover:text-white/10 transition-colors relative z-10">
+                    {stat.icon}
+                  </div>
+                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mb-4 font-mono relative z-10">{stat.label}</p>
+                  <div className="flex items-baseline gap-2 relative z-10">
+                    <span className={`text-5xl font-black tracking-tighter ${stat.color} italic drop-shadow-2xl`}>{stat.value}</span>
+                    <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">{stat.sub}</span>
+                  </div>
+                </motion.div>
+              </TiltCard>
             ))}
           </div>
         )}
@@ -311,118 +310,111 @@ export default function FacultyDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* Main Attendance Table: Neural Feed */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="lg:col-span-8 p-1 rounded-[4rem] border border-white/5 bg-white/[0.01] backdrop-blur-3xl shadow-2xl relative overflow-hidden group"
-          >
-            {/* Spotlight Overlay */}
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-              style={{ background: `radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.03), transparent 40%)` }}
-            />
-
-            <div className="p-10 pb-6 flex items-center justify-between relative z-10">
-              <div>
-                <h2 className="text-2xl font-black flex items-center gap-4 tracking-tight uppercase italic">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shadow-[0_0_15px_#10b981]" />
-                  Neural Feed
-                </h2>
-                <p className="text-[11px] text-white/20 font-black uppercase tracking-[0.4em] mt-2 font-mono">Real-time Biometric Link State</p>
-              </div>
-              <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-black font-mono text-white/50 uppercase tracking-widest ring-1 ring-white/5">
-                {presentStudents.length} SYNCED
-              </div>
-            </div>
-
-            <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar relative z-10">
-              <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-[#0c0c0e]/80 backdrop-blur-md z-20">
-                  <tr>
-                    <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono">Entity Identity</th>
-                    <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono">Temporal Mark</th>
-                    <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono text-right">Ledger Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.03]">
-                  <AnimatePresence mode="popLayout">
-                    {presentStudents.map((record) => (
-                      <motion.tr
-                        layout
-                        initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        key={record._id}
-                        className="group/row hover:bg-white/[0.03] transition-colors"
-                      >
-                        <td className="px-6 py-6">
-                          <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-sm font-black text-white italic border border-white/5 shadow-lg group-hover/row:scale-110 transition-transform duration-500">
-                              {record.user?.name?.charAt(0) || "S"}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-base font-black text-white/80 group-hover/row:text-white transition-colors italic">{record.user?.name || "Student Entity"}</span>
-                              <span className="text-[10px] text-white/20 font-mono font-bold tracking-tighter uppercase">ID-TRACE: {record._id.slice(-12).toUpperCase()}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-6 text-sm text-white/30 font-mono font-bold">
-                          {new Date(record.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </td>
-                        <td className="px-6 py-6 text-right">
-                          {record.flagged ? (
-                            <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-red-500/5 text-red-400 border border-red-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(239,68,68,0.1)] ring-1 ring-red-500/10">
-                              <ShieldAlert size={14} /> PROXY_ALERT
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-500/5 text-emerald-400 border border-emerald-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/10">
-                              <ShieldCheck size={14} className="text-emerald-500" /> SECURE_LINK
-                            </span>
-                          )}
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                </tbody>
-              </table>
-
-              {presentStudents.length === 0 && (
-                <div className="py-32 flex flex-col items-center justify-center text-white/10 space-y-6">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}>
-                    <Activity size={48} strokeWidth={1} />
-                  </motion.div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.4em] italic">Awaiting Neural Uplink...</p>
+          <div className="lg:col-span-8">
+            <TiltCard glowColor="rgba(255,255,255,0.03)" className="rounded-[4rem]">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-1 rounded-[4rem] border border-white/5 bg-white/[0.01] backdrop-blur-3xl shadow-2xl relative overflow-hidden h-full"
+              >
+                <div className="p-10 pb-6 flex items-center justify-between relative z-10">
+                  <div>
+                    <h2 className="text-2xl font-black flex items-center gap-4 tracking-tight uppercase italic">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shadow-[0_0_15px_#10b981]" />
+                      Neural Feed
+                    </h2>
+                    <p className="text-[11px] text-white/20 font-black uppercase tracking-[0.4em] mt-2 font-mono">Real-time Biometric Link State</p>
+                  </div>
+                  <div className="px-5 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-black font-mono text-white/50 uppercase tracking-widest ring-1 ring-white/5">
+                    {presentStudents.length} SYNCED
+                  </div>
                 </div>
-              )}
-            </div>
-          </motion.div>
+
+                <div className="p-6 max-h-[600px] overflow-y-auto custom-scrollbar relative z-10">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 bg-[#0c0c0e]/80 backdrop-blur-md z-20">
+                      <tr>
+                        <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono">Entity Identity</th>
+                        <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono">Temporal Mark</th>
+                        <th className="px-6 pb-8 text-[11px] font-black text-white/20 uppercase tracking-[0.3em] font-mono text-right">Ledger Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/[0.03]">
+                      <AnimatePresence mode="popLayout">
+                        {presentStudents.map((record) => (
+                          <motion.tr
+                            layout
+                            initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
+                            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            key={record._id}
+                            className="group/row hover:bg-white/[0.03] transition-colors"
+                          >
+                            <td className="px-6 py-6">
+                              <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-sm font-black text-white italic border border-white/5 shadow-lg group-hover/row:scale-110 transition-transform duration-500">
+                                  {record.user?.name?.charAt(0) || "S"}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-base font-black text-white/80 group-hover/row:text-white transition-colors italic">{record.user?.name || "Student Entity"}</span>
+                                  <span className="text-[10px] text-white/20 font-mono font-bold tracking-tighter uppercase">ID-TRACE: {record._id.slice(-12).toUpperCase()}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-6 text-sm text-white/30 font-mono font-bold">
+                              {new Date(record.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </td>
+                            <td className="px-6 py-6 text-right">
+                              {record.flagged ? (
+                                <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-red-500/5 text-red-400 border border-red-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(239,68,68,0.1)] ring-1 ring-red-500/10">
+                                  <ShieldAlert size={14} /> PROXY_ALERT
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-500/5 text-emerald-400 border border-emerald-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/10">
+                                  <ShieldCheck size={14} className="text-emerald-500" /> SECURE_LINK
+                                </span>
+                              )}
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    </tbody>
+                  </table>
+
+                  {presentStudents.length === 0 && (
+                    <div className="py-32 flex flex-col items-center justify-center text-white/10 space-y-6">
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }}>
+                        <Activity size={48} strokeWidth={1} />
+                      </motion.div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.4em] italic">Awaiting Neural Uplink...</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </TiltCard>
+          </div>
 
           {/* Right Panel: QR Engine */}
           <div className="lg:col-span-4 space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-10 rounded-[4rem] border border-white/10 bg-white/[0.03] backdrop-blur-3xl shadow-2xl flex flex-col items-center relative overflow-hidden group"
-            >
-              {/* Spotlight Overlay */}
-              <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ background: `radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99,102,241,0.1), transparent 40%)` }}
-              />
-
-              <div className="w-full flex items-center justify-between mb-12 relative z-10">
-                <h2 className="text-xl font-black flex items-center gap-4 tracking-tighter uppercase italic">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-lg group-hover:scale-110 transition-transform duration-500">
-                    <QrCode className="text-indigo-400 w-5 h-5" />
-                  </div>
-                  Encryption
-                </h2>
-                {activeSessionId && (
-                  <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 tracking-tighter uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)] ring-1 ring-red-500/10">
-                    <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" /> Live Sync
-                  </div>
-                )}
-              </div>
+            <TiltCard glowColor="rgba(99,102,241,0.1)" className="rounded-[4rem]">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-10 rounded-[4rem] border border-white/10 bg-white/[0.03] backdrop-blur-3xl shadow-2xl flex flex-col items-center relative overflow-hidden h-full"
+              >
+                <div className="w-full flex items-center justify-between mb-12 relative z-10">
+                  <h2 className="text-xl font-black flex items-center gap-4 tracking-tighter uppercase italic">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-lg group-hover:scale-110 transition-transform duration-500">
+                      <QrCode className="text-indigo-400 w-5 h-5" />
+                    </div>
+                    Encryption
+                  </h2>
+                  {activeSessionId && (
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 tracking-tighter uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)] ring-1 ring-red-500/10">
+                      <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" /> Live Sync
+                    </div>
+                  )}
+                </div>
 
               {!activeSessionId ? (
                 <div className="w-full flex flex-col items-center text-center space-y-12 py-12 relative z-10">

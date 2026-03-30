@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Magnetic from "@/components/Magnetic";
 import Background from "@/components/Background";
+import TiltCard from "@/components/TiltCard";
 import {
   Activity, GraduationCap, LayoutDashboard,
   BookOpen, Clock, ShieldAlert, CheckCircle2,
@@ -92,35 +93,37 @@ function HomeView({ data }: { data: DashboardData }) {
       className="max-w-2xl mx-auto px-6 pt-24"
     >
       {/* Premium Profile Header with Mesh Gradient */}
-      <div className="relative mb-12 p-8 rounded-[3rem] overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent -z-10" />
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700" />
+      <TiltCard glowColor="rgba(99, 102, 241, 0.1)" className="rounded-[3rem] mb-12">
+        <div className="relative p-8 rounded-[3rem] overflow-hidden bg-white/[0.01] border border-white/5 h-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-transparent -z-10" />
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700" />
 
-        <div className="flex items-end justify-between relative z-10">
-          <div>
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl mb-6 text-[10px] font-black text-indigo-400 uppercase tracking-widest ring-1 ring-white/5"
-            >
-              <GraduationCap size={12} /> Student Node · Online
-            </motion.div>
-            <h1 className="text-5xl font-black tracking-tight text-white mb-2 italic drop-shadow-2xl">
-              Hi, {data.user.name.split(' ')[0]}
-            </h1>
-            <p className="text-[12px] text-white/40 font-bold uppercase tracking-tight flex items-center gap-2">
-              <span className="text-white/60">{data.student.department}</span>
-              <span className="w-1 h-1 rounded-full bg-white/20" />
-              <span>Section {data.student.section}</span>
-            </p>
-          </div>
-          <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-[1px] shadow-2xl shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
-            <div className="w-full h-full rounded-[2rem] bg-[#0c0c0e] flex items-center justify-center text-2xl font-black text-white italic">
-              {data.user.name.charAt(0)}
+          <div className="flex items-end justify-between relative z-10">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl mb-6 text-[10px] font-black text-indigo-400 uppercase tracking-widest ring-1 ring-white/5"
+              >
+                <GraduationCap size={12} /> Student Node · Online
+              </motion.div>
+              <h1 className="text-5xl font-black tracking-tight text-white mb-2 italic drop-shadow-2xl">
+                Hi, {data.user.name.split(' ')[0]}
+              </h1>
+              <p className="text-[12px] text-white/40 font-bold uppercase tracking-tight flex items-center gap-2">
+                <span className="text-white/60">{data.student.department}</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span>Section {data.student.section}</span>
+              </p>
+            </div>
+            <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-[1px] shadow-2xl shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
+              <div className="w-full h-full rounded-[2rem] bg-[#0c0c0e] flex items-center justify-center text-2xl font-black text-white italic">
+                {data.user.name.charAt(0)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </TiltCard>
 
       {/* Active Session Portal: High-Tech Neural Link */}
       <AnimatePresence>
@@ -131,42 +134,44 @@ function HomeView({ data }: { data: DashboardData }) {
             className="mb-12"
           >
             <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mb-4 ml-4">Active Neural Link</p>
-            <Magnetic strength={0.1}>
-              <button
-                onClick={() => window.location.href = `/attend/${data.activeSession?.id}/${data.activeSession?.token}`}
-                className="w-full p-10 rounded-[4rem] bg-emerald-500/[0.03] border border-emerald-500/20 hover:bg-emerald-500/[0.07] hover:border-emerald-500/40 transition-all text-left relative overflow-hidden group shadow-2xl shadow-emerald-500/5 ring-1 ring-emerald-500/10"
-              >
-                {/* High-tech background elements */}
-                <div className="absolute top-0 right-0 p-10 text-emerald-500/[0.03] -z-10 group-hover:scale-110 group-hover:text-emerald-500/[0.08] transition-all duration-700">
-                  <Activity size={120} strokeWidth={0.5} />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <TiltCard glowColor="rgba(16, 185, 129, 0.15)" className="rounded-[4rem]">
+              <Magnetic strength={0.1}>
+                <button
+                  onClick={() => window.location.href = `/attend/${data.activeSession?.id}/${data.activeSession?.token}`}
+                  className="w-full p-10 rounded-[4rem] bg-emerald-500/[0.03] border border-emerald-500/20 hover:bg-emerald-500/[0.07] hover:border-emerald-500/40 transition-all text-left relative overflow-hidden group shadow-2xl shadow-emerald-500/5 ring-1 ring-emerald-500/10"
+                >
+                  {/* High-tech background elements */}
+                  <div className="absolute top-0 right-0 p-10 text-emerald-500/[0.03] -z-10 group-hover:scale-110 group-hover:text-emerald-500/[0.08] transition-all duration-700">
+                    <Activity size={120} strokeWidth={0.5} />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                <div className="flex items-center gap-8 relative z-10">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-[2.5rem] bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-inner group-hover:scale-105 transition-transform duration-500">
-                      <Zap size={36} className="fill-emerald-400/20" />
+                  <div className="flex items-center gap-8 relative z-10">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-[2.5rem] bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                        <Zap size={36} className="fill-emerald-400/20" />
+                      </div>
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#0c0c0e] shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse" />
                     </div>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#0c0c0e] shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Neural Sync in Progress</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Neural Sync in Progress</p>
+                      </div>
+                      <h3 className="text-2xl font-black text-white tracking-tight italic">{data.activeSession.courseName}</h3>
+                      <p className="text-[11px] text-white/40 font-mono tracking-tighter mt-1 flex items-center gap-2 uppercase">
+                        <span className="text-white/60 font-bold">{data.activeSession.courseCode}</span>
+                        <span className="w-1 h-1 rounded-full bg-white/10" />
+                        <span>Faculty Terminal A-101</span>
+                      </p>
                     </div>
-                    <h3 className="text-2xl font-black text-white tracking-tight italic">{data.activeSession.courseName}</h3>
-                    <p className="text-[11px] text-white/40 font-mono tracking-tighter mt-1 flex items-center gap-2 uppercase">
-                      <span className="text-white/60 font-bold">{data.activeSession.courseCode}</span>
-                      <span className="w-1 h-1 rounded-full bg-white/10" />
-                      <span>Faculty Terminal A-101</span>
-                    </p>
+                    <div className="w-12 h-12 rounded-full border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40 transition-all group-hover:translate-x-2">
+                      <ChevronRight size={24} className="text-emerald-500/60" />
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-full border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40 transition-all group-hover:translate-x-2">
-                    <ChevronRight size={24} className="text-emerald-500/60" />
-                  </div>
-                </div>
-              </button>
-            </Magnetic>
+                </button>
+              </Magnetic>
+            </TiltCard>
           </motion.div>
         )}
       </AnimatePresence>
@@ -187,61 +192,59 @@ function HomeView({ data }: { data: DashboardData }) {
             const glowColor = s.percentage >= 80 ? "rgba(16,185,129,0.1)" : s.percentage >= 75 ? "rgba(245,158,11,0.1)" : "rgba(239,68,68,0.1)";
 
             return (
-              <motion.div
+              <TiltCard
                 key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                whileHover={{ y: -2 }}
-                className="relative p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all shadow-2xl group overflow-hidden"
+                glowColor={glowColor}
+                className="rounded-[3rem]"
               >
-                {/* Spotlight Overlay */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${glowColor}, transparent 40%)` }}
-                />
-
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between mb-8">
-                    <div className="space-y-1.5">
-                      <h4 className="text-lg font-black tracking-tight text-white/90 group-hover:text-white transition-colors italic">{s.name}</h4>
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                        <p className="text-[10px] text-white/30 font-mono tracking-tighter uppercase font-bold">{s.code} · {s.facultyName}</p>
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="relative p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all shadow-2xl h-full"
+                >
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-8">
+                      <div className="space-y-1.5">
+                        <h4 className="text-lg font-black tracking-tight text-white/90 group-hover:text-white transition-colors italic">{s.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                          <p className="text-[10px] text-white/30 font-mono tracking-tighter uppercase font-bold">{s.code} · {s.facultyName}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-black italic tracking-tighter ${color} drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]`}>{s.percentage}%</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-black italic tracking-tighter ${color} drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]`}>{s.percentage}%</div>
+
+                    <div className="relative w-full h-2 bg-white/5 rounded-full overflow-hidden mb-4 shadow-inner ring-1 ring-white/5">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.percentage}%` }}
+                        transition={{ delay: 0.5 + i * 0.1, duration: 1.5, ease: "circOut" }}
+                        className={`h-full rounded-full ${bgColor} shadow-[0_0_15px_rgba(255,255,255,0.1)] relative`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
+                      </motion.div>
                     </div>
-                  </div>
 
-                  <div className="relative w-full h-2 bg-white/5 rounded-full overflow-hidden mb-4 shadow-inner ring-1 ring-white/5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${s.percentage}%` }}
-                      transition={{ delay: 0.5 + i * 0.1, duration: 1.5, ease: "circOut" }}
-                      className={`h-full rounded-full ${bgColor} shadow-[0_0_15px_rgba(255,255,255,0.1)] relative`}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent" />
-                    </motion.div>
-                  </div>
-
-                  <div className="flex justify-between items-center px-1">
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Presence</span>
-                        <span className="text-[11px] font-bold text-white/60 font-mono tracking-tighter">{s.attended} / {s.total} Sessions</span>
+                    <div className="flex justify-between items-center px-1">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Presence</span>
+                          <span className="text-[11px] font-bold text-white/60 font-mono tracking-tighter">{s.attended} / {s.total} Sessions</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Neural Status</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${color}`}>
+                          {s.percentage >= 80 ? "Optimal" : s.percentage >= 75 ? "Warning" : "Critical"}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">Neural Status</span>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${color}`}>
-                        {s.percentage >= 80 ? "Optimal" : s.percentage >= 75 ? "Warning" : "Critical"}
-                      </span>
-                    </div>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </TiltCard>
             );
           })}
         </div>
