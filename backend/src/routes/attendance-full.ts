@@ -11,8 +11,13 @@ import { Notification } from '../models/Notification';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
+import mongoose from 'mongoose';
 
 const router = express.Router();
+
+// ULTRAMAX Sanitizers
+const isValidId = (id: any) => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
+const cleanStr = (str: any) => (typeof str === 'string' ? str : '');
 
 // Socket.io reference – set externally via setIo()
 let io: any;
@@ -70,7 +75,6 @@ router.post('/session/create', async (req: Request, res: Response) => {
       longitude: longitude ?? null,
       geoRadius: geoRadius ?? 100,
       status: 'ACTIVE',
-      isActive: true,
     });
 
     return res.status(201).json({ success: true, session });
@@ -109,7 +113,6 @@ router.patch('/session/update', async (req: Request, res: Response) => {
 
     if (action === 'CLOSE') {
       session.status = 'CLOSED';
-      session.isActive = false;
       session.endTime = nowHHMM();
       session.qrCode = null as any;
       session.qrExpiry = null as any;
@@ -169,7 +172,6 @@ router.post('/session/start', async (req: Request, res: Response) => {
       longitude: longitude ?? null,
       geoRadius: geoRadius ?? 100,
       status: 'ACTIVE',
-      isActive: true,
       courseName: course.name,
     });
 
@@ -235,7 +237,6 @@ router.post('/session/end', async (req: Request, res: Response) => {
 
     // Close session
     session.status = 'CLOSED';
-    session.isActive = false;
     session.endTime = nowHHMM();
     session.qrCode = null as any;
     session.qrExpiry = null as any;

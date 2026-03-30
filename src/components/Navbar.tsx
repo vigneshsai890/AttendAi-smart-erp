@@ -51,12 +51,12 @@ function NavbarInner() {
   const tabs = getTabs();
 
   return (
-    <div className="fixed bottom-8 left-0 right-0 z-[200] flex justify-center pointer-events-none">
+    <div className="fixed bottom-10 left-0 right-0 z-[200] flex justify-center pointer-events-none px-6">
       <motion.nav
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", damping: 20, stiffness: 200 }}
-        className="pointer-events-auto bg-[#0c0c0e]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] px-4 py-3 flex items-center gap-2 shadow-2xl"
+        initial={{ y: 100, opacity: 0, scale: 0.9 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: "spring", damping: 18, stiffness: 120, delay: 0.5 }}
+        className="pointer-events-auto bg-[#0c0c0e]/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] px-5 py-4 flex items-center gap-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5"
       >
         {tabs.map((tab) => {
           const isActive = (pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "")).includes(tab.path) ||
@@ -67,32 +67,33 @@ function NavbarInner() {
             <Magnetic key={tab.id} strength={0.15}>
               <button
                 onClick={() => router.push(tab.path)}
-                className={`relative px-5 py-3 rounded-2xl flex flex-col items-center gap-1 transition-all group`}
+                className="relative px-6 py-4 rounded-[2rem] flex flex-col items-center gap-2 transition-all group active:scale-90"
               >
                 <AnimatePresence>
                   {isActive && (
                     <motion.div
                       layoutId="nav-glow"
-                      className="absolute inset-0 bg-white/5 border border-white/10 rounded-2xl -z-10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-indigo-500/[0.08] border border-indigo-500/20 rounded-[2rem] -z-10 shadow-[0_0_30px_rgba(79,70,229,0.2)]"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ type: "spring", damping: 15, stiffness: 200 }}
                     />
                   )}
                 </AnimatePresence>
 
-                <span className={`transition-all duration-300 ${isActive ? "text-indigo-400 scale-110" : "text-white/20 group-hover:text-white/50"}`}>
+                <div className={`transition-all duration-500 ${isActive ? "text-indigo-400 scale-125 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]" : "text-white/20 group-hover:text-white/60 group-hover:scale-110"}`}>
                   {tab.icon}
-                </span>
+                </div>
 
-                <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${isActive ? "text-indigo-400/80" : "text-white/10 group-hover:text-white/30"}`}>
+                <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${isActive ? "text-indigo-400 opacity-100" : "text-white/10 group-hover:text-white/30 opacity-0 group-hover:opacity-100"}`}>
                   {tab.label}
                 </span>
 
                 {isActive && (
                   <motion.div
                     layoutId="nav-dot"
-                    className="absolute -bottom-1 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_#6366f1]"
+                    className="absolute -bottom-1.5 w-1.5 h-1.5 bg-indigo-500 rounded-full shadow-[0_0_15px_#6366f1]"
                   />
                 )}
               </button>
@@ -100,15 +101,15 @@ function NavbarInner() {
           );
         })}
 
-        <div className="w-[1px] h-8 bg-white/10 mx-2" />
+        <div className="w-[1px] h-10 bg-white/5 mx-3" />
 
         <Magnetic strength={0.15}>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="px-5 py-3 rounded-2xl flex flex-col items-center gap-1 text-white/20 hover:text-red-400 transition-all group"
+            className="px-6 py-4 rounded-[2rem] flex flex-col items-center gap-2 text-white/10 hover:text-red-400/80 transition-all group active:scale-90"
           >
-            <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/10 group-hover:text-red-400/50">Exit</span>
+            <LogOut size={20} className="group-hover:scale-125 group-hover:rotate-12 transition-all duration-500" />
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all">Exit</span>
           </button>
         </Magnetic>
       </motion.nav>

@@ -24,6 +24,23 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
 
+  // Mouse Tracking for Spotlight Effects
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const cards = document.getElementsByClassName("group");
+      for (const card of cards as any) {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty("--mouse-x", `${x}px`);
+        card.style.setProperty("--mouse-y", `${y}px`);
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -96,48 +113,71 @@ export default function AdminPanel() {
     <>
       <Background />
       <Navbar />
-      <div className="relative z-10 pt-[60px]">
-        <div className="max-w-[1280px] mx-auto px-[26px] py-[30px] pb-12">
+      <div className="relative z-10 pt-32 pb-20 max-w-[1400px] mx-auto px-8">
 
-          {/* Hero */}
-          <div className="att-a1 relative overflow-hidden rounded-[22px] p-[26px_28px] mb-[22px] bg-gradient-to-br from-[rgba(167,139,250,.1)] via-[rgba(129,140,248,.06)] to-[rgba(94,174,255,.05)] border border-[rgba(167,139,250,.18)]">
-            <div className="inline-flex items-center gap-[5px] text-[10px] font-bold uppercase tracking-[1.2px] text-[#A78BFA] bg-[rgba(167,139,250,.1)] border border-[rgba(167,139,250,.2)] rounded-full px-[10px] py-[3px] mb-[10px] font-['DM_Sans',sans-serif]">
-              ⚙️ Administration
+        {/* Premium Admin System Hub Header */}
+        <div className="relative mb-12 p-12 rounded-[4rem] overflow-hidden group border border-white/5 bg-white/[0.01] backdrop-blur-3xl shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-indigo-500/5 to-transparent -z-10" />
+          <div className="absolute -top-24 -right-24 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px] group-hover:bg-purple-500/20 transition-all duration-700" />
+
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl mb-6 text-[10px] font-black text-purple-400 uppercase tracking-[0.4em] ring-1 ring-white/5">
+              ⚙️ System Root · Active Protocol
             </div>
-            <h1 className="text-[clamp(20px,3.2vw,30px)] font-extrabold tracking-[-0.8px] leading-[1.1] bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent mb-[6px]">
-              Admin Panel
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white mb-4 italic drop-shadow-2xl">
+              Admin <span className="text-white/20">Core</span>
             </h1>
-            <p className="text-[13px] text-white/50 font-['DM_Sans',sans-serif]">
-              Manage students, faculty, courses, and departments. Changes take effect immediately.
+            <p className="text-[13px] text-white/40 font-bold uppercase tracking-wide leading-relaxed max-w-2xl">
+              High-level management of entities, credentials, and institutional parameters. All modifications are synchronized to the neural ledger in real-time.
             </p>
           </div>
+        </div>
 
-          {/* Tabs + Search */}
-          <div className="att-a2 flex flex-wrap items-center gap-[10px] mb-[18px]">
-            <div className="flex gap-[4px] bg-white/5 border border-white/[0.08] rounded-full p-[3px]">
-              {tabs.map(t => (
-                <button key={t.key} onClick={() => { setTab(t.key); setSearch(""); }}
-                  className={`px-[14px] py-[5px] border-none rounded-full text-[11px] font-bold cursor-pointer transition-all tracking-[0.2px] ${
-                    tab === t.key
-                      ? "bg-gradient-to-br from-[#5EAEFF] to-[#818CF8] text-white shadow-[0_2px_12px_rgba(94,174,255,0.4)]"
-                      : "bg-transparent text-white/50"
-                  }`}>
-                  {t.icon} {t.label}
-                </button>
-              ))}
-            </div>
-            {tab === "students" && (
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email, roll..."
-                className="flex-1 min-w-[200px] px-4 py-[8px] rounded-full bg-white/[0.04] border border-white/10 text-white placeholder-white/25 text-[12px] font-['DM_Sans',sans-serif] focus:border-[#5EAEFF]/50 outline-none transition-all" />
-            )}
-            <button onClick={() => { setModal({ type: tab, mode: "create" }); setForm({}); }}
-              className="px-[16px] py-[7px] border-none rounded-full bg-gradient-to-br from-[#34D399] to-[#5EAEFF] text-white text-[11px] font-bold cursor-pointer shadow-[0_4px_14px_rgba(52,211,153,.25)] hover:-translate-y-[1px] active:scale-[0.98] transition-all">
-              + Add {tab.slice(0, -1)}
-            </button>
+        {/* Tabs + Search: Unified Matrix Control */}
+        <div className="flex flex-wrap items-center justify-between gap-6 mb-12 px-2">
+          <div className="flex gap-2 p-2 rounded-full bg-white/[0.03] border border-white/5 backdrop-blur-3xl shadow-xl ring-1 ring-white/5">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => { setTab(t.key); setSearch(""); }}
+                className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${
+                  tab === t.key
+                    ? "bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.2)] scale-105"
+                    : "text-white/20 hover:text-white/40 hover:bg-white/5"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {/* Table */}
-          <div className="att-glass att-a3 p-[18px] overflow-x-auto">
+          <div className="flex items-center gap-4 flex-1 max-w-md">
+            {tab === "students" && (
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Trace Neural ID (Email, Roll, Name)..."
+                className="w-full px-8 py-4 rounded-full bg-white/[0.04] border border-white/10 text-white placeholder:text-white/20 text-[11px] font-black uppercase tracking-widest focus:border-purple-500/50 focus:bg-white/[0.06] outline-none transition-all shadow-inner"
+              />
+            )}
+            <button
+              onClick={() => { setModal({ type: tab, mode: "create" }); setForm({}); }}
+              className="whitespace-now8 px-10 py-4 rounded-full bg-gradient-to-br from-emerald-500 to-indigo-500 text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-[0_15px_40px_rgba(16,185,129,0.2)] hover:scale-105 active:scale-95 transition-all"
+            >
+              + Create Entity
+            </button>
+          </div>
+        </div>
+
+        {/* Main Data Matrix */}
+        <div className="p-1 rounded-[4rem] border border-white/5 bg-white/[0.01] backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
+           {/* Spotlight Overlay */}
+           <div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+            style={{ background: `radial-gradient(1000px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(167,139,250,0.03), transparent 40%)` }}
+          />
+
+          <div className="p-6 overflow-x-auto relative z-10">
             {loading ? (
               <div className="text-center text-white/40 py-8 animate-pulse">Loading...</div>
             ) : tab === "students" ? (

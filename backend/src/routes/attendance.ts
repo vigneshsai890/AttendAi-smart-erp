@@ -41,7 +41,7 @@ router.post('/scan-attendance', async (req, res) => {
     const { sessionId } = decoded;
 
     const session = await Session.findById(sessionId);
-    if (!session || !session.isActive) {
+    if (!session || session.status !== 'ACTIVE') {
       return res.status(400).json({ success: false, error: 'Session is inactive or not found' });
     }
 

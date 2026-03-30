@@ -85,17 +85,26 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 font-['Inter',sans-serif] relative overflow-hidden">
-      {/* Vengance UI Aesthetic Glows */}
-      <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-indigo-500/[0.08] rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-300px] left-1/4 -translate-x-1/2 w-[600px] h-[600px] bg-purple-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+      {/* Cinematic Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.05),transparent_70%)]" />
+
+        {/* Abstract Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
+      </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[420px] z-10"
+        initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
+        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[440px] z-10"
       >
-        <div className="bg-[#0c0c0e]/80 border border-white/[0.08] rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl relative overflow-hidden">
+        <div className="bg-[#0c0c0e]/60 border border-white/[0.05] rounded-[4rem] p-12 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/10">
+
+          {/* Internal Glow */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Decorative element */}
           <div className="absolute top-0 right-0 p-8 text-white/[0.02] -z-10">
@@ -124,32 +133,37 @@ function LoginForm() {
                   exit={{ opacity: 0, x: 10 }}
                   className="space-y-3"
                 >
-                  <p className="text-[10px] text-white/30 font-black uppercase tracking-widest text-center mb-6">Authorize via Entity Role</p>
+                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] text-center mb-8">Access Neural Gateway</p>
                   {[
-                    { role: "FACULTY" as const, label: "Faculty Portal", sub: "vignesh@apollo.edu", icon: <User size={18} /> },
-                    { role: "STUDENT" as const, label: "Student Terminal", sub: "vignesh.s@apollo.edu", icon: <GraduationCap size={18} /> },
-                    { role: "ADMIN" as const, label: "Admin Core", sub: "admin@apollo.edu", icon: <Settings size={18} /> },
+                    { role: "FACULTY" as const, label: "Faculty Terminal", sub: "vignesh@apollo.edu", icon: <User size={20} /> },
+                    { role: "STUDENT" as const, label: "Student Node", sub: "vignesh.s@apollo.edu", icon: <GraduationCap size={20} /> },
+                    { role: "ADMIN" as const, label: "Admin Core", sub: "admin@apollo.edu", icon: <Settings size={20} /> },
                   ].map((r) => (
                     <button
                       key={r.role}
                       type="button"
                       onClick={() => handleQuickLogin(r.role)}
                       disabled={loading}
-                      className="w-full flex items-center gap-5 p-5 rounded-[2rem] bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.15] transition-all text-left group disabled:opacity-50"
+                      className="w-full flex items-center gap-6 p-6 rounded-[2.5rem] bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.08] hover:border-white/[0.1] transition-all text-left group disabled:opacity-50 relative overflow-hidden active:scale-[0.98]"
                     >
-                      <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all border border-white/5">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="w-12 h-12 rounded-[1.5rem] bg-white/5 flex items-center justify-center text-white/30 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all border border-white/5 group-hover:scale-105 duration-500">
                         {r.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-black text-white/90 tracking-tight">{r.label}</div>
-                        <div className="text-[10px] text-white/25 truncate font-mono">{r.sub}</div>
+                        <div className="text-base font-black text-white/80 tracking-tight group-hover:text-white transition-colors italic">{r.label}</div>
+                        <div className="text-[11px] text-white/20 truncate font-mono font-bold tracking-tighter uppercase">{r.sub}</div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 group-hover:translate-x-1 transition-all" />
+                      <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center text-white/10 group-hover:text-white/40 group-hover:translate-x-1 transition-all group-hover:border-white/10">
+                        <ChevronRight size={14} />
+                      </div>
                     </button>
                   ))}
-                  <div className="pt-6 text-center">
-                    <button type="button" onClick={() => setStep("CREDENTIALS")} className="text-[10px] font-black text-white/20 hover:text-white/40 transition-colors uppercase tracking-widest">
-                      Custom Secure Link
+                  <div className="pt-8 text-center">
+                    <button type="button" onClick={() => setStep("CREDENTIALS")} className="text-[11px] font-black text-white/15 hover:text-indigo-400 transition-all uppercase tracking-widest flex items-center justify-center gap-2 mx-auto">
+                      <span className="w-4 h-[1px] bg-white/10" />
+                      Custom Protocol
+                      <span className="w-4 h-[1px] bg-white/10" />
                     </button>
                   </div>
                 </motion.div>

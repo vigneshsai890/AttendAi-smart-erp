@@ -4,7 +4,7 @@ import { Course } from '../models/Course';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-qr-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secure-qr-key';
 
 // 1. Get real courses
 router.get('/courses', async (req, res) => {
@@ -20,19 +20,24 @@ router.get('/courses', async (req, res) => {
 router.post('/create', async (req, res) => {
   try {
     const { courseName, facultyId } = req.body;
-    const session = await Session.create({ courseName, facultyId, isActive: true });
+    // ULTRAMAX: Using consolidated status field
+    const session = await Session.create({
+      courseName,
+      facultyId,
+      status: 'ACTIVE'
+    });
     res.status(201).json({ success: true, session });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
   }
 });
 
-// 3. Generate a dynamic QR code token (Frontend calls this every ~10s)
+// 3. Generate a dynamic QR code token
 router.get('/generate-qr/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
     const session = await Session.findById(sessionId);
-    if (!session || !session.isActive) {
+    if (!session || session.status !== 'ACTIVE') {
       return res.status(400).json({ success: false, error: 'Session is inactive or not found' });
     }
 
@@ -54,7 +59,12 @@ router.get('/generate-qr/:sessionId', async (req, res) => {
 router.post('/end/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const session = await Session.findByIdAndUpdate(sessionId, { isActive: false }, { new: true });
+        // ULTRAMAX: Update status to CLOSED
+        const session = await Session.findByIdAndUpdate(
+          sessionId,
+          { status: 'CLOSED' },
+          { new: true }
+        );
         res.json({ success: true, session });
     } catch (error) {
         res.status(500).json({ success: false, error: (error as Error).message });

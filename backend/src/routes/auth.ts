@@ -5,13 +5,17 @@ import bcrypt from 'bcryptjs';
 export const authRouter = Router();
 
 // In-memory OTP storage for demo/MVP
-// In production, use Redis or a dedicated collection with TTL
-const otpStore = new Map<string, { code: string, expires: number }>();
+const otpStore = new Map<string, { code: string, expires: number, attempts: number }>();
 
 // Step 1: Login with Email/Password & Generate OTP
 authRouter.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: "Invalid input types" });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -27,14 +31,12 @@ authRouter.post('/login', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore.set(email, {
       code: otp,
-      expires: Date.now() + 5 * 60 * 1000 // 5 minutes
+      expires: Date.now() + 5 * 60 * 1000, // 5 minutes
+      attempts: 0
     });
 
-    // LOG THE OTP (Since we don't have a real mailer configured yet)
+    // LOG THE OTP
     console.log(`\n--- [OTP for ${email}] ---\nCODE: ${otp}\n---------------------------\n`);
-
-    // In a real app, you would use a service like Resend/SendGrid here:
-    // await sendOTPEmail(email, otp);
 
     res.json({
       success: true,
@@ -52,6 +54,10 @@ authRouter.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
 
+    if (typeof email !== 'string' || typeof otp !== 'string') {
+      return res.status(400).json({ error: "Invalid input types" });
+    }
+
     const storedData = otpStore.get(email);
     if (!storedData) {
       return res.status(400).json({ error: "No OTP requested for this email" });
@@ -62,8 +68,15 @@ authRouter.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: "OTP expired" });
     }
 
+    // ULTRAMAX: Brute-force protection
+    if (storedData.attempts >= 5) {
+      otpStore.delete(email);
+      return res.status(429).json({ error: "Too many failed attempts. Please login again." });
+    }
+
     if (storedData.code !== otp) {
-      return res.status(400).json({ error: "Invalid OTP code" });
+      storedData.attempts += 1;
+      return res.status(400).json({ error: `Invalid OTP code. ${5 - storedData.attempts} attempts remaining.` });
     }
 
     // OTP verified, get user and return session data
