@@ -1,0 +1,20 @@
+[
+  {
+    "_id": "69c93a5f154c421f7ab816d3",
+    "email": "admin@apollo.edu",
+    "role": "ADMIN",
+    "passwordHash": "$2b$10$caolmyfBjuiMqJdjy41w8OCD9bmrcx4jIjbz7wV4PV6uXg1wzhMsa"
+  },
+  {
+    "_id": "69c93a5f154c421f7ab816d5",
+    "email": "vignesh@apollo.edu",
+    "role": "FACULTY",
+    "passwordHash": "$2b$10$3960U0A6wv9TRqMMm4q4ieliP3Z0OT.kxDdkTr6QXjOR8fcrzcvvi"
+  },
+  {
+    "_id": "69c93a5f154c421f7ab816d9",
+    "email": "vignesh.s@apollo.edu",
+    "role": "STUDENT",
+    "passwordHash": "$2b$10$LZuhOaAmIkunsdN5iKvZjuz1OB1jz6CkDA9wspCrwso1uYi8sNl/C"
+  }
+]

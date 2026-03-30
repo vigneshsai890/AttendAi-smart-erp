@@ -3,6 +3,8 @@ import { Sora, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ToastProvider } from "@/components/Toast";
+import CustomCursor from "@/components/CustomCursor";
+import PageWrapper from "@/components/PageWrapper";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -29,12 +31,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
       <body className={cn(
-        "min-h-screen font-sans antialiased",
+        "min-h-screen font-sans antialiased selection:bg-indigo-500/30",
         sora.variable,
         dmSans.variable
       )}>
         <ToastProvider>
-          {children}
+          <CustomCursor />
+          <PageWrapper>
+            {children}
+          </PageWrapper>
         </ToastProvider>
       </body>
     </html>

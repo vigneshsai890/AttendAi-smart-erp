@@ -1,0 +1,22 @@
+
+> smart-erp@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.2:3000
+- Environments: .env
+✓ Ready in 1392ms
+
+ GET /api/network-ip 200 in 1159ms (next.js: 1132ms, application-code: 27ms)
+ GET /api/student/dashboard 401 in 1054ms (next.js: 1034ms, application-code: 20ms)
+ POST /api/auth/callback/credentials 302 in 3.8s (next.js: 3.7s, application-code: 63ms)
+ GET /api/auth/csrf 200 in 756ms (next.js: 709ms, application-code: 46ms)
+ GET /api/auth/csrf 200 in 81ms (next.js: 40ms, application-code: 41ms)
+[AUTH] Attempting login for: vignesh@apollo.edu
+[AUTH] Using backendUrl: http://localhost:5001
+[AUTH] Endpoint: /api/auth/login
+[AUTH] Backend response status: 200
+[AUTH] OTP_REQUIRED detected
+[AUTH] Error in authorize: OTP_REQUIRED
+ POST /api/auth/callback/credentials 401 in 545ms (next.js: 30ms, application-code: 515ms)
