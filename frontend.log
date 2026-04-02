@@ -20,3 +20,35 @@
 [AUTH] OTP_REQUIRED detected
 [AUTH] Error in authorize: OTP_REQUIRED
  POST /api/auth/callback/credentials 401 in 545ms (next.js: 30ms, application-code: 515ms)
+Error: ENOENT: no such file or directory, scandir '/Users/work/AttendAi-smart-erp/src/app'
+    at ignore-listed frames {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'scandir',
+  path: '/Users/work/AttendAi-smart-erp/src/app'
+}
+⨯ unhandledRejection: Error: ENOENT: no such file or directory, scandir '/Users/work/AttendAi-smart-erp/src/app'
+    at ignore-listed frames {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'scandir',
+  path: '/Users/work/AttendAi-smart-erp/src/app'
+}
+⨯ unhandledRejection:  Error: ENOENT: no such file or directory, scandir '/Users/work/AttendAi-smart-erp/src/app'
+    at ignore-listed frames {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'scandir',
+  path: '/Users/work/AttendAi-smart-erp/src/app'
+}
+✓ Compiled in 850ms
+Error: Turbopack build failed with 1 errors:
+./
+Error: Next.js inferred your workspace root, but it may not be correct.
+    We couldn't find the Next.js package (next/package.json) from the project directory: /Users/work/AttendAi-smart-erp
+     To fix this, set turbopack.root in your Next.js config, or ensure the Next.js package is resolvable from this directory.
+    Note: For security and performance reasons, files outside of the project directory will not be compiled.
+    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+
+    at ignore-listed frames
+[?25h

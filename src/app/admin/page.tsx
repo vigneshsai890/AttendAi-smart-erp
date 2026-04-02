@@ -237,7 +237,7 @@ export default function AdminPanel() {
                                   {s.user.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="text-[14px] font-black text-white/90 group-hover/row:text-white transition-colors italic">{s.user.name}</div>
+                                  <div className="text-[14px] font-black text-white/90 group-hover/row:text-white transition-colors italic">{s.user?.name || "Unknown Identity"}</div>
                                   <div className="text-[10px] text-white/20 font-mono uppercase tracking-tighter">{s.rollNumber}</div>
                                 </div>
                               </div>
@@ -287,7 +287,7 @@ export default function AdminPanel() {
                                   {f.user.name.charAt(0)}
                                 </div>
                                 <div>
-                                  <div className="text-[14px] font-black text-white/90 group-hover/row:text-white transition-colors italic">{f.user.name}</div>
+                                  <div className="text-[14px] font-black text-white/90 group-hover/row:text-white transition-colors italic">{f.user?.name || "Unknown Identity"}</div>
                                   <div className="text-[10px] text-white/20 font-mono uppercase tracking-tighter">{f.employeeId}</div>
                                 </div>
                               </div>
@@ -399,9 +399,9 @@ export default function AdminPanel() {
         {modal && (
           <div className="fixed inset-0 z-[500] flex items-center justify-center p-6" onClick={e => { if (e.target === e.currentTarget) setModal(null); }}>
             <motion.div
-              initial={{ opacity: 0, bg: "rgba(0,0,0,0)" }}
-              animate={{ opacity: 1, bg: "rgba(0,0,0,0.8)" }}
-              exit={{ opacity: 0, bg: "rgba(0,0,0,0)" }}
+              initial={{ opacity: 0, backgroundColor: "rgba(0,0,0,0)" }}
+              animate={{ opacity: 1, backgroundColor: "rgba(0,0,0,0.8)" }}
+              exit={{ opacity: 0, backgroundColor: "rgba(0,0,0,0)" }}
               className="absolute inset-0 backdrop-blur-xl"
             />
 

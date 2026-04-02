@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ToastProvider } from "@/components/Toast";
 import CustomCursor from "@/components/CustomCursor";
+import AuthProvider from "@/components/AuthProvider";
 import PageWrapper from "@/components/PageWrapper";
 import SplashScreen from "@/components/SplashScreen";
 
@@ -36,13 +37,15 @@ export default function RootLayout({
         sora.variable,
         dmSans.variable
       )}>
-        <ToastProvider>
-          <SplashScreen />
-          <CustomCursor />
-          <PageWrapper>
-            {children}
-          </PageWrapper>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <SplashScreen />
+            <CustomCursor />
+            <PageWrapper>
+              {children}
+            </PageWrapper>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

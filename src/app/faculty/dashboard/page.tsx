@@ -486,8 +486,9 @@ export default function FacultyDashboard() {
                 </div>
               )}
             </motion.div>
+          </TiltCard>
 
-            {/* Teacher Analytics Panel */}
+          {/* Teacher Analytics Panel */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
