@@ -28,7 +28,7 @@ authRouter.post('/login', async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = "123456"; // Fixed OTP for easier testing
     otpStore.set(email, {
       code: otp,
       expires: Date.now() + 5 * 60 * 1000, // 5 minutes
