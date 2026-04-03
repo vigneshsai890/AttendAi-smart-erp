@@ -73,12 +73,28 @@ app.get('/api/debug/db-test', async (req, res) => {
     const db = mongoose.connection.db;
     if (!db) throw new Error("No DB connection");
     const testCol = db.collection('test_connectivity');
-    await testCol.insertOne({ timestamp: new Date(), message: 'Max Power Connectivity Test' });
+    await testCol.insertOne({
+      timestamp: new Date(),
+      message: 'Max Power Connectivity Test',
+      reqPath: req.path,
+      reqUrl: req.url,
+      headers: req.headers
+    });
     const count = await testCol.countDocuments();
-    res.json({ status: 'SUCCESS', count });
+    res.json({
+      status: 'SUCCESS',
+      count,
+      debug: {
+        path: req.path,
+        url: req.url,
+        headers: req.headers,
+        env_backend_url: ENV.backendUrl,
+        env_frontend_url: ENV.frontendUrl
+      }
+    });
   } catch (err: any) {
     console.error("❌ [DB TEST] Failure:", err.message);
-    res.status(500).json({ status: 'ERROR', message: err.message });
+    res.status(500).json({ status: 'ERROR', message: err.message, debug: { path: req.path, url: req.url } });
   }
 });
 
