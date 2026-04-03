@@ -157,7 +157,7 @@ export const auth = betterAuth({
       },
     }) */
   ],
-  user: {
+  /* user: {
     additionalFields: {
       role: { type: "string", defaultValue: "STUDENT" },
       studentId: { type: "string", required: false },
@@ -169,7 +169,7 @@ export const auth = betterAuth({
       phoneNumberVerified: { type: "boolean", defaultValue: false },
       lastActiveAt: { type: "date" },
     }
-  },
+  }, */
   session: {
     expiresIn: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,

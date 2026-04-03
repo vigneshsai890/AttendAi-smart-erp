@@ -170,7 +170,7 @@ export const getAuth = () => {
           }
         }) */
       ],
-      user: {
+      /* user: {
         additionalFields: {
           role: { type: "string", defaultValue: "STUDENT", required: false },
           studentId: { type: "string", required: false },
@@ -182,7 +182,7 @@ export const getAuth = () => {
           phoneNumberVerified: { type: "boolean", defaultValue: false },
           lastActiveAt: { type: "date" }
         }
-      },
+      }, */
       session: {
         expiresIn: 30 * 24 * 60 * 60,
         updateAge: 24 * 60 * 60,
