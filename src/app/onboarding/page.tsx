@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { authClient, useSession } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { finalizeStudentProfile } from "@/lib/identity";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -29,9 +29,8 @@ const SPECIALIZATIONS: Record<string, string[]> = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const session = useSession();
-  const sessionLoading = session.isPending;
-  const user = session.data?.user as any; // Cast for custom ERP fields
+  const { data: sessionData, isPending: sessionLoading } = authClient.useSession();
+  const user = sessionData?.user as any; // Cast for custom ERP fields
   
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState("");
@@ -41,13 +40,13 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
-    if (!sessionLoading && !session.data) {
+    if (!sessionLoading && !sessionData) {
       router.push("/signup");
     }
     if (user?.isProfileComplete) {
       router.push("/student/dashboard");
     }
-  }, [session.data, sessionLoading, router, user]);
+  }, [sessionData, sessionLoading, router, user]);
 
   const handleFinalize = async () => {
     setLoading(true);
