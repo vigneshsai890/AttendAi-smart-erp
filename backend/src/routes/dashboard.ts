@@ -1,17 +1,17 @@
 import express from 'express';
-import { User } from '../models/User';
-import { Student } from '../models/Student';
-import { Faculty } from '../models/Faculty';
-import { Enrollment } from '../models/Enrollment';
-import { AttendanceSession } from '../models/Session';
-import { AttendanceRecord } from '../models/Attendance';
-import { CourseAssignment } from '../models/CourseAssignment';
-import { Schedule } from '../models/Schedule';
-import { Exam } from '../models/Exam';
-import { ExamResult } from '../models/ExamResult';
-import { Notification } from '../models/Notification';
-import { ProxyAlert } from '../models/ProxyAlert';
-const { authenticator } = require('otplib');
+import { User } from '../models/User.js';
+import { Student } from '../models/Student.js';
+import { Faculty } from '../models/Faculty.js';
+import { Enrollment } from '../models/Enrollment.js';
+import { AttendanceSession } from '../models/Session.js';
+import { AttendanceRecord } from '../models/Attendance.js';
+import { CourseAssignment } from '../models/CourseAssignment.js';
+import { Schedule } from '../models/Schedule.js';
+import { Exam } from '../models/Exam.js';
+import { ExamResult } from '../models/ExamResult.js';
+import { Notification } from '../models/Notification.js';
+import { ProxyAlert } from '../models/ProxyAlert.js';
+import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
 import mongoose from 'mongoose';
 
@@ -637,10 +637,14 @@ router.post('/2fa/setup', async (req, res) => {
     }
 
     // Generate TOTP secret
-    const secret = authenticator.generateSecret();
+    const secret = generateSecret();
 
     // Generate otpauth URI
-    const otpauthUri = authenticator.keyuri(userEmail, 'AttendAi-SmartERP', secret);
+    const otpauthUri = generateURI({ 
+      issuer: 'AttendAi-SmartERP', 
+      label: userEmail, 
+      secret 
+    });
 
     // Generate QR code data URL
     const qrCodeImage = await QRCode.toDataURL(otpauthUri);
@@ -679,7 +683,8 @@ router.post('/2fa/verify', async (req, res) => {
       return res.status(400).json({ success: false, error: '2FA has not been set up. Call /2fa/setup first.' });
     }
 
-    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    const result = await verify({ token, secret: user.twoFactorSecret });
+    const isValid = result.valid;
 
     if (!isValid) {
       return res.status(400).json({ success: false, error: 'Invalid token' });

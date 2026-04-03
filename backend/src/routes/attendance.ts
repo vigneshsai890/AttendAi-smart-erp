@@ -1,6 +1,6 @@
 import express from 'express';
-import { Session } from '../models/Session';
-import { Attendance } from '../models/Attendance';
+import { Session } from '../models/Session.js';
+import { Attendance } from '../models/Attendance.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();

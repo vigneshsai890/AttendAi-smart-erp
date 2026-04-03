@@ -1,8 +1,8 @@
 import express from 'express';
-import { User } from '../models/User';
-import { Session } from '../models/Session';
-import { Attendance } from '../models/Attendance';
-import { Course } from '../models/Course';
+import { User } from '../models/User.js';
+import { Session } from '../models/Session.js';
+import { Attendance } from '../models/Attendance.js';
+import { Course } from '../models/Course.js';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import {
   phoneNumber,
   twoFactor,
@@ -11,26 +11,44 @@ import {
 } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
 import { dash, sentinel, sendEmail, sendSMS } from "@better-auth/infra";
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
+import { ENV } from "./env";
 
-const client = new MongoClient(process.env.MONGO_URI || "mongodb://localhost:27017/smart_erp_realtime");
-const db = client.db();
+// --- Lazy Mongo Initialization for Build Safety ---
+let _db: Db | null = null;
+const getDb = () => {
+  if (!_db) {
+    const uri = process.env.MONGO_URI || "mongodb://localhost:27017/smart_erp_realtime";
+    const client = new MongoClient(uri);
+    _db = client.db();
+  }
+  return _db;
+};
+
+// --- Production Secret Enforcement ---
+const getBetterAuthSecret = () => {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (ENV.isProduction && !secret) {
+    console.warn("⚠️ [SECURITY] BETTER_AUTH_SECRET is missing in production environment!");
+  }
+  return secret || "SMART_ERP_SECRET_KEY_PROD_2024";
+};
 
 // Auth instance initialized with MongoDB
-
 export const auth = betterAuth({
-  database: mongodbAdapter(db),
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  database: mongodbAdapter(getDb() as any),
+  secret: getBetterAuthSecret(),
+  baseURL: ENV.frontendUrl,
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
+      clientId: process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       accessType: "offline",
       prompt: "select_account consent",
     },
     microsoft: {
-      clientId: process.env.MICROSOFT_CLIENT_ID || "PLACEHOLDER_MICROSOFT_ID",
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "PLACEHOLDER_MICROSOFT_SECRET",
+      clientId: process.env.MICROSOFT_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET as string,
       tenantId: "common",
       prompt: "select_account",
     },
@@ -38,42 +56,54 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     async sendVerificationEmail({ user, url }) {
-      await sendEmail({
-        template: "verify-email",
-        to: user.email,
-        variables: {
-          verificationUrl: url,
-          userEmail: user.email,
-          userName: user.name,
-          appName: "AttendAI",
-        },
-      });
+      try {
+        await sendEmail({
+          template: "verify-email",
+          to: user.email,
+          variables: {
+            verificationUrl: url,
+            userEmail: user.email,
+            userName: user.name,
+            appName: "AttendAI",
+          },
+        });
+      } catch (err) {
+        console.error("❌ [AUTH] Failed to send verification email:", err);
+      }
     },
   },
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
-      await sendEmail({
-        template: "reset-password",
-        to: user.email,
-        variables: {
-          resetLink: url,
-          userEmail: user.email,
-          userName: user.name,
-          appName: "AttendAI",
-        },
-      });
+      try {
+        await sendEmail({
+          template: "reset-password",
+          to: user.email,
+          variables: {
+            resetLink: url,
+            userEmail: user.email,
+            userName: user.name,
+            appName: "AttendAI",
+          },
+        });
+      } catch (err) {
+        console.error("❌ [AUTH] Failed to send reset password email:", err);
+      }
     },
   },
   plugins: [
     // ── Authentication Plugins ────────────────────────────
     phoneNumber({
       sendOTP: async ({ phoneNumber, code }) => {
-        await sendSMS({
-          to: phoneNumber,
-          code,
-          template: "phone-verification",
-        });
+        try {
+          await sendSMS({
+            to: phoneNumber,
+            code,
+            template: "phone-verification",
+          });
+        } catch (err) {
+          console.error("❌ [AUTH] Failed to send verification SMS:", err);
+        }
       },
       signUpOnVerification: {
         getTempEmail: (phone) => `${phone.replace("+", "")}@apollo.erp`,
@@ -83,15 +113,19 @@ export const auth = betterAuth({
     twoFactor(),
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
-        await sendEmail({
-          template: "verify-email-otp",
-          to: email,
-          variables: {
-            otpCode: otp,
-            userEmail: email,
-            appName: "AttendAI",
-          },
-        });
+        try {
+          await sendEmail({
+            template: "verify-email-otp",
+            to: email,
+            variables: {
+              otpCode: otp,
+              userEmail: email,
+              appName: "AttendAI",
+            },
+          });
+        } catch (err) {
+          console.error("❌ [AUTH] Failed to send verification OTP:", err);
+        }
       },
     }),
     username(),
@@ -113,7 +147,7 @@ export const auth = betterAuth({
       apiKey: process.env.BETTER_AUTH_API_KEY,
       activityTracking: {
         enabled: true,
-        updateInterval: 300000, 
+        updateInterval: 300000,
       },
     }),
     sentinel({
@@ -204,9 +238,7 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60, // Refresh once per day
   },
   trustedOrigins: [
-    "https://attend-ai-smart-erp.vercel.app/",
-    "https://attend-ai-smart-erp.vercel.app",
+    ENV.frontendUrl,
     "https://dash.better-auth.com",
-    "http://localhost:3000",
   ].filter(Boolean)
 });

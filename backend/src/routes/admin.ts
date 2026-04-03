@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { User } from '../models/User';
-import { Department } from '../models/Department';
-import { Section } from '../models/Section';
-import { Course } from '../models/Course';
-import { CourseAssignment } from '../models/CourseAssignment';
-import { Enrollment } from '../models/Enrollment';
-import { Faculty } from '../models/Faculty';
-import { Student } from '../models/Student';
+import { User } from '../models/User.js';
+import { Department } from '../models/Department.js';
+import { Section } from '../models/Section.js';
+import { Course } from '../models/Course.js';
+import { CourseAssignment } from '../models/CourseAssignment.js';
+import { Enrollment } from '../models/Enrollment.js';
+import { Faculty } from '../models/Faculty.js';
+import { Student } from '../models/Student.js';
 import bcrypt from 'bcryptjs';
 
 export const adminRouter = Router();

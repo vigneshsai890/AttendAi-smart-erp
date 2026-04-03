@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getAuth } from '../lib/auth';
+import { getAuth } from '../lib/auth.js';
 
 /**
  * Better-Auth Session Middleware

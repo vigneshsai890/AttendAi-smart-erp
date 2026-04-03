@@ -5,32 +5,54 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import http from 'http';
 import { Server } from 'socket.io';
+import { ENV } from './lib/env.js';
 
-import { sessionRouter } from './routes/session';
-import { attendanceRouter, setIo } from './routes/attendance';
-import { attendanceFullRouter, setIo as setIoFull } from './routes/attendance-full';
-import { debugRouter } from './routes/debug';
-import { authRouter } from './routes/auth';
-import { adminRouter } from './routes/admin';
-import { dashboardRouter } from './routes/dashboard';
+import { sessionRouter } from './routes/session.js';
+import { attendanceRouter, setIo } from './routes/attendance.js';
+import { attendanceFullRouter, setIo as setIoFull } from './routes/attendance-full.js';
+import { debugRouter } from './routes/debug.js';
+import { authRouter } from './routes/auth.js';
+import { adminRouter } from './routes/admin.js';
+import { dashboardRouter } from './routes/dashboard.js';
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// --- Industry-Grade CORS & Socket.io Security ---
+const allowedOrigins = [
+  ENV.frontendUrl,
+  'https://attend-ai-smart-erp.vercel.app',
+  'https://dash.better-auth.com',
+  'http://localhost:3000'
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ [SECURITY] CORS blocked request from: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
-app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
 // Better-Auth Session Verification
-import { betterAuthMiddleware } from './middleware/auth';
+import { betterAuthMiddleware } from './middleware/auth.js';
 app.use('/api', (req, res, next) => {
   // Pass through health checks and legacy auth/login (for migration)
   if (req.path === '/health' || req.path === '/auth/login') return next();
@@ -38,14 +60,15 @@ app.use('/api', (req, res, next) => {
 });
 
 // ULTRAMAX: Internal Communication Guard
-const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN as string;
 const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers['x-internal-token'];
   // Allow health checks and Better Auth routes without internal token
   if (req.path.startsWith('/api/auth') || req.path === '/api/health') {
     return next();
   }
-  if (token !== INTERNAL_TOKEN) {
+
+  if (token !== ENV.internalToken) {
+    console.error(`🚨 [SECURITY] Unauthorized internal access attempt from: ${req.ip}`);
     return res.status(403).json({ error: 'FORBIDDEN: Internal communication only' });
   }
   next();
@@ -59,7 +82,8 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED'
+    db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
+    env: ENV.isProduction ? 'production' : 'development'
   });
 });
 
@@ -88,23 +112,21 @@ app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
 
 const PORT = parseInt(process.env.PORT || '5001', 10);
-const HOST = '0.0.0.0'; // Explicit host binding to prevent ECONNREFUSED
+const HOST = '0.0.0.0'; // Explicit host binding for Render
 
-// Export app for Vercel Serverless Functions
+// Export app for Vercel/Render
 export default app;
 
 const startServer = async () => {
   try {
-    // Only connect if not already connected (Vercel optimization)
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(MONGO_URI);
       console.log('✅ MongoDB connected');
     }
 
-    // Listen on the provided PORT (Render persistent container model)
     server.listen(PORT, HOST, () => {
-      console.log(`🚀 ULTRAMAX Backend running on http://${HOST}:${PORT}`);
-      console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+      console.log(`🚀 Industry-Grade Backend running on http://${HOST}:${PORT}`);
+      console.log(`📡 Production URL: ${ENV.backendUrl}`);
     });
   } catch (err) {
     console.error('❌ Database connection failure:', err);

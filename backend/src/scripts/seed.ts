@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import { User } from '../models/User';
-import { Department } from '../models/Department';
-import { Section } from '../models/Section';
-import { Faculty } from '../models/Faculty';
-import { Student } from '../models/Student';
+import { User } from '../models/User.js';
+import { Department } from '../models/Department.js';
+import { Section } from '../models/Section.js';
+import { Faculty } from '../models/Faculty.js';
+import { Student } from '../models/Student.js';
 
 dotenv.config();
 
