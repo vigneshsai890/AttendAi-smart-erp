@@ -80,7 +80,9 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     uptime: process.uptime(),
-    db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED'
+    db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
+    version: '1.0.0-HUB-SWEEP-V2',
+    deploy: '93e13745' // Matching latest pushed commit
   });
 });
 
