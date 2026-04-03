@@ -31,12 +31,13 @@ const getBetterAuthSecret = () => {
 
 export const getAuth = () => {
   if (!_auth) {
-    if (mongoose.connection.readyState !== 1) {
+    const db = mongoose.connection.db;
+    if (mongoose.connection.readyState !== 1 || !db) {
       throw new Error("MongoDB must be connected before initializing Better-Auth");
     }
 
     _auth = betterAuth({
-      database: mongodbAdapter(mongoose.connection.db as unknown as Db),
+      database: mongodbAdapter(db as unknown as Db),
       secret: getBetterAuthSecret(),
       baseURL: ENV.backendUrl,
       socialProviders: {

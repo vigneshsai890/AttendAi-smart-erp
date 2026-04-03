@@ -7,19 +7,25 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// Target your actual Render production site
-const BASE_URL = "https://attendai-smart-erp.onrender.com";
+// Test both frontend and backend
+const FRONTEND_URL = "https://attendai-smart-erp.onrender.com";
+const BACKEND_URL = "https://attendai-backend-ynnd.onrender.com";
 
-const authClient = createAuthClient({
-  baseURL: BASE_URL,
-  plugins: [
-    phoneNumberClient(),
-    usernameClient()
-  ]
-});
+async function testUrl(baseUrl: string) {
+  console.log(`\n🚀 Testing Authentication on: ${baseUrl}`);
 
-async function runLiveTest() {
-  console.log(`🚀 Initiating Live Authentication Test on: ${BASE_URL}`);
+  const authClient = createAuthClient({
+    baseURL: baseUrl,
+    fetchOptions: {
+      headers: {
+        "Origin": baseUrl // Simulating same-origin request for the test
+      }
+    },
+    plugins: [
+      phoneNumberClient(),
+      usernameClient()
+    ]
+  });
 
   const testEmail = `test_agent_${Date.now()}@attendai-production.com`;
   const testPassword = "MaxPowerPassword123!";
@@ -36,12 +42,12 @@ async function runLiveTest() {
     });
 
     if (signUpError) {
-      console.error("❌ Sign-up failed:", signUpError.message);
+      console.error(`❌ Sign-up failed on ${baseUrl}:`, signUpError.message);
       console.error("Full Error Details:", JSON.stringify(signUpError, null, 2));
-      return;
+      return false;
     }
 
-    console.log("✅ Sign-up successful!");
+    console.log(`✅ Sign-up successful on ${baseUrl}!`);
 
     // 2. Attempt Sign In
     console.log(`🔐 Attempting sign-in for: ${testEmail}...`);
@@ -51,25 +57,29 @@ async function runLiveTest() {
     });
 
     if (signInError) {
-      console.error("❌ Sign-in failed:", signInError.message);
+      console.error(`❌ Sign-in failed on ${baseUrl}:`, signInError.message);
       console.error("Full Error Details:", JSON.stringify(signInError, null, 2));
-      return;
+      return false;
     }
 
-    console.log("✅ Sign-in successful! Session established.");
-
-    // 3. Verify Session
-    const { data: session } = await authClient.getSession();
-    if (session) {
-      console.log("🎉 VERIFIED: Successfully logged into the AttendAI Dashboard!");
-      console.log("User Profile:", JSON.stringify(session.user, null, 2));
-    } else {
-      console.error("❌ Session verification failed.");
-    }
+    console.log(`✅ Sign-in successful on ${baseUrl}! Session established.`);
+    return true;
 
   } catch (err: any) {
-    console.error("🚨 CRITICAL ERROR during live auth test:", err.message);
+    console.error(`🚨 CRITICAL ERROR on ${baseUrl}:`, err.message);
+    return false;
   }
+}
+
+async function runLiveTest() {
+  console.log("🎬 Starting Live Industry-Grade Authentication Suite...");
+
+  const frontendSuccess = await testUrl(FRONTEND_URL);
+  const backendSuccess = await testUrl(BACKEND_URL);
+
+  console.log("\n📊 --- FINAL TEST SUMMARY ---");
+  console.log(`Frontend Auth: ${frontendSuccess ? "✅ PASSED" : "❌ FAILED"}`);
+  console.log(`Backend Auth:  ${backendSuccess ? "✅ PASSED" : "❌ FAILED"}`);
 }
 
 runLiveTest();

@@ -16,14 +16,14 @@ import { ENV } from "./env";
 import { sendAWSSMS } from "./sms";
 
 // --- Lazy Mongo Initialization for Build Safety ---
-let _db: Db | null = null;
-const getDb = () => {
-  if (!_db) {
+let _client: MongoClient | null = null;
+const getDb = async () => {
+  if (!_client) {
     const uri = process.env.MONGO_URI || "mongodb://localhost:27017/smart_erp_realtime";
-    const client = new MongoClient(uri);
-    _db = client.db();
+    _client = new MongoClient(uri);
+    await _client.connect();
   }
-  return _db;
+  return _client.db();
 };
 
 // --- Production Secret Enforcement ---
@@ -37,7 +37,7 @@ const getBetterAuthSecret = () => {
 
 // Auth instance initialized with MongoDB
 export const auth = betterAuth({
-  database: mongodbAdapter(getDb() as any),
+  database: mongodbAdapter(getDb()),
   secret: getBetterAuthSecret(),
   baseURL: ENV.frontendUrl,
   socialProviders: {
