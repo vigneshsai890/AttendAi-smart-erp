@@ -1,7 +1,7 @@
 services:
   # Express Backend
   - type: web
-    name: attend-ai-backend
+    name: attendai-backend
     env: node
     plan: free
     rootDir: backend
@@ -12,14 +12,14 @@ services:
         value: 5000
       - key: MONGO_URI
         fromDatabase:
-          name: attend-ai-db
+          name: attendai-db
           property: connectionString
       - key: NODE_ENV
         value: production
 
   # Next.js Frontend
   - type: web
-    name: attend-ai-frontend
+    name: attendai-frontend
     env: node
     plan: free
     buildCommand: npm install && npm run build
@@ -28,12 +28,12 @@ services:
       - key: BACKEND_URL
         fromService:
           type: web
-          name: attend-ai-backend
+          name: attendai-backend
           property: host
       - key: NEXTAUTH_URL
         fromService:
           type: web
-          name: attend-ai-frontend
+          name: attendai-frontend
           property: host
       - key: NEXTAUTH_SECRET
         generateValue: true
@@ -41,7 +41,7 @@ services:
         value: production
 
 databases:
-  - name: attend-ai-db
+  - name: attendai-db
     plan: free
     databaseName: attendance_db
     user: admin
