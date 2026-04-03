@@ -74,8 +74,28 @@ async function testUrl(baseUrl: string) {
 async function runLiveTest() {
   console.log("🎬 Starting Live Industry-Grade Authentication Suite...");
 
-  const frontendSuccess = await testUrl(FRONTEND_URL);
-  const backendSuccess = await testUrl(BACKEND_URL);
+  // Retry logic for Render cold starts/deployments
+  let attempts = 0;
+  const maxAttempts = 5;
+  const delay = 30000; // 30 seconds
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    console.log(`\n📡 Deployment Verification Attempt ${attempts}/${maxAttempts}...`);
+
+    const frontendSuccess = await testUrl(FRONTEND_URL);
+    const backendSuccess = await testUrl(BACKEND_URL);
+
+    if (frontendSuccess || backendSuccess) {
+      console.log("\n🎉 AT LEAST ONE SERVICE IS RESPONDING!");
+      break;
+    }
+
+    if (attempts < maxAttempts) {
+      console.log(`⏳ Waiting ${delay/1000}s for services to stabilize...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 
   console.log("\n📊 --- FINAL TEST SUMMARY ---");
   console.log(`Frontend Auth: ${frontendSuccess ? "✅ PASSED" : "❌ FAILED"}`);

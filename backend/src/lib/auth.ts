@@ -133,7 +133,7 @@ export const getAuth = () => {
         apiKey(),
         dash(),
         sentinel({
-          apiKey: process.env.BETTER_AUTH_API_KEY as string,
+          apiKey: (process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl") as string,
           security: {
             credentialStuffing: {
               enabled: true,

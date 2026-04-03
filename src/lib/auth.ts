@@ -144,7 +144,7 @@ export const auth = betterAuth({
     apiKey(),
     dash(),
     sentinel({
-      apiKey: process.env.BETTER_AUTH_API_KEY,
+      apiKey: process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl",
       security: {
         credentialStuffing: { enabled: true },
         impossibleTravel: { enabled: true, action: "challenge" },
