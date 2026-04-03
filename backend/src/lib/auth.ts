@@ -132,7 +132,7 @@ export const getAuth = () => {
         }),
         apiKey(),
         dash(),
-        sentinel({
+        /* sentinel({
           apiKey: (process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl") as string,
           security: {
             credentialStuffing: {
@@ -167,7 +167,7 @@ export const getAuth = () => {
             },
             suspiciousIpBlocking: { action: "block" },
           }
-        })
+        }) */
       ],
       user: {
         additionalFields: {

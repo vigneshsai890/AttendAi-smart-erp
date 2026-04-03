@@ -143,7 +143,7 @@ export const auth = betterAuth({
     // ── Infrastructure Plugins ────────────────────────────
     apiKey(),
     dash(),
-    sentinel({
+    /* sentinel({
       apiKey: process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl",
       security: {
         credentialStuffing: { enabled: true },
@@ -154,7 +154,7 @@ export const auth = betterAuth({
         velocity: { enabled: true, action: "challenge" },
         suspiciousIpBlocking: { action: "block" },
       },
-    })
+    }) */
   ],
   user: {
     additionalFields: {
