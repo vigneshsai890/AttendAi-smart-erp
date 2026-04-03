@@ -24,16 +24,14 @@ const server = http.createServer(app);
 
 // --- 0. ULTIMATE DEBUG & PATH SNIFFER ---
 app.use((req, res, next) => {
-  if (req.query.sniff === 'true' || req.headers['x-sniff'] === 'true') {
+  const isSniff = req.url && (req.url.includes('sniff=true') || req.headers['x-sniff'] === 'true');
+  if (isSniff) {
     return res.json({
       url: req.url,
       path: req.path,
+      originalUrl: req.originalUrl,
       method: req.method,
-      headers: req.headers,
-      env: {
-        node_env: process.env.NODE_ENV,
-        port: process.env.PORT
-      }
+      headers: req.headers
     });
   }
   next();
@@ -66,10 +64,11 @@ app.use(morgan('dev'));
 // --- 2. THE AUTH HUB (UNIVERSAL MOUNT) ---
 // We match ANY path containing /auth to ensure we catch proxy variations
 app.use((req, res, next) => {
-  if (req.url.includes('/auth')) {
-    console.log(`📡 [AUTH HUB] Intercepted: ${req.url}`);
-    if (req.url.endsWith('/ping')) {
-      return res.json({ status: "ALIVE", hub: "Universal Auth Hub", url: req.url });
+  const url = req.url || "";
+  if (url.includes('/auth')) {
+    console.log(`📡 [AUTH HUB] Intercepted: ${url}`);
+    if (url.endsWith('/ping')) {
+      return res.json({ status: "ALIVE", hub: "Universal Auth Hub", url });
     }
     return toNodeHandler(getAuth())(req, res);
   }
