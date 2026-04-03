@@ -22,6 +22,20 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
+// --- 0. PATH SNIFFER (ABSOLUTE PRIORITY) ---
+app.use((req, res, next) => {
+  if (req.query.sniff === 'true') {
+    return res.json({
+      url: req.url,
+      path: req.path,
+      originalUrl: req.originalUrl,
+      headers: req.headers,
+      msg: "Max Power Path Sniffer"
+    });
+  }
+  next();
+});
+
 // --- 1. Industry-Grade CORS & Socket.io Security ---
 const allowedOrigins = [
   ENV.frontendUrl,
