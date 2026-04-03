@@ -112,8 +112,13 @@ app.use('/api/session', sessionRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
-// Better Auth handler on root for correct pathing
-app.all('/api/auth/*', (req, res) => toNodeHandler(getAuth())(req, res));
+
+// --- Robust Better Auth Integration ---
+app.all('/api/auth/*', (req, res) => {
+  console.log(`📡 [AUTH] Incoming request: ${req.method} ${req.url}`);
+  return toNodeHandler(getAuth())(req, res);
+});
+
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
 
