@@ -54,8 +54,11 @@ app.use(morgan('dev'));
 // Better-Auth Session Verification
 import { betterAuthMiddleware } from './middleware/auth.js';
 app.use('/api', (req, res, next) => {
-  // Pass through health checks and legacy auth/login (for migration)
-  if (req.path === '/health' || req.path === '/auth/login') return next();
+  // --- Industry-Grade Middleware Bypass ---
+  // Allow health checks and ALL Better Auth endpoints (for dash, login, signup)
+  if (req.path === '/health' || req.path.startsWith('/auth')) {
+    return next();
+  }
   return betterAuthMiddleware(req, res, next);
 });
 
