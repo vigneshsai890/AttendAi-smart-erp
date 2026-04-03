@@ -1,19 +1,29 @@
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { toNextJsHandler } from "better-auth/next-js";
 import { NextRequest, NextResponse } from "next/server";
 
 // Force dynamic is mandatory for Better Auth in Next.js App Router
 export const dynamic = "force-dynamic";
 
-const handler = toNextJsHandler(auth);
-
 export const GET = async (req: NextRequest) => {
   if (req.nextUrl.pathname.endsWith("/ping")) {
-    return NextResponse.json({ status: "ALIVE", service: "Frontend Auth Handler" });
+    return NextResponse.json({
+      status: "ALIVE",
+      service: "Frontend Auth Handler",
+      env: {
+        hasSecret: !!process.env.BETTER_AUTH_SECRET,
+        hasMongo: !!process.env.MONGO_URI,
+        nodeEnv: process.env.NODE_ENV,
+        isRender: !!process.env.RENDER
+      },
+      deploy: "e1bcad05-LAZY-INIT"
+    });
   }
-  return handler.GET(req);
+  const auth = await getAuth();
+  return toNextJsHandler(auth).GET(req);
 };
 
 export const POST = async (req: NextRequest) => {
-  return handler.POST(req);
+  const auth = await getAuth();
+  return toNextJsHandler(auth).POST(req);
 };
