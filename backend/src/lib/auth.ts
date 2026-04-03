@@ -41,7 +41,7 @@ export const getAuth = () => {
       baseURL: ENV.backendUrl,
       socialProviders: {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com",
+          clientId: (process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com") as string,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
           accessType: "offline",
           prompt: "select_account consent",
@@ -125,19 +125,12 @@ export const getAuth = () => {
         admin(),
         organization({
           allowUserToCreateOrganization: async (user) => {
-            // Only admins and faculty can create organizations (departments)
             const role = (user as Record<string, unknown>).role as string;
             return role === "ADMIN" || role === "FACULTY" || role === "HOD";
           },
         }),
         apiKey(),
-        dash({
-          apiKey: process.env.BETTER_AUTH_API_KEY as string,
-          activityTracking: {
-            enabled: true,
-            updateInterval: 300000,
-          },
-        }),
+        dash(),
         sentinel({
           apiKey: process.env.BETTER_AUTH_API_KEY as string,
           security: {
@@ -189,8 +182,8 @@ export const getAuth = () => {
         }
       },
       session: {
-        expiresIn: 30 * 24 * 60 * 60, // 30 days
-        updateAge: 24 * 60 * 60, // Refresh once per day
+        expiresIn: 30 * 24 * 60 * 60,
+        updateAge: 24 * 60 * 60,
       },
       trustedOrigins: [
         ENV.frontendUrl,

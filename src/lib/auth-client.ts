@@ -10,17 +10,10 @@ import {
 } from "better-auth/client/plugins";
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { dashClient, sentinelClient } from "@better-auth/infra/client";
-
-// Determine the base URL for the auth service
-const getBaseURL = () => {
-    if (process.env.NODE_ENV === "development") {
-        return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    }
-    return process.env.BETTER_AUTH_URL || "https://attend-ai-smart-erp.vercel.app";
-};
+import { ENV } from "./env";
 
 export const authClient = createAuthClient({
-  baseURL: getBaseURL(),
+  baseURL: ENV.frontendUrl,
   plugins: [
     // ── Authentication ──
     phoneNumberClient(),
