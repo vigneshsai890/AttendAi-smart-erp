@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 
 async function checkAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user || session.user.role !== "ADMIN") return null;
+  if (!session?.user || (session.user as any).role !== "ADMIN") return null;
   return session;
 }
 

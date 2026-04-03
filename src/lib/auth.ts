@@ -10,9 +10,10 @@ import {
   username
 } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
-import { dash, sentinel, sendEmail, sendSMS } from "@better-auth/infra";
+import { dash, sentinel, sendEmail } from "@better-auth/infra";
 import { MongoClient, Db } from "mongodb";
 import { ENV } from "./env";
+import { sendAWSSMS } from "./sms";
 
 // --- Lazy Mongo Initialization for Build Safety ---
 let _db: Db | null = null;
@@ -96,13 +97,12 @@ export const auth = betterAuth({
     phoneNumber({
       sendOTP: async ({ phoneNumber, code }) => {
         try {
-          await sendSMS({
+          await sendAWSSMS({
             to: phoneNumber,
             code,
-            template: "phone-verification",
           });
         } catch (err) {
-          console.error("❌ [AUTH] Failed to send verification SMS:", err);
+          console.error("❌ [AUTH] Failed to send AWS SNS verification SMS:", err);
         }
       },
       signUpOnVerification: {
