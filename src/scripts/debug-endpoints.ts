@@ -20,6 +20,7 @@ async function debugEndpoint(url: string) {
 async function run() {
   await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/health');
   await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/debug/db-test');
+  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/auth/ping');
   await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/auth/session');
   await debugEndpoint('https://attendai-smart-erp.onrender.com/api/auth/session');
 }
