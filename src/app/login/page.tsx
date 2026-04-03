@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Magnetic from "@/components/Magnetic";
 import { 
   ShieldCheck, Mail, Lock, 
-  Loader2, Chrome, Apple, Phone,
+  Loader2, Chrome, Phone,
   ShieldAlert, Fingerprint
 } from "lucide-react";
 
@@ -162,16 +162,15 @@ function LoginForm() {
                 exit={{ opacity: 0, scale: 0.98 }}
                 className="space-y-8"
               >
-                <div className="flex gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   {[
-                    { id: "google" as const, icon: <Chrome size={22} />, label: "Google" },
-                    { id: "apple" as const, icon: <Apple size={22} />, label: "Apple" },
-                    { id: "phone" as const, icon: <Phone size={22} />, label: "Mobile" },
+                    { id: "google" as const, icon: <Chrome size={22} />, label: "Google Cluster" },
+                    { id: "phone" as const, icon: <Phone size={22} />, label: "Mobile Node" },
                   ].map((btn) => (
                     <Magnetic key={btn.id} strength={0.2}>
                       <button 
-                        onClick={() => btn.id === "phone" ? setStep("PHONE") : handleSocial(btn.id as "google" | "apple")}
-                        className="flex-1 p-6 rounded-[2.2rem] bg-white/[0.03] border border-white/5 hover:bg-white/10 transition-all flex flex-col items-center gap-2 group"
+                        onClick={() => btn.id === "phone" ? setStep("PHONE") : handleSocial(btn.id as "google")}
+                        className="p-6 rounded-[2.2rem] bg-white/[0.03] border border-white/5 hover:bg-white/10 transition-all flex flex-col items-center gap-2 group"
                       >
                         <div className="text-white/20 group-hover:text-white transition-colors">{btn.icon}</div>
                         <span className="text-[8px] font-black uppercase tracking-widest text-white/10 group-hover:text-white/40">{btn.label}</span>

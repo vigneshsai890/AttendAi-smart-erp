@@ -23,10 +23,6 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "PLACEHOLDER_GOOGLE_SECRET",
     },
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID || "PLACEHOLDER_APPLE_ID",
-      clientSecret: process.env.APPLE_CLIENT_SECRET || "PLACEHOLDER_APPLE_SECRET",
-    },
   },
   plugins: [
     phoneNumber({

@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { 
   ShieldCheck, Mail, Phone, 
-  Chrome, Apple, ArrowRight, Loader2,
+  Chrome, ArrowRight, Loader2,
   CheckCircle2, AlertCircle
 } from "lucide-react";
 import Magnetic from "@/components/Magnetic";
@@ -117,20 +117,13 @@ export default function SignupPage() {
           </div>
 
           {/* Social Hub */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="mb-8">
             <button 
               onClick={() => handleSocial("google")}
-              className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
             >
               <Chrome size={18} className="text-white/40 group-hover:text-white transition-colors" />
-              <span className="text-[11px] font-black uppercase tracking-widest">Google</span>
-            </button>
-            <button 
-              onClick={() => handleSocial("apple")}
-              className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
-            >
-              <Apple size={18} className="text-white/40 group-hover:text-white transition-colors" />
-              <span className="text-[11px] font-black uppercase tracking-widest">Apple</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">Connect with Google Identity</span>
             </button>
           </div>
 
