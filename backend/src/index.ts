@@ -23,7 +23,7 @@ const server = http.createServer(app);
 // --- Industry-Grade CORS & Socket.io Security ---
 const allowedOrigins = [
   ENV.frontendUrl,
-  'https://attend-ai-smart-erp.vercel.app',
+  'https://attendai-smart-erp.onrender.com',
   'https://dash.better-auth.com',
   'http://localhost:3000'
 ].filter(Boolean);
