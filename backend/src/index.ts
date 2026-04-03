@@ -23,10 +23,9 @@ const app = express();
 const server = http.createServer(app);
 
 // --- FOOL-PROOF BETTER AUTH MOUNT ---
-// This catches EVERYTHING under /api/auth and passes it to Better Auth
-app.use("/api/auth", (req, res, next) => {
+// This catches EVERYTHING under /auth and passes it to Better Auth
+app.use("/auth", (req, res, next) => {
   console.log(`🔌 [AUTH PROBE] ${req.method} ${req.url}`);
-  // If it's a direct ping to the auth handler
   if (req.url === "/ping" || req.url === "/") {
     return res.json({ status: "ALIVE", service: "Better Auth Handler", url: req.url });
   }
@@ -110,7 +109,7 @@ app.use('/api', (req, res, next) => {
 const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers['x-internal-token'];
   // Allow health checks and Better Auth routes without internal token
-  if (req.path.startsWith('/api/auth') || req.path === '/api/health') {
+  if (req.path.startsWith('/auth') || req.path === '/api/health') {
     return next();
   }
 
