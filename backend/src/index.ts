@@ -53,6 +53,21 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(morgan('dev'));
 
+// DB Write Test (Public for diagnosis)
+app.get('/api/debug/db-test', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) throw new Error("No DB connection");
+    const testCol = db.collection('test_connectivity');
+    await testCol.insertOne({ timestamp: new Date(), message: 'Max Power Connectivity Test' });
+    const count = await testCol.countDocuments();
+    res.json({ status: 'SUCCESS', count });
+  } catch (err: any) {
+    console.error("❌ [DB TEST] Failure:", err.message);
+    res.status(500).json({ status: 'ERROR', message: err.message });
+  }
+});
+
 // Better-Auth Session Verification
 import { betterAuthMiddleware } from './middleware/auth.js';
 app.use('/api', (req, res, next) => {
@@ -128,7 +143,7 @@ app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
 
 // --- Robust Better Auth Integration ---
-app.all('/api/auth/*', (req, res) => {
+app.all(['/api/auth', '/api/auth/*'], (req, res) => {
   console.log(`📡 [AUTH] Incoming request: ${req.method} ${req.url}`);
   return toNodeHandler(getAuth())(req, res);
 });
