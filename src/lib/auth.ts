@@ -181,6 +181,7 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     "http://localhost:3000",
+    "https://dash.better-auth.com",
     process.env.BETTER_AUTH_URL || "",
     process.env.NEXT_PUBLIC_APP_URL || "",
   ].filter(Boolean)
