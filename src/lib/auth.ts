@@ -10,62 +10,70 @@ import {
   username
 } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
-import { dash, sentinel } from "@better-auth/infra";
+import { dash, sentinel, sendEmail, sendSMS } from "@better-auth/infra";
 import { MongoClient } from "mongodb";
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const client = new MongoClient(process.env.MONGO_URI || "mongodb://localhost:27017/smart_erp_realtime");
 const db = client.db();
 
-// Configure AWS SNS for SMS OTP Delivery
-const snsClient = new SNSClient({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
-});
+// Auth instance initialized with MongoDB
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),
-  baseURL: "https://attend-ai-smart-erp.vercel.app/",
-  emailAndPassword: {
-    enabled: true,
-  },
+  baseURL: "https://attend-ai-smart-erp.vercel.app",
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "PLACEHOLDER_GOOGLE_SECRET",
+      accessType: "offline",
+      prompt: "select_account consent",
+    },
+    microsoft: {
+      clientId: process.env.MICROSOFT_CLIENT_ID || "PLACEHOLDER_MICROSOFT_ID",
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "PLACEHOLDER_MICROSOFT_SECRET",
+      tenantId: "common",
+      prompt: "select_account",
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    async sendVerificationEmail({ user, url }) {
+      await sendEmail({
+        template: "verify-email",
+        to: user.email,
+        variables: {
+          verificationUrl: url,
+          userEmail: user.email,
+          userName: user.name,
+          appName: "AttendAI",
+        },
+      });
+    },
+  },
+  emailAndPassword: {
+    enabled: true,
+    async sendResetPassword({ user, url }) {
+      await sendEmail({
+        template: "reset-password",
+        to: user.email,
+        variables: {
+          resetLink: url,
+          userEmail: user.email,
+          userName: user.name,
+          appName: "AttendAI",
+        },
+      });
     },
   },
   plugins: [
     // ── Authentication Plugins ────────────────────────────
     phoneNumber({
       sendOTP: async ({ phoneNumber, code }) => {
-        const message = `[AttendAI] Your secure access code is: ${code}. Do not share this sign-on signal.`;
-
-        try {
-          const command = new PublishCommand({
-            PhoneNumber: phoneNumber,
-            Message: message,
-            MessageAttributes: {
-              'AWS.SNS.SMS.SenderID': {
-                DataType: 'String',
-                StringValue: 'AttendAI'
-              },
-              'AWS.SNS.SMS.SMSType': {
-                DataType: 'String',
-                StringValue: 'Transactional'
-              }
-            }
-          });
-
-          await snsClient.send(command);
-          console.log(`[SMS_SYNC_SUCCESS] Delivered to: ${phoneNumber}`);
-        } catch (err) {
-          console.error("[SMS_SYNC_FAILURE]", err);
-          console.log(`[DEV_FALLBACK] CODE: ${code}`);
-        }
+        await sendSMS({
+          to: phoneNumber,
+          code,
+          template: "phone-verification",
+        });
       },
       signUpOnVerification: {
         getTempEmail: (phone) => `${phone.replace("+", "")}@apollo.erp`,
@@ -74,13 +82,16 @@ export const auth = betterAuth({
     }),
     twoFactor(),
     emailOTP({
-      async sendVerificationOTP({ email, otp, type }) {
-        // For now, log OTPs to console (wire up Resend/SendGrid/SES later)
-        console.log(`\n━━━ [EMAIL_OTP] ━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        console.log(`  To: ${email}`);
-        console.log(`  Type: ${type}`);
-        console.log(`  CODE: ${otp}`);
-        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+      async sendVerificationOTP({ email, otp }) {
+        await sendEmail({
+          template: "verify-email-otp",
+          to: email,
+          variables: {
+            otpCode: otp,
+            userEmail: email,
+            appName: "AttendAI",
+          },
+        });
       },
     }),
     username(),
@@ -98,31 +109,38 @@ export const auth = betterAuth({
 
     // ── Infrastructure Plugins ────────────────────────────
     apiKey(),
-    dash(),
+    dash({
+      apiKey: process.env.BETTER_AUTH_API_KEY,
+      activityTracking: {
+        enabled: true,
+        updateInterval: 300000, 
+      },
+    }),
     sentinel({
+      apiKey: process.env.BETTER_AUTH_API_KEY,
       security: {
-        // Impossible Travel: flag if a student logs in from 2 cities too fast
-        impossibleTravel: {
-          enabled: true,
-          maxSpeedKmh: 500, // airplane speed threshold
-          action: "challenge",
-        },
         // Credential Stuffing: block brute-force login attempts
         credentialStuffing: {
           enabled: true,
-          thresholds: { challenge: 5, block: 15 },
-          windowSeconds: 300, // 5-minute window
-          cooldownSeconds: 900, // 15-min cooldown after block
+          thresholds: { challenge: 3, block: 5 },
+          windowSeconds: 3600,
+          cooldownSeconds: 900,
+        },
+        // Impossible Travel: flag if a student logs in from 2 cities too fast
+        impossibleTravel: {
+          enabled: true,
+          maxSpeedKmh: 1000,
+          action: "challenge",
         },
         // Bot Detection: block automated attendance marking
-        botBlocking: { action: "block" },
+        botBlocking: { action: "challenge" },
         // Compromised Password: warn users with leaked passwords
         compromisedPassword: {
           enabled: true,
-          action: "challenge",
-          minBreachCount: 3,
+          action: "block",
+          minBreachCount: 1,
         },
-        // Email Validation: only accept university emails
+        // Email Validation: only accept high-quality email domains
         emailValidation: {
           enabled: true,
           strictness: "medium",
@@ -131,12 +149,14 @@ export const auth = betterAuth({
         // Velocity Limits: prevent mass sign-up abuse
         velocity: {
           enabled: true,
-          maxSignupsPerVisitor: 3,
-          maxPasswordResetsPerIp: 5,
-          maxSignInsPerIp: 20,
-          windowSeconds: 3600, // 1-hour window
+          maxSignupsPerVisitor: 5,
+          maxPasswordResetsPerIp: 10,
+          maxSignInsPerIp: 50,
+          windowSeconds: 3600,
           action: "challenge",
         },
+        // Suspicious IP Detection
+        suspiciousIpBlocking: { action: "block" },
       },
     })
   ],
@@ -173,7 +193,10 @@ export const auth = betterAuth({
       phoneNumberVerified: {
         type: "boolean",
         defaultValue: false,
-      }
+      },
+      lastActiveAt: {
+        type: "date",
+      },
     }
   },
   session: {

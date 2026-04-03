@@ -9,9 +9,10 @@ import {
   usernameClient
 } from "better-auth/client/plugins";
 import { apiKeyClient } from "@better-auth/api-key/client";
+import { dashClient, sentinelClient } from "@better-auth/infra/client";
 
 export const authClient = createAuthClient({
-  baseURL: "https://attend-ai-smart-erp.vercel.app/",
+  baseURL: "https://attend-ai-smart-erp.vercel.app",
   plugins: [
     // ── Authentication ──
     phoneNumberClient(),
@@ -27,7 +28,11 @@ export const authClient = createAuthClient({
     organizationClient(),
 
     // ── Infrastructure ──
-    apiKeyClient()
+    apiKeyClient(),
+    dashClient(),
+    sentinelClient({
+      autoSolveChallenge: true,
+    }),
   ]
 });
 
