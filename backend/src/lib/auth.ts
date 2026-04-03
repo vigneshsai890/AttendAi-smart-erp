@@ -6,6 +6,7 @@ import {
   phoneNumber, 
   twoFactor 
 } from "better-auth/plugins";
+import { apiKey } from "@better-auth/api-key";
 
 // Lazy-initialized BetterAuth instance
 let _auth: ReturnType<typeof betterAuth> | null = null;
@@ -35,7 +36,8 @@ export const getAuth = () => {
             getTempName: (phone) => `User ${phone}`,
           },
         }),
-        twoFactor()
+        twoFactor(),
+        apiKey()
       ],
       user: {
         additionalFields: {
