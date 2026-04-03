@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user || session.user.role !== "FACULTY") {
+  if (!session?.user || (session.user as any).role !== "FACULTY") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user || session.user.role !== "FACULTY") {
+  if (!session?.user || (session.user as any).role !== "FACULTY") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
