@@ -6,24 +6,31 @@ async function debugEndpoint(url: string) {
     const res = await axios.get(url, {
       validateStatus: () => true,
       headers: {
-        'Origin': 'https://attendai-smart-erp.onrender.com'
+        'Origin': 'https://attendai-smart-erp.onrender.com',
+        'x-sniff': 'true' // Trigger the new sniffer if live
       }
     });
-    console.log(`Status: ${res.status} ${res.statusText}`);
+
+    const isNewVersion = res.data && res.data.deploy;
+    const statusColor = res.status === 200 ? "✅" : (res.status === 401 ? "🔐" : "❌");
+
+    console.log(`${statusColor} Status: ${res.status} ${res.statusText}`);
+    if (isNewVersion) console.log(`🚀 NEW VERSION DETECTED! Deploy: ${res.data.deploy}`);
+
     console.log(`Headers:`, res.headers);
-    console.log(`Body:`, typeof res.data === 'object' ? JSON.stringify(res.data).slice(0, 500) : res.data.slice(0, 500));
+    console.log(`Body:`, typeof res.data === 'object' ? JSON.stringify(res.data, null, 2).slice(0, 1000) : res.data.slice(0, 500));
   } catch (err: any) {
-    console.error(`Error: ${err.message}`);
+    console.error(`🚨 Error: ${err.message}`);
   }
 }
 
 async function run() {
+  console.log("🛠️  Industry-Grade Production Debugger v3.0");
   await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/health');
-  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/debug/db-test');
-  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/auth/ping');
-  await debugEndpoint('https://attendai-smart-erp.onrender.com/api/auth/ping');
-  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/api/auth/session');
-  await debugEndpoint('https://attendai-smart-erp.onrender.com/api/auth/session');
+  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/auth/ping');
+  await debugEndpoint('https://attendai-smart-erp.onrender.com/auth/ping');
+  await debugEndpoint('https://attendai-backend-ynnd.onrender.com/auth/session');
+  await debugEndpoint('https://attendai-smart-erp.onrender.com/auth/session');
 }
 
 run();

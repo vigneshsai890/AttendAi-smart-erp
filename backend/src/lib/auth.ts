@@ -19,7 +19,11 @@ import { sendAWSSMS } from "./sms.js";
 let _auth: any = null;
 
 const getBetterAuthSecret = () => {
-  return process.env.BETTER_AUTH_SECRET || "SMART_ERP_SECRET_KEY_PROD_2024";
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (ENV.isProduction && !secret) {
+    throw new Error("❌ [SECURITY CRITICAL] BETTER_AUTH_SECRET is missing in production (Backend)!");
+  }
+  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
 
 export const getAuth = () => {
@@ -36,8 +40,12 @@ export const getAuth = () => {
       // Hub configuration handles pathing
       socialProviders: {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com",
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          clientId: (() => {
+            const id = process.env.GOOGLE_CLIENT_ID;
+            if (ENV.isProduction && !id) throw new Error("❌ [SECURITY CRITICAL] GOOGLE_CLIENT_ID is missing in production!");
+            return id || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com";
+          })(),
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
           accessType: "offline",
           prompt: "select_account consent",
         }
@@ -88,9 +96,14 @@ export const getAuth = () => {
       user: {
         additionalFields: {
           role: { type: "string", defaultValue: "STUDENT" },
+          studentId: { type: "string", required: false },
+          regId: { type: "string", required: false },
+          specialization: { type: "string", required: false },
+          department: { type: "string", required: false },
+          isProfileComplete: { type: "boolean", defaultValue: false },
           phoneNumber: { type: "string", required: false },
           phoneNumberVerified: { type: "boolean", defaultValue: false },
-          isProfileComplete: { type: "boolean", defaultValue: false },
+          lastActiveAt: { type: "date" },
         }
       },
       session: { expiresIn: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },

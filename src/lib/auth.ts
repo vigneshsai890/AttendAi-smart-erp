@@ -30,9 +30,9 @@ const getDb = async () => {
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (ENV.isProduction && !secret) {
-    console.warn("⚠️ [SECURITY] BETTER_AUTH_SECRET is missing in production environment!");
+    throw new Error("❌ [SECURITY CRITICAL] BETTER_AUTH_SECRET is missing in production!");
   }
-  return secret || "SMART_ERP_SECRET_KEY_PROD_2024";
+  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
 
 // Auth instance initialized with MongoDB
@@ -43,7 +43,11 @@ export const auth = betterAuth({
   basePath: "/auth", // Moved from /api/auth to /auth for maximum compatibility
   socialProviders: {
     google: {
-      clientId: (process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com") as string,
+      clientId: (() => {
+        const id = process.env.GOOGLE_CLIENT_ID;
+        if (ENV.isProduction && !id) throw new Error("❌ [SECURITY CRITICAL] GOOGLE_CLIENT_ID is missing in production!");
+        return id || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com";
+      })(),
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       accessType: "offline",
       prompt: "select_account consent",
@@ -144,7 +148,7 @@ export const auth = betterAuth({
     // ── Infrastructure Plugins ────────────────────────────
     apiKey(),
     dash(),
-    /* sentinel({
+    sentinel({
       apiKey: process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl",
       security: {
         credentialStuffing: { enabled: true },
@@ -155,9 +159,9 @@ export const auth = betterAuth({
         velocity: { enabled: true, action: "challenge" },
         suspiciousIpBlocking: { action: "block" },
       },
-    }) */
+    })
   ],
-  /* user: {
+  user: {
     additionalFields: {
       role: { type: "string", defaultValue: "STUDENT" },
       studentId: { type: "string", required: false },
@@ -169,7 +173,7 @@ export const auth = betterAuth({
       phoneNumberVerified: { type: "boolean", defaultValue: false },
       lastActiveAt: { type: "date" },
     }
-  }, */
+  },
   session: {
     expiresIn: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
