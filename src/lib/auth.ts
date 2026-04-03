@@ -19,6 +19,14 @@ import { sendAWSSMS } from "./sms";
 let _auth: any = null;
 let _client: MongoClient | null = null;
 
+const getBetterAuthSecret = () => {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (ENV.isProduction && !secret) {
+    throw new Error("❌ [SECURITY CRITICAL] BETTER_AUTH_SECRET is missing in production!");
+  }
+  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
+};
+
 export const getAuth = async () => {
   if (!_auth) {
     // 1. Ensure DB connection

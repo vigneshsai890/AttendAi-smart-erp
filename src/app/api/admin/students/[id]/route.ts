@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 async function checkAdmin() {
+  const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user || (session.user as any).role !== "ADMIN") return null;
   return session;

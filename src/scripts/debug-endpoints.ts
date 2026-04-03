@@ -11,11 +11,12 @@ async function debugEndpoint(url: string) {
       }
     });
 
-    const isNewVersion = res.data && res.data.deploy;
+    const isNewVersion = res.data && (res.data.deploy || res.data.hub);
     const statusColor = res.status === 200 ? "✅" : (res.status === 401 ? "🔐" : "❌");
 
     console.log(`${statusColor} Status: ${res.status} ${res.statusText}`);
-    if (isNewVersion) console.log(`🚀 NEW VERSION DETECTED! Deploy: ${res.data.deploy}`);
+    if (isNewVersion) console.log(`🚀 NEW VERSION DETECTED! [${res.data.deploy || res.data.hub}]`);
+    if (res.data.env) console.log(`🌍 Env Diagnostics:`, JSON.stringify(res.data.env, null, 2));
 
     console.log(`Headers:`, res.headers);
     console.log(`Body:`, typeof res.data === 'object' ? JSON.stringify(res.data, null, 2).slice(0, 1000) : res.data.slice(0, 500));
