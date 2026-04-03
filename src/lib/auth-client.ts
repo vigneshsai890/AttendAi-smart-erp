@@ -14,6 +14,7 @@ import { ENV } from "./env";
 
 export const authClient = createAuthClient({
   baseURL: ENV.frontendUrl,
+  basePath: "/auth", // Aligned with server move
   plugins: [
     // ── Authentication ──
     phoneNumberClient(),

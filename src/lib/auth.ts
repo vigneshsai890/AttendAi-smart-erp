@@ -40,7 +40,7 @@ export const auth = betterAuth({
   database: mongodbAdapter(getDb()),
   secret: getBetterAuthSecret(),
   baseURL: ENV.frontendUrl,
-  basePath: "/api/auth",
+  basePath: "/auth", // Moved from /api/auth to /auth for maximum compatibility
   socialProviders: {
     google: {
       clientId: (process.env.GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com") as string,
