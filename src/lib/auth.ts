@@ -37,7 +37,7 @@ const getBetterAuthSecret = () => {
 
 // Auth instance initialized with MongoDB
 export const auth = betterAuth({
-  database: mongodbAdapter(getDb()),
+  database: mongodbAdapter(getDb() as any),
   secret: getBetterAuthSecret(),
   baseURL: ENV.frontendUrl,
   basePath: "/auth", // Moved from /api/auth to /auth for maximum compatibility

@@ -78,13 +78,15 @@ async function runLiveTest() {
   let attempts = 0;
   const maxAttempts = 20; // Increased to 20 attempts
   const delay = 30000; // 30 seconds (Total 10 minutes)
+  let frontendSuccess = false;
+  let backendSuccess = false;
 
   while (attempts < maxAttempts) {
     attempts++;
     console.log(`\n📡 Verification Attempt ${attempts}/${maxAttempts} (T+${(attempts-1)*30}s)...`);
 
-    const frontendSuccess = await testUrl(FRONTEND_URL);
-    const backendSuccess = await testUrl(BACKEND_URL);
+    frontendSuccess = await testUrl(FRONTEND_URL);
+    backendSuccess = await testUrl(BACKEND_URL);
 
     if (frontendSuccess || backendSuccess) {
       console.log("\n🎉 AT LEAST ONE SERVICE IS RESPONDING!");

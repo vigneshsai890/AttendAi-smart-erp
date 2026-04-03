@@ -11,9 +11,9 @@ export const GET = async (req: NextRequest) => {
   if (req.nextUrl.pathname.endsWith("/ping")) {
     return NextResponse.json({ status: "ALIVE", service: "Frontend Auth Handler" });
   }
-  return handler(req);
+  return handler.GET(req);
 };
 
 export const POST = async (req: NextRequest) => {
-  return handler(req);
+  return handler.POST(req);
 };
