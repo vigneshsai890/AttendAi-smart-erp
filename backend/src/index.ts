@@ -14,6 +14,8 @@ import { debugRouter } from './routes/debug.js';
 import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
+import { toNodeHandler } from "better-auth/node";
+import { getAuth } from './lib/auth.js';
 
 dotenv.config();
 
@@ -110,7 +112,8 @@ app.use('/api/session', sessionRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
-app.use('/api/auth', authRouter);
+// Better Auth handler on root for correct pathing
+app.all('/api/auth/*', (req, res) => toNodeHandler(getAuth())(req, res));
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
 
