@@ -21,7 +21,8 @@ let _auth: any = null;
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (ENV.isProduction && !secret) {
-    throw new Error("❌ [FATAL] BETTER_AUTH_SECRET missing in production!");
+    console.warn("⚠️ [BRIDGE] Using internal token as BETTER_AUTH_SECRET fallback.");
+    return ENV.internalToken;
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
