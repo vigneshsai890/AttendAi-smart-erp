@@ -13,8 +13,9 @@ import {
   oneTap
 } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
-import { dash, sentinel, sendEmail, sendSMS } from "@better-auth/infra";
+import { dash, sentinel, sendEmail } from "@better-auth/infra";
 import { ENV } from "./env.js";
+import { sendAWSSMS } from "./sms.js";
 
 // Lazy-initialized BetterAuth instance
 let _auth: any = null;
@@ -88,13 +89,12 @@ export const getAuth = () => {
         phoneNumber({
           sendOTP: async ({ phoneNumber, code }) => {
             try {
-              await sendSMS({
+              await sendAWSSMS({
                 to: phoneNumber,
                 code,
-                template: "phone-verification",
               });
             } catch (err) {
-              console.error("❌ [BACKEND AUTH] Failed to send verification SMS:", err);
+              console.error("❌ [BACKEND AUTH] Failed to send AWS SNS verification SMS:", err);
             }
           },
           signUpOnVerification: {
