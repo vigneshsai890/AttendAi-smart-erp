@@ -92,6 +92,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// DB Write Test
+app.get('/api/debug/db-test', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) throw new Error("No DB connection");
+    const testCol = db.collection('test_connectivity');
+    await testCol.insertOne({ timestamp: new Date(), message: 'Max Power Connectivity Test' });
+    const count = await testCol.countDocuments();
+    res.json({ status: 'SUCCESS', count });
+  } catch (err: any) {
+    res.status(500).json({ status: 'ERROR', message: err.message });
+  }
+});
+
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smart_erp_realtime';
 
 io.on('connection', (socket: any) => {
