@@ -30,12 +30,7 @@ services:
           type: web
           name: attendai-backend
           property: host
-      - key: NEXTAUTH_URL
-        fromService:
-          type: web
-          name: attendai-frontend
-          property: host
-      - key: NEXTAUTH_SECRET
+      - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: NODE_ENV
         value: production

@@ -5,34 +5,24 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import http from 'http';
 import { Server } from 'socket.io';
+import { toNodeHandler } from "better-auth/node";
 import { ENV } from './lib/env.js';
+import { getAuth } from './lib/auth.js';
 
 import { sessionRouter } from './routes/session.js';
 import { attendanceRouter, setIo } from './routes/attendance.js';
 import { attendanceFullRouter, setIo as setIoFull } from './routes/attendance-full.js';
 import { debugRouter } from './routes/debug.js';
-import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
-import { toNodeHandler } from "better-auth/node";
-import { getAuth } from './lib/auth.js';
+import { betterAuthMiddleware } from './middleware/auth.js';
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// --- FOOL-PROOF BETTER AUTH MOUNT ---
-// This catches EVERYTHING under /auth and passes it to Better Auth
-app.use("/auth", (req, res, next) => {
-  console.log(`🔌 [AUTH PROBE] ${req.method} ${req.url}`);
-  if (req.url === "/ping" || req.url === "/") {
-    return res.json({ status: "ALIVE", service: "Better Auth Handler", url: req.url });
-  }
-  return toNodeHandler(getAuth())(req, res);
-});
-
-// --- Industry-Grade CORS & Socket.io Security ---
+// --- 1. Industry-Grade CORS & Socket.io Security ---
 const allowedOrigins = [
   ENV.frontendUrl,
   'https://attendai-smart-erp.onrender.com',
@@ -63,66 +53,22 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(morgan('dev'));
 
-// DB Write Test (Public for diagnosis)
-app.get('/api/debug/db-test', async (req, res) => {
-  try {
-    const db = mongoose.connection.db;
-    if (!db) throw new Error("No DB connection");
-    const testCol = db.collection('test_connectivity');
-    await testCol.insertOne({
-      timestamp: new Date(),
-      message: 'Max Power Connectivity Test',
-      reqPath: req.path,
-      reqUrl: req.url,
-      headers: req.headers
+// --- 2. FOOL-PROOF BETTER AUTH MOUNT (PRIORITY) ---
+// We handle both /auth and /api/auth to account for proxy variations
+app.use(["/auth", "/api/auth"], (req, res, next) => {
+  console.log(`🔌 [AUTH PROBE] ${req.method} ${req.url}`);
+  if (req.url === "/ping" || req.url === "/") {
+    return res.json({
+      status: "ALIVE",
+      service: "Better Auth Handler",
+      url: req.url,
+      path: req.path
     });
-    const count = await testCol.countDocuments();
-    res.json({
-      status: 'SUCCESS',
-      count,
-      debug: {
-        path: req.path,
-        url: req.url,
-        headers: req.headers,
-        env_backend_url: ENV.backendUrl,
-        env_frontend_url: ENV.frontendUrl
-      }
-    });
-  } catch (err: any) {
-    console.error("❌ [DB TEST] Failure:", err.message);
-    res.status(500).json({ status: 'ERROR', message: err.message, debug: { path: req.path, url: req.url } });
   }
+  return toNodeHandler(getAuth())(req, res);
 });
 
-// Better-Auth Session Verification
-import { betterAuthMiddleware } from './middleware/auth.js';
-app.use('/api', (req, res, next) => {
-  // --- Industry-Grade Middleware Bypass ---
-  // Allow health checks and ALL Better Auth endpoints (for dash, login, signup)
-  if (req.path === '/health' || req.path.startsWith('/auth')) {
-    return next();
-  }
-  return betterAuthMiddleware(req, res, next);
-});
-
-// ULTRAMAX: Internal Communication Guard
-const internalAuth = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers['x-internal-token'];
-  // Allow health checks and Better Auth routes without internal token
-  if (req.path.startsWith('/auth') || req.path === '/api/health') {
-    return next();
-  }
-
-  if (token !== ENV.internalToken) {
-    console.error(`🚨 [SECURITY] Unauthorized internal access attempt from: ${req.ip}`);
-    return res.status(403).json({ error: 'FORBIDDEN: Internal communication only' });
-  }
-  next();
-};
-
-app.use(internalAuth);
-
-// ULTRAMAX Health Check
+// --- 3. PUBLIC UTILITIES & HEALTH ---
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -133,83 +79,86 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// DB Write Test
 app.get('/api/debug/db-test', async (req, res) => {
   try {
     const db = mongoose.connection.db;
     if (!db) throw new Error("No DB connection");
     const testCol = db.collection('test_connectivity');
-    await testCol.insertOne({ timestamp: new Date(), message: 'Max Power Connectivity Test' });
-    const count = await testCol.countDocuments();
-    res.json({ status: 'SUCCESS', count });
+    await testCol.insertOne({ timestamp: new Date(), message: 'Final Production Sweep' });
+    res.json({ status: 'SUCCESS', count: await testCol.countDocuments() });
   } catch (err: any) {
     res.status(500).json({ status: 'ERROR', message: err.message });
   }
 });
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smart_erp_realtime';
+// --- 4. INTERNAL AUTH GUARD & BYPASS ---
+const internalAuth = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers['x-internal-token'];
+  // Bypass for health and auth (redundant but safe)
+  if (req.path.includes('/auth') || req.path.includes('/health')) {
+    return next();
+  }
 
-io.on('connection', (socket: any) => {
-  console.log(`Socket connected: ${socket.id}`);
-  socket.on('join-session', (sessionId: string) => {
-    socket.join(sessionId);
-    console.log(`Socket ${socket.id} joined room ${sessionId}`);
-  });
-  socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
+  if (token !== ENV.internalToken) {
+    console.error(`🚨 [SECURITY] Unauthorized internal access attempt from: ${req.ip} to ${req.path}`);
+    return res.status(403).json({ error: 'FORBIDDEN: Internal communication only' });
+  }
+  next();
+};
+
+app.use(internalAuth);
+
+// --- 5. SECURE API ROUTES ---
+// Apply Better Auth middleware to all /api routes except health/auth
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health' || req.path.includes('/auth')) {
+    return next();
+  }
+  return betterAuthMiddleware(req, res, next);
 });
-
-setIo(io);
-setIoFull(io);
 
 app.use('/api/session', sessionRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
-
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
 
-// --- GLOBAL ERROR HANDLER ---
+// --- 6. GLOBAL ERROR HANDLER ---
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error("🔥 [GLOBAL ERROR]:", err);
   res.status(500).json({
     error: "GLOBAL_ERROR",
     message: err.message,
-    path: req.path,
-    stack: ENV.isProduction ? undefined : err.stack
+    path: req.path
   });
 });
 
 const PORT = parseInt(process.env.PORT || '5001', 10);
-const HOST = '0.0.0.0'; // Explicit host binding for Render
+const HOST = '0.0.0.0';
 
-// Export app for Vercel/Render
-export default app;
+setIo(io);
+setIoFull(io);
 
 const startServer = async () => {
   try {
+    const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smart_erp_realtime';
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(MONGO_URI);
       console.log('✅ MongoDB connected');
     }
-
     server.listen(PORT, HOST, () => {
       console.log(`🚀 Industry-Grade Backend running on http://${HOST}:${PORT}`);
-      console.log(`📡 Production URL: ${ENV.backendUrl}`);
     });
   } catch (err) {
     console.error('❌ Database connection failure:', err);
-    if (!process.env.VERCEL) process.exit(1);
+    process.exit(1);
   }
 };
 
-// Graceful Shutdown
 const shutdown = async () => {
   console.log('\n🛑 Shutting down gracefully...');
   server.close(() => {
-    console.log('📡 HTTP server closed.');
     mongoose.connection.close(false).then(() => {
       console.log('✅ MongoDB connection closed.');
       process.exit(0);
