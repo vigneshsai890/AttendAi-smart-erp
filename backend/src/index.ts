@@ -29,6 +29,14 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Better-Auth Session Verification
+import { betterAuthMiddleware } from './middleware/auth';
+app.use('/api', (req, res, next) => {
+  // Pass through health checks and legacy auth/login (for migration)
+  if (req.path === '/health' || req.path === '/auth/login') return next();
+  return betterAuthMiddleware(req, res, next);
+});
+
 // ULTRAMAX: Internal Communication Guard
 const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN || 'smart-erp-internal-communication-secret-2024';
 const internalAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {

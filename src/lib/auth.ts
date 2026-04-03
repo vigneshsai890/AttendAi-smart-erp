@@ -1,85 +1,108 @@
-import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { backend } from "./backend";
+import { betterAuth } from "better-auth";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { phoneNumber, twoFactor } from "better-auth/plugins";
+import { MongoClient } from "mongodb";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
-export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days session persistence
+const client = new MongoClient(process.env.MONGO_URI || "mongodb://localhost:27017/smart_erp_realtime");
+const db = client.db();
+
+// Configure AWS SNS
+const snsClient = new SNSClient({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        totp: { label: "OTP", type: "text", optional: true }
-      },
-      async authorize(credentials) {
-        // ULTRAMAX Input Validation
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing required credentials");
-        }
+});
 
+export const auth = betterAuth({
+  database: mongodbAdapter(db),
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "PLACEHOLDER_GOOGLE_SECRET",
+    },
+    apple: {
+      clientId: process.env.APPLE_CLIENT_ID || "PLACEHOLDER_APPLE_ID",
+      clientSecret: process.env.APPLE_CLIENT_SECRET || "PLACEHOLDER_APPLE_SECRET",
+    },
+  },
+  plugins: [
+    phoneNumber({
+      sendOTP: async ({ phoneNumber, code }) => {
+        // ULTRAMAX SMS Logic: AWS SNS Integration
+        const message = `[AttendAI] Your secure access code is: ${code}. Do not share this sign-on signal.`;
+        
         try {
-          const endpoint = credentials.totp ? "/auth/verify-otp" : "/auth/login";
-          const payload = credentials.totp
-            ? { email: credentials.email, otp: credentials.totp }
-            : { email: credentials.email, password: credentials.password };
-
-          /**
-           * Using the hardened backend proxy with ULTRAMAX Retry Logic.
-           * This specifically solves ECONNREFUSED by retrying on transient failures.
-           */
-          const res = await backend.post(endpoint, payload);
-          const user = res.data;
-
-          if (user.requiresOTP) {
-            // Signal frontend to transition to OTP input state
-            throw new Error("OTP_REQUIRED");
-          }
-
-          if (!user.id || !user.role) {
-            console.error("[AUTH_PROTOCOL_ERROR] Backend returned invalid user object:", user);
-            throw new Error("SERVER_PROTOCOL_MISMATCH");
-          }
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          };
-        } catch (error: any) {
-          // Robust signal propagation
-          if (error.message === "OTP_REQUIRED") throw error;
-
-          const errorMsg = error.response?.data?.error || error.message || "Authentication failed";
-          console.error(`[AUTH_FAILURE] Entity: ${credentials.email} | Reason: ${errorMsg}`);
-          throw new Error(errorMsg);
+          const command = new PublishCommand({
+            PhoneNumber: phoneNumber,
+            Message: message,
+            MessageAttributes: {
+              'AWS.SNS.SMS.SenderID': {
+                DataType: 'String',
+                StringValue: 'AttendAI'
+              },
+              'AWS.SNS.SMS.SMSType': {
+                DataType: 'String',
+                StringValue: 'Transactional'
+              }
+            }
+          });
+          
+          await snsClient.send(command);
+          console.log(`[SMS_SYNC_SUCCESS] Delivered to: ${phoneNumber}`);
+        } catch (err) {
+          console.error("[SMS_SYNC_FAILURE]", err);
+          // Fallback for development if keys are missing
+          console.log(`[DEV_FALLBACK] CODE: ${code}`);
         }
+      },
+      signUpOnVerification: {
+        getTempEmail: (phone) => `${phone.replace("+", "")}@apollo.erp`,
+        getTempName: (phone) => `User ${phone}`,
       },
     }),
+    twoFactor()
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "STUDENT", // Defaulting to STUDENT for new signups
+      },
+      studentId: {
+        type: "string",
+        required: false, // Generated during onboarding
+      },
+      regId: {
+        type: "string",
+        required: false, // Generated during onboarding
+      },
+      specialization: {
+        type: "string",
+        required: false, // Captured during onboarding
+      },
+      isProfileComplete: {
+        type: "boolean",
+        defaultValue: false,
+      },
+      phoneNumber: {
+        type: "string",
+        required: false,
+      },
+      phoneNumberVerified: {
+        type: "boolean",
+        defaultValue: false,
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-      }
-      return session;
-    },
+    }
   },
-  pages: {
-    signIn: "/login",
-    error: "/login",
+  session: {
+    expiresIn: 30 * 24 * 60 * 60, // 30 days session
+    updateAge: 24 * 60 * 60, // Update once a day
   },
-  secret: process.env.NEXTAUTH_SECRET || "supersecretkey123",
-};
+  trustedOrigins: [
+    "http://localhost:3000",
+    "https://appleid.apple.com"
+  ]
+});
