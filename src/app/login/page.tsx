@@ -45,8 +45,9 @@ function LoginForm() {
       } else {
         await handleAuthSuccess();
       }
-    } catch {
-      setError("Connect protocol failed");
+    } catch (err) {
+      console.error("[AUTH_DEBUG] Email sync failed:", err);
+      setError("Connect protocol failed. Check logs.");
     } finally {
       setLoading(false);
     }
@@ -59,8 +60,9 @@ function LoginForm() {
         provider,
         callbackURL: "/onboarding",
       });
-    } catch {
-      setError(`Failed to bridge with ${provider}`);
+    } catch (err) {
+      console.error(`[AUTH_DEBUG] Social bridge failed for ${provider}:`, err);
+      setError(`Failed to bridge with ${provider}. Verify Redirect URIs.`);
       setLoading(false);
     }
   };

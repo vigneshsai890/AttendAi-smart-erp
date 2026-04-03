@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -38,10 +38,14 @@ app.use('/api', (req, res, next) => {
 });
 
 // ULTRAMAX: Internal Communication Guard
-const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN || 'smart-erp-internal-communication-secret-2024';
-const internalAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN as string;
+const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers['x-internal-token'];
-  if (token !== INTERNAL_TOKEN && req.path !== '/api/health') {
+  // Allow health checks and Better Auth routes without internal token
+  if (req.path.startsWith('/api/auth') || req.path === '/api/health') {
+    return next();
+  }
+  if (token !== INTERNAL_TOKEN) {
     return res.status(403).json({ error: 'FORBIDDEN: Internal communication only' });
   }
   next();
@@ -97,13 +101,11 @@ const startServer = async () => {
       console.log('✅ MongoDB connected');
     }
 
-    // Only listen if running locally (not in Vercel)
-    if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-      server.listen(PORT, HOST, () => {
-        console.log(`🚀 ULTRAMAX Backend running on http://${HOST}:${PORT}`);
-        console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-      });
-    }
+    // Listen on the provided PORT (Render persistent container model)
+    server.listen(PORT, HOST, () => {
+      console.log(`🚀 ULTRAMAX Backend running on http://${HOST}:${PORT}`);
+      console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+    });
   } catch (err) {
     console.error('❌ Database connection failure:', err);
     if (!process.env.VERCEL) process.exit(1);

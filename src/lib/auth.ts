@@ -20,11 +20,11 @@ const db = client.db();
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),
-  baseURL: "https://attend-ai-smart-erp.vercel.app",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "PLACEHOLDER_GOOGLE_SECRET",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       accessType: "offline",
       prompt: "select_account consent",
     },
