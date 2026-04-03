@@ -22,18 +22,15 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// --- EMERGENCY AUTH MOUNT (TOP OF STACK) ---
-app.all(['/api/auth', '/api/auth/*'], async (req, res, next) => {
-  console.log(`🚨 [CRITICAL AUTH] ${req.method} ${req.url}`);
-  try {
-    const auth = getAuth();
-    if (!auth) throw new Error("Failed to initialize Better Auth");
-    return await toNodeHandler(auth)(req, res);
-  } catch (err: any) {
-    console.error("🔥 [AUTH CRASH]:", err.message);
-    // Let the global error handler handle it for consistency
-    next(err);
+// --- FOOL-PROOF BETTER AUTH MOUNT ---
+// This catches EVERYTHING under /api/auth and passes it to Better Auth
+app.use("/api/auth", (req, res, next) => {
+  console.log(`🔌 [AUTH PROBE] ${req.method} ${req.url}`);
+  // If it's a direct ping to the auth handler
+  if (req.url === "/ping" || req.url === "/") {
+    return res.json({ status: "ALIVE", service: "Better Auth Handler", url: req.url });
   }
+  return toNodeHandler(getAuth())(req, res);
 });
 
 // --- Industry-Grade CORS & Socket.io Security ---
