@@ -23,9 +23,19 @@ const app = express();
 const server = http.createServer(app);
 
 // --- EMERGENCY AUTH MOUNT (TOP OF STACK) ---
-app.all(['/api/auth', '/api/auth/*'], (req, res) => {
+app.all(['/api/auth', '/api/auth/*'], async (req, res) => {
   console.log(`🚨 [CRITICAL AUTH] ${req.method} ${req.url}`);
-  return toNodeHandler(getAuth())(req, res);
+  try {
+    const auth = getAuth();
+    return await toNodeHandler(auth)(req, res);
+  } catch (err: any) {
+    console.error("🔥 [AUTH CRASH]:", err.message);
+    return res.status(500).json({
+      error: "INTERNAL_AUTH_ERROR",
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+    });
+  }
 });
 
 // --- Industry-Grade CORS & Socket.io Security ---
