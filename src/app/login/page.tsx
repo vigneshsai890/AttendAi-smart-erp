@@ -60,9 +60,9 @@ function LoginForm() {
         provider,
         callbackURL: "/onboarding",
       });
-    } catch (err) {
-      console.error(`[AUTH_DEBUG] Social bridge failed for ${provider}:`, err);
-      setError(`Failed to bridge with ${provider}. Verify Redirect URIs.`);
+    } catch (err: any) {
+      console.error(`❌ [SOCIAL BRIDGE ERROR] ${provider}:`, err);
+      setError(err.message || `Failed to bridge with ${provider}. Verify Redirect URIs in Google Console.`);
       setLoading(false);
     }
   };
@@ -84,8 +84,9 @@ function LoginForm() {
         if (verifyError) setError(verifyError.message || "Verification failed");
         else await handleAuthSuccess();
       }
-    } catch {
-      setError("Mobile sync protocol failure");
+    } catch (err: any) {
+      console.error("❌ [MOBILE SYNC ERROR]:", err);
+      setError(err.message || "Mobile sync protocol failure. Check backend logs.");
     } finally {
       setLoading(false);
     }
