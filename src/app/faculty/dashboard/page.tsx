@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import Magnetic from "@/components/Magnetic";
 import { useToast } from "@/components/Toast";
@@ -10,20 +9,74 @@ import io from "socket.io-client";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronDown, Check, Users, ShieldAlert, Activity,
+  ChevronDown, Users, ShieldAlert, Activity,
   LayoutDashboard, QrCode, BookOpen, Layers, Clock,
   RefreshCw, AlertCircle, BarChart3, TrendingUp, ShieldCheck
 } from "lucide-react";
 
 import { DEPARTMENTS, TIME_PERIODS } from "@/lib/constants";
+import { authClient } from "@/lib/auth-client";
+
+interface Subject {
+  id: string;
+  name: string;
+  code?: string;
+}
+
+interface Section {
+  id: string;
+  name: string;
+  subjects: Subject[];
+}
+
+interface Department {
+  id: string;
+  name: string;
+  sections: Section[];
+}
+
+interface StudentRecord {
+  _id: string;
+  userId: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+  markedAt: string;
+  flagged?: boolean;
+}
+
+interface FraudFlag {
+  studentName: string;
+  riskScore: number;
+  alerts: { description: string }[];
+  date: string;
+}
+
+interface DashboardData {
+  stats: {
+    avgAttendance: number;
+    totalStudents: number;
+    atRiskStudents: number;
+    fraudFlagCount: number;
+  };
+  students: {
+    userId: string;
+    rollNumber: string;
+    name: string;
+    percentage: number;
+  }[];
+  fraudFlags: FraudFlag[];
+}
 
 export default function FacultyDashboard() {
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const { data: session } = authClient.useSession();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   // Selection State
-  const [selectedDept, setSelectedDept] = useState<any>(null);
-  const [selectedSection, setSelectedSection] = useState<any>(null);
-  const [selectedSubject, setSelectedSubject] = useState<any>(null);
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -68,8 +121,12 @@ export default function FacultyDashboard() {
     setLoading(false);
   }, [showToast]);
 
+  const hasFetched = useRef(false);
   useEffect(() => {
-    fetchDashboard();
+    if (!hasFetched.current) {
+      fetchDashboard();
+      hasFetched.current = true;
+    }
     const interval = setInterval(fetchDashboard, 60000);
     return () => {
       clearInterval(interval);
@@ -83,7 +140,7 @@ export default function FacultyDashboard() {
       socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5001");
       socketRef.current.emit("join-session", activeSessionId);
 
-      socketRef.current.on("attendance_marked", (newRecord: any) => {
+      socketRef.current.on("attendance_marked", (newRecord: StudentRecord) => {
         setPresentStudents(prev => {
           if (prev.find(r => r._id === newRecord._id)) return prev;
           return [newRecord, ...prev];
@@ -97,9 +154,17 @@ export default function FacultyDashboard() {
     }
   }, [activeSessionId, showToast]);
 
-  // Reset nested selections when parent changes
-  useEffect(() => { setSelectedSection(null); setSelectedSubject(null); }, [selectedDept]);
-  useEffect(() => { setSelectedSubject(null); }, [selectedSection]);
+  // Selection State Reset Handlers (Directly in selection setters to avoid useEffect cascades)
+  const handleDeptSelect = (dept: Department) => {
+    setSelectedDept(dept);
+    setSelectedSection(null);
+    setSelectedSubject(null);
+  };
+
+  const handleSectionSelect = (section: Section) => {
+    setSelectedSection(section);
+    setSelectedSubject(null);
+  };
 
   const rotateQR = useCallback(async () => {
     if (!activeSessionId) return;
@@ -131,7 +196,7 @@ export default function FacultyDashboard() {
   }, [activeSessionId, rotateQR]);
 
   const startSession = async () => {
-    if (!selectedSubject || !selectedPeriod) return showToast("Complete all selections first");
+    if (!selectedDept || !selectedSection || !selectedSubject || !selectedPeriod) return showToast("Complete all selections first");
     setSessionLoading(true);
 
     try {
@@ -217,16 +282,20 @@ export default function FacultyDashboard() {
               <LayoutDashboard size={12} className="text-indigo-400" /> Faculty Neural Command
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-none">
-              Attendance <span className="text-white/20">System</span>
+              {session?.user?.name ? (
+                <>Welcome, <span className="text-indigo-400">Prof. {session.user.name.split(' ')[0]}</span></>
+              ) : (
+                <>Attendance <span className="text-white/20">System</span></>
+              )}
             </h1>
           </motion.div>
 
           <div className="flex flex-wrap gap-4 w-full md:w-auto">
             {[
-              { id: "dept", label: "Department", icon: <Layers size={14} />, current: selectedDept?.name || "Select Dept", disabled: !!activeSessionId, items: DEPARTMENTS, onSelect: setSelectedDept },
-              { id: "sect", label: "Section", icon: <Users size={14} />, current: selectedSection?.name || "Section", disabled: !!activeSessionId || !selectedDept, items: selectedDept?.sections || [], onSelect: setSelectedSection },
+              { id: "dept", label: "Department", icon: <Layers size={14} />, current: selectedDept?.name || "Select Dept", disabled: !!activeSessionId, items: DEPARTMENTS, onSelect: handleDeptSelect },
+              { id: "sect", label: "Section", icon: <Users size={14} />, current: selectedSection?.name || "Section", disabled: !!activeSessionId || !selectedDept, items: selectedDept?.sections || [], onSelect: handleSectionSelect },
               { id: "subj", label: "Subject", icon: <BookOpen size={14} />, current: selectedSubject?.name || "Subject", disabled: !!activeSessionId || !selectedSection, items: selectedSection?.subjects || [], onSelect: setSelectedSubject },
-              { id: "period", label: "Period", icon: <Clock size={14} />, current: selectedPeriod || "Select Time", disabled: !!activeSessionId, items: TIME_PERIODS.map(p => ({ id: p, name: p })), onSelect: (p: any) => setSelectedPeriod(p.name) }
+              { id: "period", label: "Period", icon: <Clock size={14} />, current: selectedPeriod || "Select Time", disabled: !!activeSessionId, items: TIME_PERIODS.map(p => ({ id: p, name: p })), onSelect: (p: { name: string }) => setSelectedPeriod(p.name) }
             ].map((dropdown) => (
               <div key={dropdown.id} className="relative w-full md:w-auto min-w-[160px]">
                 <label className="text-[10px] text-white/30 font-bold ml-1 mb-2 block uppercase tracking-widest font-mono">{dropdown.label}</label>
@@ -274,36 +343,46 @@ export default function FacultyDashboard() {
 
         {/* Stats Summary Section */}
         {dashboardData && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+            className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12"
+          >
             {[
               { label: "Avg Attendance", value: `${dashboardData.stats.avgAttendance}%`, sub: "Neural Yield", icon: <TrendingUp size={16}/>, color: "text-emerald-400", bg: "bg-emerald-500/5", border: "border-emerald-500/10", glow: "rgba(16,185,129,0.15)" },
               { label: "Total Students", value: dashboardData.stats.totalStudents, sub: "Linked Entities", icon: <Users size={16}/>, color: "text-white", bg: "bg-white/5", border: "border-white/10", glow: "rgba(255,255,255,0.05)" },
               { label: "At-Risk Entities", value: dashboardData.stats.atRiskStudents, sub: "Threshold Alert", icon: <ShieldAlert size={16}/>, color: "text-red-400", bg: "bg-red-500/5", border: "border-red-500/10", glow: "rgba(239,68,68,0.15)" },
               { label: "Neural Flags", value: dashboardData.stats.fraudFlagCount, sub: "Proxy Detected", icon: <AlertCircle size={16}/>, color: "text-amber-400", bg: "bg-amber-500/5", border: "border-amber-500/10", glow: "rgba(245,158,11,0.15)" }
             ].map((stat, i) => (
-              <TiltCard
+              <motion.div
                 key={i}
-                glowColor={stat.glow}
-                className="rounded-[3rem]"
+                variants={{
+                  hidden: { opacity: 0, y: 30, scale: 0.95 },
+                  visible: { opacity: 1, y: 0, scale: 1 }
+                }}
               >
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className={`p-10 rounded-[3rem] border ${stat.border} ${stat.bg} backdrop-blur-3xl shadow-2xl relative overflow-hidden h-full`}
+                <TiltCard
+                  glowColor={stat.glow}
+                  className="rounded-[3rem]"
                 >
-                  <div className="absolute top-0 right-0 p-8 text-white/5 group-hover:text-white/10 transition-colors relative z-10">
-                    {stat.icon}
+                  <div className={`p-10 rounded-[3rem] border ${stat.border} ${stat.bg} backdrop-blur-3xl shadow-2xl relative overflow-hidden h-full group`}>
+                    <div className="absolute top-0 right-0 p-8 text-white/5 group-hover:text-white/20 transition-all duration-700 relative z-10 group-hover:scale-125 group-hover:rotate-12">
+                      {stat.icon}
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mb-4 font-mono relative z-10">{stat.label}</p>
+                    <div className="flex items-baseline gap-2 relative z-10">
+                      <span className={`text-5xl font-black tracking-tighter ${stat.color} italic drop-shadow-2xl`}>{stat.value}</span>
+                      <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">{stat.sub}</span>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mb-4 font-mono relative z-10">{stat.label}</p>
-                  <div className="flex items-baseline gap-2 relative z-10">
-                    <span className={`text-5xl font-black tracking-tighter ${stat.color} italic drop-shadow-2xl`}>{stat.value}</span>
-                    <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">{stat.sub}</span>
-                  </div>
-                </motion.div>
-              </TiltCard>
+                </TiltCard>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Dashboard Grid */}
@@ -341,7 +420,7 @@ export default function FacultyDashboard() {
                     </thead>
                     <tbody className="divide-y divide-white/[0.03]">
                       <AnimatePresence mode="popLayout">
-                        {presentStudents.map((record) => (
+                        {presentStudents.map((record: StudentRecord) => (
                           <motion.tr
                             layout
                             initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
@@ -352,8 +431,9 @@ export default function FacultyDashboard() {
                           >
                             <td className="px-6 py-6">
                               <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-sm font-black text-white italic border border-white/5 shadow-lg group-hover/row:scale-110 transition-transform duration-500">
-                                  {record.user?.name?.charAt(0) || "S"}
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-sm font-black text-white italic border border-white/5 shadow-lg group-hover/row:scale-110 transition-transform duration-500 relative overflow-hidden">
+                                  <div className="absolute inset-0 bg-indigo-500/20 blur-xl opacity-0 group-hover/row:opacity-100 transition-opacity" />
+                                  <span className="relative z-10">{record.user?.name?.charAt(0) || "S"}</span>
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="text-base font-black text-white/80 group-hover/row:text-white transition-colors italic">{record.user?.name || "Student Entity"}</span>
@@ -366,8 +446,9 @@ export default function FacultyDashboard() {
                             </td>
                             <td className="px-6 py-6 text-right">
                               {record.flagged ? (
-                                <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-red-500/5 text-red-400 border border-red-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(239,68,68,0.1)] ring-1 ring-red-500/10">
-                                  <ShieldAlert size={14} /> PROXY_ALERT
+                                <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-red-500/5 text-red-400 border border-red-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(239,68,68,0.1)] ring-1 ring-red-500/10 overflow-hidden relative">
+                                  <motion.div animate={{ opacity: [0.1, 0.3, 0.1] }} transition={{ duration: 1, repeat: Infinity }} className="absolute inset-0 bg-red-500/20" />
+                                  <ShieldAlert size={14} className="relative z-10" /> <span className="relative z-10">PROXY_ALERT</span>
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-emerald-500/5 text-emerald-400 border border-emerald-500/10 text-[10px] font-black tracking-widest uppercase shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/10">
@@ -441,23 +522,34 @@ export default function FacultyDashboard() {
                 </div>
               ) : (
                 <div className="w-full flex flex-col items-center space-y-12 relative z-10">
-                  <div className="p-8 bg-white rounded-[4rem] shadow-[0_0_150px_rgba(255,255,255,0.15)] relative overflow-hidden group ring-1 ring-white/20">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1500 z-10" />
-                    {qrImageUrl ? (
-                      <motion.img
-                        initial={{ opacity: 0, scale: 0.9, filter: "blur(20px)" }}
-                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                        key={qrImageUrl}
-                        src={qrImageUrl}
-                        alt="Dynamic QR"
-                        className="w-[300px] h-[300px] rounded-[2.5rem] relative z-0"
-                      />
-                    ) : (
-                      <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-50 rounded-[2.5rem]">
-                        <RefreshCw className="w-12 h-12 text-gray-200 animate-spin" />
-                      </div>
-                    )}
-                  </div>
+                <div className="p-8 bg-white rounded-[4rem] shadow-[0_0_150px_rgba(255,255,255,0.15)] relative overflow-hidden group ring-1 ring-white/20">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-[1500ms] z-20" />
+                  
+                  {/* Scanning Beam Animation */}
+                  {activeSessionId && (
+                    <motion.div 
+                      initial={{ top: "-10%" }}
+                      animate={{ top: "110%" }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-x-0 h-1 bg-indigo-500/30 blur-[2px] z-30 shadow-[0_0_15px_#6366f1]"
+                    />
+                  )}
+
+                  {qrImageUrl ? (
+                    <motion.img
+                      initial={{ opacity: 0, scale: 0.9, filter: "blur(20px)" }}
+                      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                      key={qrImageUrl}
+                      src={qrImageUrl}
+                      alt="Dynamic QR"
+                      className="w-[300px] h-[300px] rounded-[2.5rem] relative z-10"
+                    />
+                  ) : (
+                    <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-50 rounded-[2.5rem]">
+                      <RefreshCw className="w-12 h-12 text-gray-200 animate-spin" />
+                    </div>
+                  )}
+                </div>
 
                   <div className="w-full flex flex-col items-center space-y-5 px-6">
                     <div className="flex justify-between w-full text-[11px] font-black font-mono tracking-[0.4em] text-white/30 uppercase">
@@ -507,7 +599,7 @@ export default function FacultyDashboard() {
                     <span className="text-xs font-black text-emerald-400">92%</span>
                   </div>
                   <div className="flex gap-1 h-12 items-end">
-                    {[40, 70, 45, 90, 65, 80, 55, 95, 30, 85, 60, 75].map((h, i) => (
+                    {[40, 70, 45, 90, 65, 80, 55, 95, 30, 85, 60, 75].map((h, i: number) => (
                       <motion.div
                         key={i}
                         initial={{ height: 0 }}
@@ -565,8 +657,15 @@ export default function FacultyDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.03]">
-                    {dashboardData.students.map((student: any) => (
-                      <tr key={student.userId} className="group/row hover:bg-white/[0.03] transition-all">
+                    {dashboardData.students.map((student, idx: number) => (
+                      <motion.tr 
+                        key={student.userId} 
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="group/row hover:bg-white/[0.03] transition-all"
+                      >
                         <td className="py-6 text-xs font-black font-mono text-white/20 group-hover/row:text-indigo-400/60 transition-colors uppercase">{student.rollNumber}</td>
                         <td className="py-6 text-base font-black text-white/70 group-hover/row:text-white transition-colors italic">{student.name}</td>
                         <td className="py-6 text-right">
@@ -583,7 +682,7 @@ export default function FacultyDashboard() {
                             </span>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>
@@ -605,12 +704,13 @@ export default function FacultyDashboard() {
               </h2>
               <div className="space-y-6 overflow-auto pr-2 custom-scrollbar max-h-[500px] relative z-10">
                 {dashboardData.fraudFlags.length > 0 ? (
-                  dashboardData.fraudFlags.map((flag: any, i: number) => (
+                  dashboardData.fraudFlags.map((flag: FraudFlag, i: number) => (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 + i * 0.1 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.1 + i * 0.1 }}
                       className="p-8 rounded-[2.5rem] border border-red-500/10 bg-red-500/[0.03] space-y-5 hover:border-red-500/20 transition-all group/flag active:scale-[0.98]"
                     >
                       <div className="flex justify-between items-start">
@@ -623,15 +723,15 @@ export default function FacultyDashboard() {
                         </span>
                       </div>
                       <div className="space-y-3">
-                        {flag.alerts.map((alert: any, j: number) => (
+                        {flag.alerts.map((alert, j: number) => (
                           <div key={j} className="flex items-start gap-3 p-3 rounded-xl bg-red-500/[0.02] border border-red-500/5">
                             <AlertCircle size={14} className="text-red-500/40 mt-0.5" />
                             <p className="text-[11px] text-white/30 font-bold leading-relaxed">{alert.description}</p>
                           </div>
                         ))}
                       </div>
-                      <div className="pt-2 flex items-center justify-between">
-                        <span className="text-[9px] text-white/10 font-black font-mono uppercase tracking-[0.2em]">Trace-Log-V1</span>
+                      <div className="pt-2 flex items-center justify-between border-t border-red-500/5">
+                        <span className="text-[9px] text-white/10 font-black font-mono uppercase tracking-[0.2em]">Neural Trace 0x{i.toString(16)}</span>
                         <span className="text-[9px] text-white/10 font-black font-mono uppercase tracking-widest">
                           {new Date(flag.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>

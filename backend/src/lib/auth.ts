@@ -1,32 +1,29 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import mongoose from "mongoose";
+import type { Db } from "mongodb";
 import { 
   phoneNumber, 
   twoFactor 
 } from "better-auth/plugins";
 
 // Lazy-initialized BetterAuth instance
-let _auth: any = null;
+let _auth: ReturnType<typeof betterAuth> | null = null;
 
-export const getAuth = (): any => {
+export const getAuth = () => {
   if (!_auth) {
     if (mongoose.connection.readyState !== 1) {
       throw new Error("MongoDB must be connected before initializing Better-Auth");
     }
     
     _auth = betterAuth({
-      database: mongodbAdapter(mongoose.connection.db as any),
+      database: mongodbAdapter(mongoose.connection.db as unknown as Db),
       secret: process.env.BETTER_AUTH_SECRET || "SMART_ERP_SECRET_KEY_PROD_2024",
       socialProviders: {
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER_GOOGLE_ID",
           clientSecret: process.env.GOOGLE_CLIENT_SECRET || "PLACEHOLDER_GOOGLE_SECRET",
-        },
-        apple: {
-          clientId: process.env.APPLE_CLIENT_ID || "PLACEHOLDER_APPLE_ID",
-          clientSecret: process.env.APPLE_CLIENT_SECRET || "PLACEHOLDER_APPLE_SECRET",
-        },
+        }
       },
       plugins: [
         phoneNumber({
