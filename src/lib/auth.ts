@@ -10,6 +10,7 @@ import {
   username
 } from "better-auth/plugins";
 import { apiKey } from "@better-auth/api-key";
+import { dash, sentinel } from "@better-auth/infra";
 import { MongoClient } from "mongodb";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
@@ -95,7 +96,48 @@ export const auth = betterAuth({
     }),
 
     // ── Infrastructure Plugins ────────────────────────────
-    apiKey()
+    apiKey(),
+    dash(),
+    sentinel({
+      security: {
+        // Impossible Travel: flag if a student logs in from 2 cities too fast
+        impossibleTravel: {
+          enabled: true,
+          maxSpeedKmh: 500, // airplane speed threshold
+          action: "challenge",
+        },
+        // Credential Stuffing: block brute-force login attempts
+        credentialStuffing: {
+          enabled: true,
+          thresholds: { challenge: 5, block: 15 },
+          windowSeconds: 300, // 5-minute window
+          cooldownSeconds: 900, // 15-min cooldown after block
+        },
+        // Bot Detection: block automated attendance marking
+        botBlocking: { action: "block" },
+        // Compromised Password: warn users with leaked passwords
+        compromisedPassword: {
+          enabled: true,
+          action: "challenge",
+          minBreachCount: 3,
+        },
+        // Email Validation: only accept university emails
+        emailValidation: {
+          enabled: true,
+          strictness: "medium",
+          action: "block",
+        },
+        // Velocity Limits: prevent mass sign-up abuse
+        velocity: {
+          enabled: true,
+          maxSignupsPerVisitor: 3,
+          maxPasswordResetsPerIp: 5,
+          maxSignInsPerIp: 20,
+          windowSeconds: 3600, // 1-hour window
+          action: "challenge",
+        },
+      },
+    })
   ],
   user: {
     additionalFields: {
