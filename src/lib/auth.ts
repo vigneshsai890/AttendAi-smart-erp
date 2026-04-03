@@ -28,6 +28,7 @@ const snsClient = new SNSClient({
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),
+  baseURL: "https://attend-ai-smart-erp.vercel.app/",
   emailAndPassword: {
     enabled: true,
   },
@@ -180,9 +181,9 @@ export const auth = betterAuth({
     updateAge: 24 * 60 * 60, // Refresh once per day
   },
   trustedOrigins: [
-    "http://localhost:3000",
+    "https://attend-ai-smart-erp.vercel.app/",
+    "https://attend-ai-smart-erp.vercel.app",
     "https://dash.better-auth.com",
-    process.env.BETTER_AUTH_URL || "",
-    process.env.NEXT_PUBLIC_APP_URL || "",
+    "http://localhost:3000",
   ].filter(Boolean)
 });
