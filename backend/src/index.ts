@@ -23,18 +23,16 @@ const app = express();
 const server = http.createServer(app);
 
 // --- EMERGENCY AUTH MOUNT (TOP OF STACK) ---
-app.all(['/api/auth', '/api/auth/*'], async (req, res) => {
+app.all(['/api/auth', '/api/auth/*'], async (req, res, next) => {
   console.log(`🚨 [CRITICAL AUTH] ${req.method} ${req.url}`);
   try {
     const auth = getAuth();
+    if (!auth) throw new Error("Failed to initialize Better Auth");
     return await toNodeHandler(auth)(req, res);
   } catch (err: any) {
     console.error("🔥 [AUTH CRASH]:", err.message);
-    return res.status(500).json({
-      error: "INTERNAL_AUTH_ERROR",
-      message: err.message,
-      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
-    });
+    // Let the global error handler handle it for consistency
+    next(err);
   }
 });
 
@@ -160,6 +158,17 @@ app.use('/api/debug', debugRouter);
 
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
+
+// --- GLOBAL ERROR HANDLER ---
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("🔥 [GLOBAL ERROR]:", err);
+  res.status(500).json({
+    error: "GLOBAL_ERROR",
+    message: err.message,
+    path: req.path,
+    stack: ENV.isProduction ? undefined : err.stack
+  });
+});
 
 const PORT = parseInt(process.env.PORT || '5001', 10);
 const HOST = '0.0.0.0'; // Explicit host binding for Render
