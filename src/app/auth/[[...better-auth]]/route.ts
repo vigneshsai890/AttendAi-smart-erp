@@ -16,7 +16,7 @@ export const GET = async (req: NextRequest) => {
         nodeEnv: process.env.NODE_ENV,
         isRender: !!process.env.RENDER
       },
-      deploy: "e1bcad05-LAZY-INIT"
+      deploy: "3ce6d174-FALLBACK-BRIDGE-V1"
     });
   }
   const auth = await getAuth();

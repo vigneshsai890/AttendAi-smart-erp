@@ -21,7 +21,7 @@ let _auth: any = null;
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (ENV.isProduction && !secret) {
-    throw new Error("❌ [SECURITY CRITICAL] BETTER_AUTH_SECRET is missing in production (Backend)!");
+    throw new Error("❌ [FATAL] BETTER_AUTH_SECRET missing in production!");
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
@@ -42,10 +42,18 @@ export const getAuth = () => {
         google: {
           clientId: (() => {
             const id = process.env.GOOGLE_CLIENT_ID;
-            if (ENV.isProduction && !id) throw new Error("❌ [SECURITY CRITICAL] GOOGLE_CLIENT_ID is missing in production!");
-            return id || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com";
+            if (ENV.isProduction && !id) {
+              throw new Error("❌ [FATAL] GOOGLE_CLIENT_ID missing in production!");
+            }
+            return id || "";
           })(),
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+          clientSecret: (() => {
+            const secret = process.env.GOOGLE_CLIENT_SECRET;
+            if (ENV.isProduction && !secret) {
+              throw new Error("❌ [FATAL] GOOGLE_CLIENT_SECRET missing in production!");
+            }
+            return secret || "";
+          })(),
           accessType: "offline",
           prompt: "select_account consent",
         }
@@ -81,7 +89,13 @@ export const getAuth = () => {
         apiKey(),
         dash(),
         sentinel({
-          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl",
+          apiKey: (() => {
+            const key = process.env.BETTER_AUTH_API_KEY;
+            if (ENV.isProduction && !key) {
+              throw new Error("❌ [FATAL] BETTER_AUTH_API_KEY missing in production!");
+            }
+            return key || "";
+          })(),
           security: {
             credentialStuffing: { enabled: true },
             impossibleTravel: { enabled: true, action: "challenge" },

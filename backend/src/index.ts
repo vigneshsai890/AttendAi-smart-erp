@@ -81,8 +81,8 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     uptime: process.uptime(),
     db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
-    version: '1.0.0-MAX-POWER-FINAL-V3',
-    deploy: '3ce6d174-RETRIGGER' // Forcing redeploy with verified consumers
+    version: '1.0.0-MAX-POWER-FALLBACK-V1',
+    deploy: 'e86524ee-FALLBACK-BRIDGE' // Activating production bridge
   });
 });
 
