@@ -48,7 +48,7 @@ export const auth = betterAuth({
       prompt: "select_account consent",
     },
     microsoft: {
-      clientId: (process.env.MICROSOFT_CLIENT_ID || "PLACEHOLDER_MS_ID") as string,
+      clientId: process.env.MICROSOFT_CLIENT_ID as string,
       clientSecret: process.env.MICROSOFT_CLIENT_SECRET as string,
       tenantId: "common",
       prompt: "select_account",

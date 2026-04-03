@@ -21,7 +21,7 @@ export const authClient = createAuthClient({
     emailOTPClient(),
     usernameClient(),
     oneTapClient({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "578621839531-ml1m45cvvtc3dptb8hq7dotd17kpk1oq.apps.googleusercontent.com",
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID as string,
     }),
 
     // ── Authorization ──
