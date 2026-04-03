@@ -22,6 +22,12 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
+// --- EMERGENCY AUTH MOUNT (TOP OF STACK) ---
+app.all(['/api/auth', '/api/auth/*'], (req, res) => {
+  console.log(`🚨 [CRITICAL AUTH] ${req.method} ${req.url}`);
+  return toNodeHandler(getAuth())(req, res);
+});
+
 // --- Industry-Grade CORS & Socket.io Security ---
 const allowedOrigins = [
   ENV.frontendUrl,
@@ -141,12 +147,6 @@ app.use('/api/session', sessionRouter);
 app.use('/api/attendance', attendanceRouter);
 app.use('/api/attendance', attendanceFullRouter);
 app.use('/api/debug', debugRouter);
-
-// --- Robust Better Auth Integration ---
-app.all(['/api/auth', '/api/auth/*'], (req, res) => {
-  console.log(`📡 [AUTH] Incoming request: ${req.method} ${req.url}`);
-  return toNodeHandler(getAuth())(req, res);
-});
 
 app.use('/api/admin', adminRouter);
 app.use('/api/dashboard', dashboardRouter);
