@@ -74,14 +74,14 @@ async function testUrl(baseUrl: string) {
 async function runLiveTest() {
   console.log("🎬 Starting Live Industry-Grade Authentication Suite...");
 
-  // Retry logic for Render cold starts/deployments
+  // Extended retry logic for Render deployments
   let attempts = 0;
-  const maxAttempts = 5;
-  const delay = 30000; // 30 seconds
+  const maxAttempts = 20; // Increased to 20 attempts
+  const delay = 30000; // 30 seconds (Total 10 minutes)
 
   while (attempts < maxAttempts) {
     attempts++;
-    console.log(`\n📡 Deployment Verification Attempt ${attempts}/${maxAttempts}...`);
+    console.log(`\n📡 Verification Attempt ${attempts}/${maxAttempts} (T+${(attempts-1)*30}s)...`);
 
     const frontendSuccess = await testUrl(FRONTEND_URL);
     const backendSuccess = await testUrl(BACKEND_URL);
