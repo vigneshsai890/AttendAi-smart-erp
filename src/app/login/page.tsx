@@ -5,9 +5,9 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnetic from "@/components/Magnetic";
-import { 
-  ShieldCheck, Mail, Lock, 
-  Loader2, Chrome, Phone,
+import {
+  ShieldCheck, Mail, Lock,
+  Loader2, Phone,
   ShieldAlert, Fingerprint
 } from "lucide-react";
 
@@ -49,20 +49,6 @@ function LoginForm() {
       console.error("[AUTH_DEBUG] Email sync failed:", err);
       setError("Connect protocol failed. Check logs.");
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSocial = async (provider: "google" | "apple") => {
-    setLoading(true);
-    try {
-      await authClient.signIn.social({
-        provider,
-        callbackURL: "/onboarding",
-      });
-    } catch (err: any) {
-      console.error(`❌ [SOCIAL BRIDGE ERROR] ${provider}:`, err);
-      setError(err.message || `Failed to bridge with ${provider}. Verify Redirect URIs in Google Console.`);
       setLoading(false);
     }
   };
@@ -165,14 +151,13 @@ function LoginForm() {
                 exit={{ opacity: 0, scale: 0.98 }}
                 className="space-y-8"
               >
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {[
-                    { id: "google" as const, icon: <Chrome size={22} />, label: "Google Cluster" },
-                    { id: "phone" as const, icon: <Phone size={22} />, label: "Mobile Node" },
+                    { id: "phone" as const, icon: <Phone size={22} />, label: "Mobile Node (SMS Sync)" },
                   ].map((btn) => (
                     <Magnetic key={btn.id} strength={0.2}>
-                      <button 
-                        onClick={() => btn.id === "phone" ? setStep("PHONE") : handleSocial(btn.id as "google")}
+                      <button
+                        onClick={() => setStep("PHONE")}
                         className="p-6 rounded-[2.2rem] bg-white/[0.03] border border-white/5 hover:bg-white/10 transition-all flex flex-col items-center gap-2 group"
                       >
                         <div className="text-white/20 group-hover:text-white transition-colors">{btn.icon}</div>

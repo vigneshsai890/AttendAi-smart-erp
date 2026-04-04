@@ -112,10 +112,14 @@ export const getAuth = () => {
       },
       session: { expiresIn: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
       trustedOrigins: [
-        ENV.frontendUrl, 
+        ENV.frontendUrl,
         "https://dash.better-auth.com",
         "https://attendai-smart-erp.onrender.com",
-        "https://attendai-backend-ynnd.onrender.com"
+        "https://attendai-backend-ynnd.onrender.com",
+        "https://attendai-smart-erp-frontend.onrender.com",
+        "https://attendai-smart-erp-backend.onrender.com",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
       ].filter(Boolean)
     });
   }

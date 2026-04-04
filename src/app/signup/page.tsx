@@ -4,9 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { 
-  ShieldCheck, Mail, Phone, 
-  Chrome, ArrowRight, Loader2,
+import {
+  ShieldCheck, Mail, Phone,
+  ArrowRight, Loader2,
   CheckCircle2, AlertCircle
 } from "lucide-react";
 import Magnetic from "@/components/Magnetic";
@@ -44,53 +44,6 @@ export default function SignupPage() {
   };
 
   const handlePhoneSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      if (!showOtp) {
-        // Step 1: Send OTP
-        const { error: sendError } = await authClient.phoneNumber.sendOtp({
-          phoneNumber,
-        });
-        if (sendError) setError(sendError.message || "Failed to send OTP");
-        else setShowOtp(true);
-      } else {
-        // Step 2: Verify and Signup (using verify because it handles OTP verification)
-        const { error: verifyError } = await authClient.phoneNumber.verify({
-          phoneNumber,
-          code: otp, // Better-Auth uses "code" for the OTP value
-        });
-        
-        if (verifyError) {
-          setError(verifyError.message || "Verification failed");
-        } else {
-          // Update name if provided
-          if (name) {
-            await authClient.updateUser({ name });
-          }
-          router.push("/onboarding");
-        }
-      }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSocial = async (provider: "google" | "apple") => {
-    setLoading(true);
-    try {
-      await authClient.signIn.social({
-        provider,
-        callbackURL: "/onboarding",
-      });
-    } catch (err) {
-      setError(`Failed to connect with ${provider}`);
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6 relative overflow-hidden font-sans">
@@ -114,39 +67,6 @@ export default function SignupPage() {
             </div>
             <h1 className="text-4xl font-black tracking-tighter italic">NEURAL SIGNUP</h1>
             <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.4em] mt-3 font-mono">AttendAI · Smart ERP Node</p>
-          </div>
-
-          {/* Social Hub */}
-          <div className="mb-8">
-            <button 
-              onClick={() => handleSocial("google")}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
-            >
-              <Chrome size={18} className="text-white/40 group-hover:text-white transition-colors" />
-              <span className="text-[11px] font-black uppercase tracking-widest">Connect with Google Identity</span>
-            </button>
-          </div>
-
-          <div className="relative flex items-center gap-4 mb-8">
-            <div className="h-[1px] flex-1 bg-white/5" />
-            <span className="text-[9px] font-black text-white/15 uppercase tracking-[0.3em]">Direct Sequence</span>
-            <div className="h-[1px] flex-1 bg-white/5" />
-          </div>
-
-          {/* Method Toggle */}
-          <div className="flex p-1 bg-white/5 rounded-2xl mb-8">
-            <button 
-              onClick={() => setMethod("EMAIL")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${method === "EMAIL" ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white/50"}`}
-            >
-              <Mail size={12} /> Email
-            </button>
-            <button 
-              onClick={() => setMethod("PHONE")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${method === "PHONE" ? "bg-white text-black shadow-lg" : "text-white/30 hover:text-white/50"}`}
-            >
-              <Phone size={12} /> Phone
-            </button>
           </div>
 
           {/* Form Node */}
