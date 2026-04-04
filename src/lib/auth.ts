@@ -21,23 +21,21 @@ let _client: MongoClient | null = null;
 
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
-  const fallback = "P2WI6kLwt6tfaKAtSutP4gE7SpRAbDu3";
   if (ENV.isProduction && !secret) {
-    console.warn("⚠️ [BRIDGE] Using production fallback BETTER_AUTH_SECRET.");
-    return fallback;
+    throw new Error("🚨 [SECURITY CRITICAL] BETTER_AUTH_SECRET must be set in production!");
   }
-  return secret || fallback || "SMART_ERP_SECRET_KEY_DEV_2024";
+  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
 
 export const getAuth = async () => {
   if (!_auth) {
     // 1. Ensure DB connection
     if (!_client) {
-      const uri = process.env.MONGO_URI || "mongodb+srv://vigneshsaisai412_db_user:Qmewj1Fu2CNbYFz0@cluster1.4omhez7.mongodb.net/smart_erp_realtime?appName=Cluster1";
-      if (ENV.isProduction && !process.env.MONGO_URI) {
-        console.warn("⚠️ [BRIDGE] Using production fallback MONGO_URI.");
+      const uri = process.env.MONGO_URI;
+      if (ENV.isProduction && !uri) {
+        throw new Error("🚨 [SECURITY CRITICAL] MONGO_URI must be set in production!");
       }
-      _client = new MongoClient(uri);
+      _client = new MongoClient(uri || "mongodb+srv://dev_user:dev_pass@cluster.mongodb.net/dev_db");
       await _client.connect();
     }
     const db = _client.db();
@@ -50,8 +48,8 @@ export const getAuth = async () => {
       basePath: "/auth",
       socialProviders: {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID || ("578621839531-" + "ml1m45cvvtc3dptb8hq7" + "dotd17kpk1oq.apps.googleusercontent.com"),
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET || ("GOCSPX-" + "h8AGV12LNhz90euBX5QCcW" + "-RtoIx"),
+          clientId: process.env.GOOGLE_CLIENT_ID || (ENV.isProduction ? "" : "dev_client_id"),
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET || (ENV.isProduction ? "" : "dev_client_secret"),
           accessType: "offline",
           prompt: "select_account consent",
         },
@@ -143,8 +141,7 @@ export const getAuth = async () => {
           apiKey: (() => {
             const key = process.env.BETTER_AUTH_API_KEY;
             if (ENV.isProduction && !key) {
-              console.warn("⚠️ [BRIDGE] Using production fallback BETTER_AUTH_API_KEY.");
-              return "ba_l9zftxw9h9ze35e06l7iye6pz58fza40";
+              console.warn("⚠️ [BRIDGE] BETTER_AUTH_API_KEY is missing, Sentinel dashboard sync may fail.");
             }
             return key || "";
           })(),

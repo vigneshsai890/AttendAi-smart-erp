@@ -9,54 +9,80 @@ export default function Home() {
   return (
     <>
       <Background />
-      <div className="relative z-10 min-h-screen flex flex-col bg-[#0c0c0e]">
-        {/* Navbar - Kept simple here, actual Navbar.tsx handles the floating one */}
-        <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-8 h-20 border-b border-white/5 bg-[#0c0c0e]/80 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-xl shadow-lg shadow-indigo-500/20 ring-1 ring-white/10">🏛️</div>
-            <div>
-              <div className="text-sm font-bold tracking-tight text-white">The Apollo University</div>
-              <div className="text-[10px] text-white/40 font-medium tracking-wide uppercase">AttendAI Smart ERP</div>
+      <div className="relative z-10 flex flex-col bg-black text-white font-sans selection:bg-white/20 overflow-x-hidden">
+        {/* Apple-style Global Nav */}
+        <nav className="fixed top-0 left-0 right-0 z-[100] h-12 bg-black/80 backdrop-blur-md border-b border-[#333336] flex items-center justify-center px-4 md:px-8">
+          <div className="w-full max-w-[1024px] flex items-center justify-between">
+            <Link href="/" className="text-white hover:opacity-70 transition-opacity">
+              {/* Minimal Abstract Logo */}
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 2L2 22h20L12 2zm0 4l7.5 15h-15L12 6z"/></svg>
+            </Link>
+
+            <div className="hidden md:flex items-center gap-8 text-[12px] font-normal tracking-wide text-[#f5f5f7] opacity-80">
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">Mac</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">iPad</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">iPhone</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer text-white font-semibold">AttendAI</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">Support</span>
             </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="text-sm font-semibold text-white/60 hover:text-white transition-colors">
-              Sign In
-            </Link>
-            <Link href="/login" className="px-6 py-2.5 rounded-2xl bg-white text-black text-sm font-bold shadow-lg hover:scale-105 active:scale-95 transition-all">
-              Get Started
-            </Link>
+
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="text-[12px] font-normal text-[#f5f5f7] hover:text-white transition-colors">
+                Sign In
+              </Link>
+              <Link href="/signup" className="text-[12px] px-3 py-1 rounded-full bg-white text-black font-medium hover:scale-105 active:scale-95 transition-transform duration-300">
+                Buy
+              </Link>
+            </div>
           </div>
         </nav>
 
-        <Hero />
+        {/* Global Sub-Nav (Local Nav) */}
+        <div className="sticky top-12 z-[90] h-14 bg-black/80 backdrop-blur-md border-b border-[#333336] flex items-center justify-center px-4 md:px-8">
+          <div className="w-full max-w-[1024px] flex items-center justify-between">
+            <span className="text-xl font-semibold tracking-tight text-white">AttendAI Pro</span>
+            <div className="flex items-center gap-4 text-xs font-medium">
+              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Overview</span>
+              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Tech Specs</span>
+              <Link href="/signup" className="px-3 py-1 rounded-full bg-[#0071e3] text-white hover:bg-[#0077ED] transition-colors">
+                Buy
+              </Link>
+            </div>
+          </div>
+        </div>
 
+        <Hero />
         <Features />
 
-        {/* Stats Section */}
-        <section className="py-24 border-y border-white/5 bg-white/[0.02]">
+        {/* Cinematic Grid Stats Section */}
+        <section className="py-32 bg-black">
           <div className="container mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-5xl mx-auto text-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-[1024px] mx-auto text-center divide-x divide-[#333336]/30">
               {[
                 { label: "Attendance Records", value: "2M+" },
                 { label: "Active Students", value: "50k+" },
                 { label: "Verification Speed", value: "<1s" },
-                { label: "Proxy Attempts Blocked", value: "100%" },
+                { label: "Proxy Block Rate", value: "100%" },
               ].map((stat, i) => (
-                <div key={i}>
-                  <div className="text-3xl lg:text-4xl font-bold text-white mb-2 tracking-tighter">{stat.value}</div>
-                  <div className="text-xs font-semibold text-white/30 uppercase tracking-widest">{stat.label}</div>
+                <div key={i} className="flex flex-col items-center justify-center px-4">
+                  <div className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white mb-2 tracking-tighter">{stat.value}</div>
+                  <div className="text-xs font-medium text-[#86868b] uppercase tracking-widest">{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="py-12 border-t border-white/5 text-center">
-          <p className="text-xs text-white/30 tracking-wide font-medium">
-            © 2026 The Apollo University · AttendAI Smart ERP · Built for Institutional Excellence
-          </p>
+        {/* Apple Footer */}
+        <footer className="bg-[#1d1d1f] py-8 border-t border-[#333336]">
+          <div className="max-w-[1024px] mx-auto px-4 md:px-8 text-center">
+            <p className="text-[11px] text-[#86868b] leading-relaxed font-normal">
+              1. AttendAI requires an active institutional license and a compatible device. <br/>
+              2. 100% Proxy Block Rate is based on clinical university trials running our Titanium protocol. <br/>
+              <br/>
+              Copyright © 2026 The Apollo University Inc. All rights reserved.
+            </p>
+          </div>
         </footer>
       </div>
     </>

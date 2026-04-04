@@ -21,8 +21,7 @@ let _auth: any = null;
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (ENV.isProduction && !secret) {
-    console.warn("⚠️ [BRIDGE] Using internal token as BETTER_AUTH_SECRET fallback.");
-    return ENV.internalToken;
+    throw new Error("🚨 [SECURITY CRITICAL] BETTER_AUTH_SECRET must be set in production!");
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
@@ -38,11 +37,10 @@ export const getAuth = () => {
       database: mongodbAdapter(db as unknown as Db),
       secret: getBetterAuthSecret(),
       baseURL: ENV.backendUrl,
-      // Hub configuration handles pathing
       socialProviders: {
         google: {
-          clientId: process.env.GOOGLE_CLIENT_ID || ("578621839531-" + "ml1m45cvvtc3dptb8hq7" + "dotd17kpk1oq.apps.googleusercontent.com"),
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET || ("GOCSPX-" + "h8AGV12LNhz90euBX5QCcW" + "-RtoIx"),
+          clientId: process.env.GOOGLE_CLIENT_ID || (ENV.isProduction ? "" : "dev_client_id"),
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET || (ENV.isProduction ? "" : "dev_client_secret"),
           accessType: "offline",
           prompt: "select_account consent",
         }
@@ -50,7 +48,11 @@ export const getAuth = () => {
       plugins: [
         phoneNumber({
           sendOTP: async ({ phoneNumber, code }) => {
-            await sendAWSSMS({ to: phoneNumber, code });
+            try {
+              await sendAWSSMS({ to: phoneNumber, code });
+            } catch (err) {
+              console.error("❌ [AUTH] Failed to send AWS SNS verification SMS:", err);
+            }
           },
           signUpOnVerification: {
             getTempEmail: (phone) => `${phone.replace("+", "")}@apollo.erp`,
@@ -60,11 +62,15 @@ export const getAuth = () => {
         twoFactor(),
         emailOTP({
           async sendVerificationOTP({ email, otp }) {
-            await sendEmail({
-              template: "verify-email-otp",
-              to: email,
-              variables: { otpCode: otp, userEmail: email, appName: "AttendAI" },
-            });
+            try {
+              await sendEmail({
+                template: "verify-email-otp",
+                to: email,
+                variables: { otpCode: otp, userEmail: email, appName: "AttendAI" },
+              });
+            } catch (err) {
+              console.error("❌ [AUTH] Failed to send verification OTP:", err);
+            }
           },
         }),
         username(),
@@ -81,8 +87,7 @@ export const getAuth = () => {
           apiKey: (() => {
             const key = process.env.BETTER_AUTH_API_KEY;
             if (ENV.isProduction && !key) {
-              console.warn("⚠️ [BRIDGE] Using production fallback BETTER_AUTH_API_KEY.");
-              return "ba_l9zftxw9h9ze35e06l7iye6pz58fza40";
+              console.warn("⚠️ [BRIDGE] BETTER_AUTH_API_KEY is missing, Sentinel dashboard sync may fail.");
             }
             return key || "";
           })(),

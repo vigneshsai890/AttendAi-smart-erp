@@ -29,7 +29,7 @@ export const ENV = {
   get internalToken() {
     const token = process.env.INTERNAL_TOKEN;
     if (isProduction && !token) {
-      console.warn("⚠️ [SECURITY] INTERNAL_TOKEN is missing in production environment!");
+      throw new Error("🚨 [SECURITY CRITICAL] INTERNAL_TOKEN must be set in production environment!");
     }
     return token || "smart-erp-internal-communication-secret-2024";
   }
