@@ -14,7 +14,8 @@ export const ENV = {
 
   // Frontend URL (used for Better Auth baseURL and redirect origins)
   get frontendUrl() {
-    if (isProduction) return process.env.BETTER_AUTH_URL || PROD_FRONTEND_URL;
+    if (typeof window !== "undefined") return window.location.origin;
+    if (isProduction) return process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || PROD_FRONTEND_URL;
     return "http://localhost:3000";
   },
 

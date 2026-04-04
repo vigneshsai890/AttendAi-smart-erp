@@ -19,7 +19,7 @@ export const ENV = {
 
   // The actual frontend URL (for CORS and trusted origins)
   get frontendUrl() {
-    if (isProduction) return process.env.FRONTEND_URL || PROD_FRONTEND_URL;
+    if (isProduction) return process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || PROD_FRONTEND_URL;
     return "http://localhost:3000";
   },
 
