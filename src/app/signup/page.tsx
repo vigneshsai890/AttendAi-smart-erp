@@ -58,16 +58,15 @@ export default function SignupPage() {
           setShowOtp(true);
         }
       } else {
-        const { error: verifyError } = await authClient.signUp.phoneNumber({
+        const { error: verifyError } = await authClient.phoneNumber.verify({
           phoneNumber,
           code: otp,
-          password,
-          name,
-          callbackURL: "/onboarding",
         });
         if (verifyError) {
           setError(verifyError.message || "Verification failed");
         } else {
+          // Note: Password and Name are handled by the session update or post-signup flow
+          // since signUpOnVerification creates a temp user.
           router.push("/onboarding");
         }
       }
