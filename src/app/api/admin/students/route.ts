@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 async function checkAdmin() {
+  // Dynamic import to prevent build-time Prisma evaluation
+  const { getAuth } = await import("@/lib/auth");
   const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user || (session.user as any).role !== "ADMIN") return null;
@@ -16,6 +16,7 @@ export async function GET(req: Request) {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const { searchParams } = new URL(req.url);
+    const { backend } = await import("@/lib/backend");
     const res = await backend.get("/admin/students", {
       params: {
         search: searchParams.get("search") || "",
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
   if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const body = await req.json();
+    const { backend } = await import("@/lib/backend");
     const res = await backend.post("/admin/students", body);
     return NextResponse.json(res.data, { status: 201 });
   } catch (error: any) {

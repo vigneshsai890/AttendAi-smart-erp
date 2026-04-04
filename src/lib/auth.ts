@@ -173,8 +173,10 @@ export const getAuth = async () => {
         },
       },
       session: { expiresIn: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
-      trustedOrigins: [
+      trustedOrigins: ([
         ENV.frontendUrl,
+        process.env.NEXT_PUBLIC_APP_URL,
+        process.env.FRONTEND_URL,
         "https://dash.better-auth.com",
         "https://attendai-smart-erp.onrender.com",
         "https://attendai-backend-ynnd.onrender.com",
@@ -182,9 +184,8 @@ export const getAuth = async () => {
         "https://attendai-smart-erp-backend.onrender.com",
         "http://localhost:3000",
         "http://127.0.0.1:3000"
-      ].filter(Boolean),
+      ].filter(Boolean) as string[]),
     });
   }
   return _auth;
 };
-

@@ -39,12 +39,15 @@ app.use((req, res, next) => {
 });
 
 // --- 1. Industry-Grade CORS & Socket.io Security ---
-const allowedOrigins = [
+const allowedOrigins = ([
   ENV.frontendUrl,
+  process.env.FRONTEND_URL,
+  process.env.NEXT_PUBLIC_APP_URL,
   'https://attendai-smart-erp.onrender.com',
   'https://dash.better-auth.com',
-  'http://localhost:3000'
-].filter(Boolean);
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+].filter(Boolean) as string[]);
 
 app.use(cors({
   origin: allowedOrigins,
