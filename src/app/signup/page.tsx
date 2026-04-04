@@ -44,6 +44,39 @@ export default function SignupPage() {
   };
 
   const handlePhoneSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      if (!showOtp) {
+        const { error: sendError } = await authClient.phoneNumber.sendOtp({
+          phoneNumber,
+        });
+        if (sendError) {
+          setError(sendError.message || "Failed to send OTP");
+        } else {
+          setShowOtp(true);
+        }
+      } else {
+        const { error: verifyError } = await authClient.signUp.phoneNumber({
+          phoneNumber,
+          code: otp,
+          password,
+          name,
+          callbackURL: "/onboarding",
+        });
+        if (verifyError) {
+          setError(verifyError.message || "Verification failed");
+        } else {
+          router.push("/onboarding");
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6 relative overflow-hidden font-sans">

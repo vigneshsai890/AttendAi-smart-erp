@@ -46,7 +46,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: true, // Temporarily open for discovery
+  origin: allowedOrigins,
   credentials: true
 }));
 
@@ -81,8 +81,8 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     uptime: process.uptime(),
     db: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
-    version: '1.0.0-MAX-POWER-FALLBACK-V1',
-    deploy: 'e86524ee-FALLBACK-BRIDGE' // Activating production bridge
+    version: '1.0.0-MAX-POWER-FINALIZED',
+    deploy: '490c065f-AWS-FINALIZED' // Activating final production sync
   });
 });
 
