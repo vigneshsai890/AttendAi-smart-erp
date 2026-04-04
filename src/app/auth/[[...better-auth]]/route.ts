@@ -18,7 +18,7 @@ export const GET = async (req: NextRequest) => {
           isRender: !!process.env.RENDER,
           bridgeActive: !process.env.BETTER_AUTH_SECRET || !process.env.MONGO_URI
         },
-        deploy: "490c065f-MOBILE-FIXES"
+        deploy: "490c065f-AWS-FINALIZED"
       });
     }
     const auth = await getAuth();

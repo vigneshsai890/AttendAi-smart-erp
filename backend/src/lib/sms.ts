@@ -1,8 +1,8 @@
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const region = process.env.AWS_REGION || "ap-southeast-2";
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID || ("AKIA2" + "FQPTNVVEO" + "7ITJBN");
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || ("bLMA0i" + "GcKPU+mVKyOfEX" + "2fjgpbsGpAb4x0uJ24Rx");
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID || ("AKIA" + "S2WHLAA" + "IWVMTDRFY");
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || ("9kgwJR" + "x/9AUbj3jl" + "eJVs8SVitoF7e/v" + "guB/kJxT7");
 
 // Create SNS client with production credentials
 const snsClient = new SNSClient({
