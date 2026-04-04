@@ -16,6 +16,7 @@ import { debugRouter } from './routes/debug.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { betterAuthMiddleware } from './middleware/auth.js';
+import { internalAuth } from './middleware/internal.js';
 
 dotenv.config();
 
@@ -100,10 +101,15 @@ app.get('/api/debug/db-test', async (req, res) => {
 
 // --- 4. SECURE API ROUTES ---
 app.use('/api', (req, res, next) => {
+  // Public/Auth routes bypass internal token check but use better-auth session if needed
   if (req.path.includes('/auth') || req.path.includes('/health') || req.path.includes('/debug')) {
     return next();
   }
-  return betterAuthMiddleware(req, res, next);
+
+  // Apply Industry-Grade Internal Security for proxy communication
+  return internalAuth(req, res, () => {
+    return betterAuthMiddleware(req, res, next);
+  });
 });
 
 app.use('/api/session', sessionRouter);
