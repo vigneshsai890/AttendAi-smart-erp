@@ -82,7 +82,7 @@ export const getAuth = () => {
             const key = process.env.BETTER_AUTH_API_KEY;
             if (ENV.isProduction && !key) {
               console.warn("⚠️ [BRIDGE] Using production fallback BETTER_AUTH_API_KEY.");
-              return "ba_sc4do67zgf2fkiylhe09pmsmzth2mbfl";
+              return "ba_l9zftxw9h9ze35e06l7iye6pz58fza40";
             }
             return key || "";
           })(),
