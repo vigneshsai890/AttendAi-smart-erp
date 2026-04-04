@@ -18,7 +18,7 @@ export const GET = async (req: NextRequest) => {
           isRender: !!process.env.RENDER,
           bridgeActive: !process.env.BETTER_AUTH_SECRET || !process.env.MONGO_URI
         },
-        deploy: "ec28bca9-BRIDGE-ACTIVE"
+        deploy: "066fa7da-DIAGS"
       });
     }
     const auth = await getAuth();
