@@ -36,7 +36,11 @@ export const getAuth = async () => {
         console.error("🚨 [SECURITY WARNING] MONGO_URI is missing. Ensure this is set in your Render dashboard.");
       }
       _client = new MongoClient(uri || "mongodb+srv://dev_user:dev_pass@cluster.mongodb.net/dev_db");
-      await _client.connect();
+      try {
+        await _client.connect();
+      } catch (err) {
+        console.warn("⚠️ [BUILD] Skipping DB connection during static generation or invalid URI.");
+      }
     }
     const db = _client.db();
 
