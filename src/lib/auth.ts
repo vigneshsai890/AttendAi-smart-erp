@@ -135,8 +135,8 @@ export const getAuth = async () => {
         "https://attendai-backend-ynnd.onrender.com",
         "https://attendai-smart-erp-frontend.onrender.com",
         "https://attendai-smart-erp-backend.onrender.com",
-        "https://attend-ai-smart-erp.vercel.app",
-        "https://attendai-smart-erp.vercel.app",
+        // Catch-all for Vercel Preview URLs
+        ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:5001",
