@@ -46,3 +46,9 @@ next-env.d.ts
 # legacy
 /src/generated/prisma
 dev.db
+my-clone/
+.codex/
+.gemini/
+.vscode/
+compiled_docs.md
+

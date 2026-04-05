@@ -9,6 +9,10 @@ interface QRPayload {
   sessionId: string;
   token: string;
   exp: number;
+  subject?: string;
+  period?: string;
+  department?: string;
+  section?: string;
 }
 
 export default function StudentScanPage() {
