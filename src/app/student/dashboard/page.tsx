@@ -27,11 +27,24 @@ interface DashboardData {
   notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean }>;
 }
 
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+
 function DashboardContent() {
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") || "classroom";
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    } else if (!isPending && (session?.user?.role === "FACULTY" || session?.user?.role === "ADMIN")) {
+      router.push("/faculty/dashboard");
+    }
+  }, [session, isPending, router]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

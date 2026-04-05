@@ -71,9 +71,20 @@ interface DashboardData {
   fraudFlags: FraudFlag[];
 }
 
+import { useRouter } from "next/navigation";
+
 export default function FacultyDashboard() {
-  const { data: session } = authClient.useSession();
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.push("/login");
+    } else if (!isPending && session?.user?.role === "STUDENT") {
+      router.push("/student/dashboard");
+    }
+  }, [session, isPending, router]);
 
   // Selection State
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);

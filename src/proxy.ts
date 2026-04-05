@@ -20,34 +20,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Check for the session cookie (Better Auth standard name)
-  // We check for both standard and secure variants
+  // 2. ONLY check for cookie existence (No DB calls here!)
   const sessionCookie = 
     request.cookies.get("better-auth.session_token") || 
     request.cookies.get("__Secure-better-auth.session_token");
 
-  // 3. If no cookie and trying to access protected areas, redirect to login
+  // 3. If no cookie, redirect to login
   if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url);
-    // Store the intended destination to redirect back after login
     loginUrl.searchParams.set("callbackUrl", path);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 4. If cookie exists, let the request through. 
-  // Deep role-based checks happen in the layouts/pages where DB access is safe.
+  // 4. Let them through. The Page/Layout will do the deep validation.
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
