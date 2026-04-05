@@ -4,21 +4,38 @@ import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // 1. Allow public assets and auth paths to bypass middleware completely
+  if (
+    path.startsWith("/_next") || 
+    path.startsWith("/static") || 
+    path.startsWith("/api/auth") ||
+    path.startsWith("/auth") ||
+    path === "/login" ||
+    path === "/signup" ||
+    path === "/"
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. Fetch session
   const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers()
   });
 
-  const path = request.nextUrl.pathname;
-
-  // If no session, redirect to login
+  // 3. If no session and trying to access protected routes, redirect to login ONCE
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    // Avoid redirect loop if already on login
+    if (path === "/login") return NextResponse.next();
+    return NextResponse.redirect(loginUrl);
   }
 
   const user = session.user as any;
 
-  // Role-based route protection
+  // 4. Role-based protection (Redirect to their respective dashboards if they are in the wrong place)
   if (path.startsWith("/admin") && user?.role !== "ADMIN") {
     return NextResponse.redirect(new URL(user?.role === "FACULTY" ? "/faculty/dashboard" : "/student/dashboard", request.url));
   }
@@ -36,9 +53,13 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/student/:path*",
-    "/faculty/:path*",
-    "/admin/:path*",
-    "/settings/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
