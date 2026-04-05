@@ -19,11 +19,11 @@ export default function Home() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8 text-[12px] font-normal tracking-wide text-[#f5f5f7] opacity-80">
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">Features</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">Security</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">Institutions</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer text-white font-semibold">AttendAI</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">Support</span>
+              <Link href="/features" className="hover:opacity-100 transition-opacity cursor-pointer">Features</Link>
+              <Link href="/security" className="hover:opacity-100 transition-opacity cursor-pointer">Security</Link>
+              <Link href="/institutions" className="hover:opacity-100 transition-opacity cursor-pointer">Institutions</Link>
+              <Link href="/" className="hover:opacity-100 transition-opacity cursor-pointer text-white font-semibold">AttendAI</Link>
+              <Link href="/support" className="hover:opacity-100 transition-opacity cursor-pointer">Support</Link>
             </div>
 
             <div className="flex items-center gap-4">
@@ -42,8 +42,8 @@ export default function Home() {
           <div className="w-full max-w-[1024px] flex items-center justify-between">
             <span className="text-xl font-semibold tracking-tight text-white">AttendAI Pro</span>
             <div className="flex items-center gap-4 text-xs font-medium">
-              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Overview</span>
-              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Documentation</span>
+              <Link href="/" className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Overview</Link>
+              <Link href="/documentation" className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Documentation</Link>
               <Link href="/signup" className="px-3 py-1 rounded-full bg-[#0071e3] text-white hover:bg-[#0077ED] transition-colors">
                 Get Started
               </Link>

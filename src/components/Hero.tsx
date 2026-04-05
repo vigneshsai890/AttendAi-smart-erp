@@ -16,10 +16,10 @@ export default function Hero() {
   const scale = useTransform(scrollYProgress, [0, 1], [1, 0.9]);
 
   return (
-    <section ref={ref} className="relative h-screen flex flex-col items-center justify-center pt-12 overflow-hidden bg-black">
+    <section ref={ref} className="relative min-h-[100svh] flex flex-col items-center justify-start pt-32 pb-40 overflow-hidden bg-black">
       <motion.div
         style={{ y, opacity, scale }}
-        className="flex flex-col items-center text-center z-10 w-full px-4 mt-16"
+        className="flex flex-col items-center text-center z-10 w-full px-4 mb-20"
       >
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -63,24 +63,21 @@ export default function Hero() {
         </motion.div>
       </motion.div>
 
-      {/* Cinematic Hardware/Mockup Element */}
+      {/* Cinematic Hardware/Image Element */}
       <motion.div
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.5, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute bottom-0 w-full max-w-[1024px] h-[40vh] bg-[#1d1d1f] rounded-t-[3rem] border-t border-x border-[#333336] shadow-[0_-20px_80px_rgba(255,255,255,0.02)] overflow-hidden flex items-start justify-center pt-8 px-4"
+        className="w-full max-w-[1200px] h-[50vh] md:h-[60vh] bg-[#1d1d1f] rounded-t-[3rem] border-t border-x border-[#333336] shadow-[0_-20px_80px_rgba(255,255,255,0.02)] overflow-hidden flex items-start justify-center relative mt-auto"
       >
-         <div className="w-full max-w-[800px] h-full bg-black rounded-t-3xl border-t border-x border-[#333336] flex flex-col items-center pt-10 px-8 relative overflow-hidden">
-            <div className="w-32 h-1.5 bg-[#333336] rounded-full mb-12" />
-            <div className="text-[#86868b] text-xs font-semibold tracking-widest uppercase mb-10">Live Verification Interface</div>
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="h-24 bg-[#1d1d1f] rounded-2xl border border-[#333336]" />
-              <div className="h-24 bg-[#1d1d1f] rounded-2xl border border-[#333336]" />
-              <div className="h-24 bg-[#1d1d1f] rounded-2xl border border-[#333336]" />
-            </div>
+         <img
+           src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+           alt="AttendAI Advanced Core"
+           className="w-full h-full object-cover opacity-80"
+         />
+         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none" />
 
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent pointer-events-none" />
-         </div>
+         <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-black/50 backdrop-blur-md rounded-full mb-12" />
       </motion.div>
     </section>
   );
