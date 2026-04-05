@@ -14,13 +14,15 @@ export const ENV = {
 
   // Frontend URL (used for Better Auth baseURL and redirect origins)
   get frontendUrl() {
-    if (typeof window !== "undefined") return window.location.origin;
-    
     // Vercel Preview/System URLs
     if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
 
     if (isProduction) return process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || PROD_FRONTEND_URL;
+    
+    // In client-side development, if window is available, we can use it, but only as a fallback
+    if (typeof window !== "undefined" && !isProduction) return window.location.origin;
+
     return "http://localhost:3000";
   },
 

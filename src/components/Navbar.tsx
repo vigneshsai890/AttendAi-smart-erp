@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnetic from "@/components/Magnetic";
 import {
@@ -14,14 +14,13 @@ function NavbarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session } = authClient.useSession();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
   const role = session?.user?.role;
-  const currentTab = searchParams.get("tab") || "classroom";
 
-  // Don't show on login page
-  if (pathname === "/login") return null;
+  // Don't show on login/signup page
+  if (pathname === "/login" || pathname === "/signup") return null;
 
   const getTabs = () => {
     if (role === "STUDENT") {
@@ -50,6 +49,17 @@ function NavbarInner() {
   };
 
   const tabs = getTabs();
+
+  const handleSignOut = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login");
+          router.refresh();
+        },
+      },
+    });
+  };
 
   return (
     <div className="fixed bottom-10 left-0 right-0 z-[200] flex justify-center pointer-events-none px-6">
@@ -113,7 +123,7 @@ function NavbarInner() {
 
         <Magnetic strength={0.15}>
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleSignOut}
             className="px-6 py-4 rounded-[2rem] flex flex-col items-center gap-2 text-white/10 hover:text-red-400/80 transition-all group active:scale-90"
           >
             <LogOut size={20} className="group-hover:scale-125 group-hover:rotate-12 transition-all duration-500" />
