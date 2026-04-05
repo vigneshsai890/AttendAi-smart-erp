@@ -1,53 +1,41 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getAuth } from "@/lib/auth";
-import { headers } from "next/headers";
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // 1. Allow public assets and auth paths to bypass middleware completely
-  if (
-    path.startsWith("/_next") || 
-    path.startsWith("/static") || 
-    path.startsWith("/api/auth") ||
+  // 1. Define public paths that NEVER redirect
+  const isPublicPath = 
+    path === "/" ||
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
     path.startsWith("/auth") ||
-    path === "/login" ||
-    path === "/signup" ||
-    path === "/"
-  ) {
+    path.startsWith("/api/auth") ||
+    path.startsWith("/_next") ||
+    path.startsWith("/static") ||
+    path.endsWith(".ico") ||
+    path.endsWith(".png");
+
+  if (isPublicPath) {
     return NextResponse.next();
   }
 
-  // 2. Fetch session
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
+  // 2. Check for the session cookie (Better Auth standard name)
+  // We check for both standard and secure variants
+  const sessionCookie = 
+    request.cookies.get("better-auth.session_token") || 
+    request.cookies.get("__Secure-better-auth.session_token");
 
-  // 3. If no session and trying to access protected routes, redirect to login ONCE
-  if (!session) {
+  // 3. If no cookie and trying to access protected areas, redirect to login
+  if (!sessionCookie) {
     const loginUrl = new URL("/login", request.url);
-    // Avoid redirect loop if already on login
-    if (path === "/login") return NextResponse.next();
+    // Store the intended destination to redirect back after login
+    loginUrl.searchParams.set("callbackUrl", path);
     return NextResponse.redirect(loginUrl);
   }
 
-  const user = session.user as any;
-
-  // 4. Role-based protection (Redirect to their respective dashboards if they are in the wrong place)
-  if (path.startsWith("/admin") && user?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL(user?.role === "FACULTY" ? "/faculty/dashboard" : "/student/dashboard", request.url));
-  }
-
-  if (path.startsWith("/faculty") && user?.role !== "FACULTY" && user?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL(user?.role === "STUDENT" ? "/student/dashboard" : "/admin", request.url));
-  }
-
-  if (path.startsWith("/student") && user?.role !== "STUDENT" && user?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL(user?.role === "FACULTY" ? "/faculty/dashboard" : "/admin", request.url));
-  }
-
+  // 4. If cookie exists, let the request through. 
+  // Deep role-based checks happen in the layouts/pages where DB access is safe.
   return NextResponse.next();
 }
 

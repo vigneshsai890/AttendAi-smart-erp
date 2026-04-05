@@ -104,6 +104,22 @@ router.post('/seed-5k', async (req: Request, res: Response) => {
 router.post('/seed-faculty', async (req: Request, res: Response) => {
   try {
     const passwordHash = await bcrypt.hash('Faculty@123', 10);
+    
+    // 1. Ensure a default department exists
+    let dept = await mongoose.connection.db?.collection('departments').findOne({ code: 'CS' });
+    let deptId;
+    if (!dept) {
+      const result = await mongoose.connection.db?.collection('departments').insertOne({
+        name: 'Computer Science',
+        code: 'CS',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      deptId = result?.insertedId;
+    } else {
+      deptId = dept._id;
+    }
+
     const FACULTY_LIST = [
       { name: 'Dr. Sarah Wilson', email: 'sarah.wilson@apollo.erp', empId: 'FAC001' },
       { name: 'Prof. James Bond', email: 'james.bond@apollo.erp', empId: 'FAC007' },
@@ -118,11 +134,11 @@ router.post('/seed-faculty', async (req: Request, res: Response) => {
       );
       await Faculty.findOneAndUpdate(
         { userId: user._id },
-        { userId: user._id, employeeId: f.empId, designation: 'Professor', departmentId: new mongoose.Types.ObjectId() }, // Placeholder dept
+        { userId: user._id, employeeId: f.empId, designation: 'Professor', departmentId: deptId },
         { upsert: true }
       );
     }
-    return res.json({ success: true, message: 'Faculty provisioned successfully' });
+    return res.json({ success: true, message: 'Faculty provisioned with valid departments' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
