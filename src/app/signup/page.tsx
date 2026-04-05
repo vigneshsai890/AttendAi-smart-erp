@@ -147,10 +147,13 @@ export default function SignupPage() {
                       type="text" required placeholder="Full Name" value={name} onChange={e => setName(e.target.value)}
                       className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
                     />
-                    <input
-                      type="tel" required placeholder="Phone Number (+1...)" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
-                      className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
-                    />
+                    <div className="space-y-1">
+                      <input
+                        type="tel" required placeholder="Phone Number (+91...)" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
+                        className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
+                      />
+                      <p className="text-[10px] text-[#86868b] px-2 italic">Format: +[CountryCode][Number] (e.g. +919876543210)</p>
+                    </div>
                     <input
                       type="email" required placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)}
                       className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"

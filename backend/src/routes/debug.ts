@@ -98,4 +98,31 @@ router.post('/seed-5k', async (req: Request, res: Response) => {
     }
 });
 
+router.post('/seed-faculty', async (req: Request, res: Response) => {
+  try {
+    const passwordHash = await bcrypt.hash('Faculty@123', 10);
+    const FACULTY_LIST = [
+      { name: 'Dr. Sarah Wilson', email: 'sarah.wilson@apollo.erp', empId: 'FAC001' },
+      { name: 'Prof. James Bond', email: 'james.bond@apollo.erp', empId: 'FAC007' },
+      { name: 'Dr. Elena Vance', email: 'elena.vance@apollo.erp', empId: 'FAC003' },
+    ];
+
+    for (const f of FACULTY_LIST) {
+      const user = await User.findOneAndUpdate(
+        { email: f.email },
+        { name: f.name, email: f.email, role: 'FACULTY', passwordHash, isActive: true },
+        { upsert: true, new: true }
+      );
+      await Faculty.findOneAndUpdate(
+        { userId: user._id },
+        { userId: user._id, employeeId: f.empId, designation: 'Professor', departmentId: new mongoose.Types.ObjectId() }, // Placeholder dept
+        { upsert: true }
+      );
+    }
+    return res.json({ success: true, message: 'Faculty provisioned successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 export const debugRouter = router;
