@@ -1,8 +1,11 @@
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { Session } from '../models/Session.js';
 import { Attendance } from '../models/Attendance.js';
 import { Course } from '../models/Course.js';
+import { Faculty } from '../models/Faculty.js';
 
 const router = express.Router();
 
