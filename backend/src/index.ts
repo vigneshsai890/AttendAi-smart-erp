@@ -25,6 +25,13 @@ const server = http.createServer(app);
 
 // --- 0. ULTIMATE DEBUG & PATH SNIFFER ---
 app.use((req, res, next) => {
+  // INTERNAL TOKEN BYPASS (Highest Priority)
+  const internalToken = req.headers['x-internal-token'];
+  if (internalToken && internalToken === ENV.internalToken) {
+    (req as any).isInternal = true;
+    return next();
+  }
+
   const isSniff = req.url && (req.url.includes('sniff=true') || req.headers['x-sniff'] === 'true');
   if (isSniff) {
     return res.json({
@@ -109,10 +116,9 @@ app.use('/api', (req, res, next) => {
     return next();
   }
 
-  // Apply Industry-Grade Internal Security for proxy communication
-  const internalToken = req.headers['x-internal-token'];
-  if (internalToken && internalToken === ENV.internalToken) {
-    return next(); // Bypass session check for valid internal calls
+  // Bypass session check if already authenticated via internal token higher up
+  if ((req as any).isInternal) {
+    return next();
   }
 
   return betterAuthMiddleware(req, res, next);
