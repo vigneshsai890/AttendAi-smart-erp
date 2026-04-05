@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers()
