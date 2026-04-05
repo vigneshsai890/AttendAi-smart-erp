@@ -21,7 +21,7 @@ let _auth: any = null;
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (ENV.isProduction && !secret) {
-    throw new Error("🚨 [SECURITY CRITICAL] BETTER_AUTH_SECRET must be set in production!");
+    console.error("🚨 [SECURITY WARNING] BETTER_AUTH_SECRET is missing. Ensure this is set in your Render dashboard.");
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };

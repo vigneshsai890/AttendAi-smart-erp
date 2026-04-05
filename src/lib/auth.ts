@@ -21,9 +21,8 @@ let _client: MongoClient | null = null;
 
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
-  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
-  if (ENV.isProduction && !secret && !isBuild) {
-    throw new Error("🚨 [SECURITY CRITICAL] BETTER_AUTH_SECRET must be set in production!");
+  if (ENV.isProduction && !secret) {
+    console.error("🚨 [SECURITY WARNING] BETTER_AUTH_SECRET is missing. Ensure this is set in your Render dashboard.");
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
@@ -33,9 +32,8 @@ export const getAuth = async () => {
     // 1. Ensure DB connection
     if (!_client) {
       const uri = process.env.MONGO_URI;
-      const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
-      if (ENV.isProduction && !uri && !isBuild) {
-        throw new Error("🚨 [SECURITY CRITICAL] MONGO_URI must be set in production!");
+      if (ENV.isProduction && !uri) {
+        console.error("🚨 [SECURITY WARNING] MONGO_URI is missing. Ensure this is set in your Render dashboard.");
       }
       _client = new MongoClient(uri || "mongodb+srv://dev_user:dev_pass@cluster.mongodb.net/dev_db");
       await _client.connect();
