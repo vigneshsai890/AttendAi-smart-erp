@@ -71,11 +71,11 @@ export default function Hero() {
         className="w-full max-w-[1200px] h-[50vh] md:h-[60vh] bg-[#1d1d1f] rounded-t-[3rem] border-t border-x border-[#333336] shadow-[0_-20px_80px_rgba(255,255,255,0.02)] overflow-hidden flex items-start justify-center relative mt-auto"
       >
          <img
-           src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
-           alt="AttendAI Advanced Core"
-           className="w-full h-full object-cover opacity-80"
+           src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426&auto=format&fit=crop"
+           alt="AttendAI Professional Dashboard Interface"
+           className="w-full h-full object-cover opacity-90 mix-blend-luminosity"
          />
-         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent pointer-events-none" />
+         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
 
          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-black/50 backdrop-blur-md rounded-full mb-12" />
       </motion.div>

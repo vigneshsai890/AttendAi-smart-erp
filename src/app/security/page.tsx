@@ -72,6 +72,58 @@ export default function SecurityPage() {
                </motion.div>
             </div>
           </motion.div>
+
+          {/* New Extensive Security Information */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="bg-[#1d1d1f] p-10 rounded-[2.5rem] border border-[#333336]"
+            >
+              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mb-6 border border-[#333336]">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                </svg>
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-3">Device Fingerprinting</h4>
+              <p className="text-[#86868b] leading-relaxed font-medium">AttendAI maps unique device IDs directly to student profiles. Once an attendance token is requested, the system locks that identity to the active device, instantly neutralizing multi-account or buddy-login vulnerabilities.</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="bg-[#1d1d1f] p-10 rounded-[2.5rem] border border-[#333336]"
+            >
+              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mb-6 border border-[#333336]">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-3">Precision Geo-fencing</h4>
+              <p className="text-[#86868b] leading-relaxed font-medium">Coordinate-based boundary verification establishes an invisible perimeter around your classrooms. Our algorithms reject any check-in attempts originating beyond a highly strict 50-meter variance threshold.</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="bg-[#1d1d1f] p-10 rounded-[2.5rem] border border-[#333336]"
+            >
+              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mb-6 border border-[#333336]">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-3">Velocity Tracking</h4>
+              <p className="text-[#86868b] leading-relaxed font-medium">Real-time Sentinel analysis constantly monitors login speeds, impossible travel gaps, and network proxies. Any irregular or suspicious behavior instantly flags the session and notifies faculty administration.</p>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>
