@@ -13,6 +13,5 @@ const studentSchema = new mongoose.Schema({
 
 studentSchema.index({ departmentId: 1 });
 studentSchema.index({ sectionId: 1 });
-studentSchema.index({ userId: 1 });
 
 export const Student = mongoose.model('Student', studentSchema);

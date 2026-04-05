@@ -8,6 +8,5 @@ const facultySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 facultySchema.index({ departmentId: 1 });
-facultySchema.index({ userId: 1 });
 
 export const Faculty = mongoose.model('Faculty', facultySchema);

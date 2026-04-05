@@ -138,7 +138,12 @@ const startServer = async () => {
   try {
     const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/smart_erp_realtime';
     if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(MONGO_URI);
+      await mongoose.connect(MONGO_URI, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        family: 4 // Use IPv4 for stability on many cloud providers
+      });
     }
     server.listen(PORT, HOST, () => {
       console.log(`🚀 Universal Hub running on port ${PORT}`);

@@ -14,6 +14,5 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 userSchema.index({ role: 1 });
-userSchema.index({ email: 1 });
 
 export const User = mongoose.model('User', userSchema);
