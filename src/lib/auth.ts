@@ -48,57 +48,11 @@ export const getAuth = async () => {
       secret: getBetterAuthSecret(),
       baseURL: ENV.frontendUrl,
       basePath: "/auth",
-      socialProviders: {
-        google: {
-          clientId: process.env.GOOGLE_CLIENT_ID || (ENV.isProduction ? "" : "dev_client_id"),
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET || (ENV.isProduction ? "" : "dev_client_secret"),
-          accessType: "offline",
-          prompt: "select_account consent",
-        },
-        microsoft: {
-          clientId: process.env.MICROSOFT_CLIENT_ID || "",
-          clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "",
-          tenantId: "common",
-          prompt: "select_account",
-        },
-      },
       emailVerification: {
-        sendOnSignUp: true,
-        async sendVerificationEmail({ user, url }) {
-          try {
-            await sendEmail({
-              template: "verify-email",
-              to: user.email,
-              variables: {
-                verificationUrl: url,
-                userEmail: user.email,
-                userName: user.name,
-                appName: "AttendAI",
-              },
-            });
-          } catch (err) {
-            console.error("❌ [AUTH] Failed to send verification email:", err);
-          }
-        },
+        sendOnSignUp: false, // Set to false to allow immediate login after signup for demo
       },
       emailAndPassword: {
         enabled: true,
-        async sendResetPassword({ user, url }) {
-          try {
-            await sendEmail({
-              template: "reset-password",
-              to: user.email,
-              variables: {
-                resetLink: url,
-                userEmail: user.email,
-                userName: user.name,
-                appName: "AttendAI",
-              },
-            });
-          } catch (err) {
-            console.error("❌ [AUTH] Failed to send reset password email:", err);
-          }
-        },
       },
       plugins: [
         phoneNumber({
@@ -129,7 +83,6 @@ export const getAuth = async () => {
           },
         }),
         username(),
-        oneTap(),
         admin(),
         organization({
           allowUserToCreateOrganization: async (user) => {
@@ -176,13 +129,16 @@ export const getAuth = async () => {
         ENV.frontendUrl,
         process.env.NEXT_PUBLIC_APP_URL,
         process.env.FRONTEND_URL,
+        process.env.BETTER_AUTH_URL,
         "https://dash.better-auth.com",
         "https://attendai-smart-erp.onrender.com",
         "https://attendai-backend-ynnd.onrender.com",
         "https://attendai-smart-erp-frontend.onrender.com",
         "https://attendai-smart-erp-backend.onrender.com",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "http://localhost:5001",
+        "http://127.0.0.1:5001"
       ].filter(Boolean) as string[]),
     });
   }

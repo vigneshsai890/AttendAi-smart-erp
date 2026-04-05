@@ -36,7 +36,7 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="text-white text-6xl md:text-8xl lg:text-[140px] font-bold tracking-tighter leading-none mb-6"
         >
-          Titanium.
+          Flawless.
         </motion.h1>
 
         <motion.p
@@ -45,7 +45,7 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="text-[#86868b] text-xl md:text-3xl font-medium max-w-3xl mx-auto tracking-tight mb-10"
         >
-          The most secure attendance protocol ever created. <br className="hidden md:block" />Built from aerospace-grade algorithms.
+          The most secure attendance protocol ever created. <br className="hidden md:block" />Built for modern educational institutions.
         </motion.p>
 
         <motion.div
@@ -58,7 +58,7 @@ export default function Hero() {
             Learn more
           </Link>
           <Link href="/signup" className="text-[17px] font-medium text-[#2997ff] hover:underline flex items-center gap-1">
-            Buy <span className="text-[14px]">›</span>
+            Sign Up <span className="text-[14px]">›</span>
           </Link>
         </motion.div>
       </motion.div>

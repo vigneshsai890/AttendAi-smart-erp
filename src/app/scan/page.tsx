@@ -15,10 +15,13 @@ export default function StudentScanPage() {
   const router = useRouter();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [scanState, setScanState] = useState<
-    "idle" | "scanning" | "submitting" | "success" | "error" | "flagged" | "expired"
+    "idle" | "scanning" | "info" | "submitting" | "success" | "error" | "flagged" | "expired"
   >("idle");
   const [message, setMessage] = useState("");
   const [courseName, setCourseName] = useState("");
+  const [qrPayload, setQrPayload] = useState<QRPayload | null>(null);
+  const [studentName, setStudentName] = useState("");
+  const [regId, setRegId] = useState("");
   const [riskScore, setRiskScore] = useState(0);
   const [geoError, setGeoError] = useState("");
 
@@ -32,7 +35,7 @@ export default function StudentScanPage() {
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         onScanSuccess,
-        () => {} // ignore decode errors (normal during scanning)
+        () => {} // ignore decode errors
       )
       .then(() => setScanState("scanning"))
       .catch((err) => {
@@ -46,7 +49,6 @@ export default function StudentScanPage() {
         html5QrCode.stop().catch(() => {});
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopScanner = () => {
@@ -57,10 +59,9 @@ export default function StudentScanPage() {
 
   const onScanSuccess = async (decodedText: string) => {
     stopScanner();
-    setScanState("submitting");
-
+    
     // Parse QR payload
-    let payload: QRPayload;
+    let payload: any;
     try {
       payload = JSON.parse(decodedText);
     } catch {
@@ -77,6 +78,19 @@ export default function StudentScanPage() {
       return;
     }
 
+    setQrPayload(payload);
+    setCourseName(payload.subject || "Unknown Course");
+    setScanState("info");
+  };
+
+  const submitAttendance = async () => {
+    if (!studentName || !regId) {
+      setMessage("Please enter your name and registration ID.");
+      return;
+    }
+
+    setScanState("submitting");
+
     // Get geolocation
     let lat: number | null = null;
     let lng: number | null = null;
@@ -90,31 +104,32 @@ export default function StudentScanPage() {
       lat = pos.coords.latitude;
       lng = pos.coords.longitude;
     } catch {
-      setGeoError("Location access denied. Attendance will be marked without GPS.");
+      setGeoError("Location access denied.");
     }
 
     // Device fingerprint
     const fp = `${navigator.userAgent}-${screen.width}x${screen.height}-${navigator.language}`;
-
-    console.log(`[SCAN] Submitting attendance: session=${payload.sessionId} token=${payload.token.slice(0, 8)}...`);
 
     try {
       const res = await fetch("/api/attendance/mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId: payload.sessionId,
-          qrToken: payload.token,
+          sessionId: qrPayload?.sessionId,
+          qrToken: qrPayload?.token,
           latitude: lat,
           longitude: lng,
           deviceFingerprint: fp,
+          // Sending extra info for manual audit
+          manualName: studentName,
+          manualRegId: regId
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setCourseName(data.courseName);
+        setCourseName(data.courseName || courseName);
         setRiskScore(data.riskScore);
         setMessage(data.message);
         setScanState(data.flagged ? "flagged" : "success");
@@ -180,8 +195,53 @@ export default function StudentScanPage() {
               )}
 
               {/* Status Views */}
-              {(scanState === "success" || scanState === "flagged" || scanState === "error" || scanState === "expired" || scanState === "submitting") && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-[#0c0c0e]/40 backdrop-blur-md animate-in fade-in zoom-in duration-500">
+              {(scanState === "info" || scanState === "success" || scanState === "flagged" || scanState === "error" || scanState === "expired" || scanState === "submitting") && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-[#0c0c0e]/40 backdrop-blur-md animate-in fade-in zoom-in duration-500 overflow-y-auto">
+                  
+                  {scanState === "info" && (
+                    <div className="w-full flex flex-col space-y-6 animate-in slide-in-from-bottom-10 duration-700">
+                      <div className="text-center">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-2">Signal Captured</p>
+                        <h2 className="text-xl font-black text-white italic mb-1">{courseName}</h2>
+                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                          {qrPayload?.department} • {qrPayload?.section} • Period {qrPayload?.period}
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-4">Full Name</label>
+                          <input 
+                            type="text"
+                            value={studentName}
+                            onChange={(e) => setStudentName(e.target.value)}
+                            placeholder="e.g. John Doe"
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-3xl px-6 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-white/10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-white/20 uppercase tracking-widest ml-4">Reg ID / Roll No</label>
+                          <input 
+                            type="text"
+                            value={regId}
+                            onChange={(e) => setRegId(e.target.value)}
+                            placeholder="e.g. 2024CS001"
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-3xl px-6 py-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-white/10"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={submitAttendance}
+                        className="w-full py-5 rounded-[2rem] bg-indigo-600 text-white text-[12px] font-black uppercase tracking-[0.3em] shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 active:scale-95 transition-all"
+                      >
+                        Transmit Identity
+                      </button>
+                      
+                      {message && <p className="text-[10px] text-red-400 text-center font-bold uppercase">{message}</p>}
+                    </div>
+                  )}
+
                   {scanState === "submitting" && (
                     <div className="flex flex-col items-center space-y-6">
                       <div className="relative">

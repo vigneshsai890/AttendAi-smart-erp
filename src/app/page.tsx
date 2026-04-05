@@ -19,9 +19,9 @@ export default function Home() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8 text-[12px] font-normal tracking-wide text-[#f5f5f7] opacity-80">
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">Mac</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">iPad</span>
-              <span className="hover:opacity-100 transition-opacity cursor-pointer">iPhone</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">Features</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">Security</span>
+              <span className="hover:opacity-100 transition-opacity cursor-pointer">Institutions</span>
               <span className="hover:opacity-100 transition-opacity cursor-pointer text-white font-semibold">AttendAI</span>
               <span className="hover:opacity-100 transition-opacity cursor-pointer">Support</span>
             </div>
@@ -31,7 +31,7 @@ export default function Home() {
                 Sign In
               </Link>
               <Link href="/signup" className="text-[12px] px-3 py-1 rounded-full bg-white text-black font-medium hover:scale-105 active:scale-95 transition-transform duration-300">
-                Buy
+                Sign Up
               </Link>
             </div>
           </div>
@@ -43,9 +43,9 @@ export default function Home() {
             <span className="text-xl font-semibold tracking-tight text-white">AttendAI Pro</span>
             <div className="flex items-center gap-4 text-xs font-medium">
               <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Overview</span>
-              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Tech Specs</span>
+              <span className="hidden sm:block text-[#86868b] hover:text-white cursor-pointer transition-colors">Documentation</span>
               <Link href="/signup" className="px-3 py-1 rounded-full bg-[#0071e3] text-white hover:bg-[#0077ED] transition-colors">
-                Buy
+                Get Started
               </Link>
             </div>
           </div>
@@ -78,7 +78,7 @@ export default function Home() {
           <div className="max-w-[1024px] mx-auto px-4 md:px-8 text-center">
             <p className="text-[11px] text-[#86868b] leading-relaxed font-normal">
               1. AttendAI requires an active institutional license and a compatible device. <br/>
-              2. 100% Proxy Block Rate is based on clinical university trials running our Titanium protocol. <br/>
+              2. 100% Proxy Block Rate is based on clinical university trials running our Secure protocol. <br/>
               <br/>
               Copyright © 2026 The Apollo University Inc. All rights reserved.
             </p>

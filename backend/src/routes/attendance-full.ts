@@ -447,6 +447,8 @@ router.post('/mark', async (req: Request, res: Response) => {
       longitude: longitude ?? null,
       riskScore,
       flagged: isFlagged,
+      // Store manual info if provided
+      notes: req.body.manualName ? `Manual Name: ${req.body.manualName}, ID: ${req.body.manualRegId}` : null
     });
 
     // Create proxy alerts if flagged

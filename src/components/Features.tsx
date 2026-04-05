@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 
 const features = [
   {
-    title: "A17 Pro Chip.",
-    subtitle: "Mind-blowing speed.",
-    description: "Verification happens in under 1 second. Our new neural engine processes proxy patterns locally.",
+    title: "Edge Verification.",
+    subtitle: "Instant presence.",
+    description: "Verification happens in under 1 second. Our advanced architecture processes proxy patterns instantly.",
     icon: <Zap className="w-10 h-10 text-[#f5f5f7] mb-6" />,
     className: "md:col-span-2 md:row-span-2 bg-[#1d1d1f]",
     large: true
