@@ -33,6 +33,16 @@ router.get('/student', async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    // --- Automatic Registration ID Generation ---
+    if (!user.registrationId) {
+      const year = new Date().getFullYear();
+      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const newRegId = `ATD-${year}-${randomPart}`;
+      user.registrationId = newRegId;
+      await user.save();
+      console.log(`📡 [AUTO-REG] Generated ID ${newRegId} for ${user.email}`);
+    }
+
     // Fetch student profile with department and section populated
     const student = await Student.findOne({ userId: user._id })
       .populate('departmentId')

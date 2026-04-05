@@ -28,6 +28,7 @@ export default function SignupPage() {
         email,
         password,
         name,
+        phoneNumber,
         callbackURL: "/onboarding",
       });
       if (signUpError) setError(signUpError.message || "Signup failed. Please try again.");
@@ -144,6 +145,10 @@ export default function SignupPage() {
                   >
                     <input
                       type="text" required placeholder="Full Name" value={name} onChange={e => setName(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
+                    />
+                    <input
+                      type="tel" required placeholder="Phone Number (+1...)" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)}
                       className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
                     />
                     <input

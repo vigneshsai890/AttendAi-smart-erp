@@ -19,7 +19,7 @@ interface Subject {
 }
 
 interface DashboardData {
-  user: { name: string; email: string };
+  user: { name: string; email: string; registrationId?: string; phoneNumber?: string };
   student: { rollNumber: string; year: number; semester: number; department: string; section: string };
   stats: { overallPercentage: number; totalAttended: number; totalClasses: number; safeCount: number; atRiskCount: number };
   subjects: Subject[];
@@ -110,11 +110,17 @@ function HomeView({ data }: { data: DashboardData }) {
               <h1 className="text-5xl font-black tracking-tight text-white mb-2 italic drop-shadow-2xl">
                 Hi, {data.user.name.split(' ')[0]}
               </h1>
-              <p className="text-[12px] text-white/40 font-bold uppercase tracking-tight flex items-center gap-2">
+              <p className="text-[12px] text-white/40 font-bold uppercase tracking-tight flex items-center gap-2 mb-4">
                 <span className="text-white/60">{data.student.department}</span>
                 <span className="w-1 h-1 rounded-full bg-white/20" />
                 <span>Section {data.student.section}</span>
               </p>
+              
+              {/* Registration ID Badge */}
+              <div className="inline-flex flex-col p-4 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-3xl shadow-inner">
+                <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.4em] mb-1">Neural Identity</span>
+                <span className="text-lg font-black text-indigo-400 font-mono tracking-tighter">{data.user.registrationId || "PENDING..."}</span>
+              </div>
             </div>
             <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-[1px] shadow-2xl shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
               <div className="w-full h-full rounded-[2rem] bg-[#0c0c0e] flex items-center justify-center text-2xl font-black text-white italic">
