@@ -109,10 +109,13 @@ app.use('/api', (req, res, next) => {
     return next();
   }
 
-  // Apply Industry-Grade Internal Security for proxy communication (including /debug)
-  return internalAuth(req, res, () => {
-    return betterAuthMiddleware(req, res, next);
-  });
+  // Apply Industry-Grade Internal Security for proxy communication
+  const internalToken = req.headers['x-internal-token'];
+  if (internalToken && internalToken === ENV.internalToken) {
+    return next(); // Bypass session check for valid internal calls
+  }
+
+  return betterAuthMiddleware(req, res, next);
 });
 
 app.use('/api/session', sessionRouter);
