@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
 import { Faculty } from '../models/Faculty.js';
@@ -20,7 +20,7 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 // GET /dashboard/student
 // ---------------------------------------------------------------------------
-router.get('/student', async (req, res) => {
+router.get('/student', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
     if (!userId || typeof userId !== 'string') {
@@ -305,7 +305,7 @@ router.get('/student', async (req, res) => {
 // ---------------------------------------------------------------------------
 // GET /dashboard/faculty
 // ---------------------------------------------------------------------------
-router.get('/faculty', async (req, res) => {
+router.get('/faculty', async (req: Request, res: Response) => {
   try {
     const { userId } = req.query;
     if (!userId || typeof userId !== 'string') {
@@ -548,7 +548,7 @@ router.get('/faculty', async (req, res) => {
 // ---------------------------------------------------------------------------
 // GET /dashboard/faculty/reports
 // ---------------------------------------------------------------------------
-router.get('/faculty/reports', async (req, res) => {
+router.get('/faculty/reports', async (req: Request, res: Response) => {
   try {
     const { courseId } = req.query;
     if (!courseId || typeof courseId !== 'string') {
@@ -630,7 +630,7 @@ router.get('/faculty/reports', async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /dashboard/2fa/setup
 // ---------------------------------------------------------------------------
-router.post('/2fa/setup', async (req, res) => {
+router.post('/2fa/setup', async (req: Request, res: Response) => {
   try {
     const { userEmail } = req.body;
     if (!userEmail) {
@@ -677,7 +677,7 @@ router.post('/2fa/setup', async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /dashboard/2fa/verify
 // ---------------------------------------------------------------------------
-router.post('/2fa/verify', async (req, res) => {
+router.post('/2fa/verify', async (req: Request, res: Response) => {
   try {
     const { userEmail, token } = req.body;
     if (!userEmail || !token) {

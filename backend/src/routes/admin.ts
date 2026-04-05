@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { Department } from '../models/Department.js';
 import { Section } from '../models/Section.js';
@@ -7,9 +7,12 @@ import { CourseAssignment } from '../models/CourseAssignment.js';
 import { Enrollment } from '../models/Enrollment.js';
 import { Faculty } from '../models/Faculty.js';
 import { Student } from '../models/Student.js';
+import { AttendanceRecord } from '../models/Attendance.js';
 import bcrypt from 'bcryptjs';
 
-router.get('/audit-export', async (req, res) => {
+const router = Router();
+
+router.get('/audit-export', async (req: Request, res: Response) => {
   try {
     const records = await AttendanceRecord.find()
       .populate('userId', 'name email')
@@ -40,7 +43,7 @@ export const adminRouter = router;
 // DEPARTMENTS
 // ---------------------------------------------------------------------------
 
-adminRouter.get('/departments', async (_req, res) => {
+adminRouter.get('/departments', async (_req: Request, res: Response) => {
   try {
     const departments = await Department.find().sort({ code: 1 }).lean();
 

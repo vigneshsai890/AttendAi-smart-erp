@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { Session } from '../models/Session.js';
 import { Attendance } from '../models/Attendance.js';
 import jwt from 'jsonwebtoken';
@@ -6,28 +6,26 @@ import jwt from 'jsonwebtoken';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-qr-key';
 
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-          Math.cos(φ1) * Math.cos(φ2) *
-          Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in meters
-}
-
+// Socket.io reference – set externally via setIo()
 let io: any;
 export const setIo = (socketIo: any) => {
   io = socketIo;
 };
 
+// ---------------------------------------------------------------------------
+// Haversine distance (meters)
+// ---------------------------------------------------------------------------
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // POST /scan-attendance
-router.post('/scan-attendance', async (req, res) => {
+router.post('/scan-attendance', async (req: Request, res: Response) => {
   try {
     const { token, studentId, latitude, longitude, deviceFingerprint } = req.body;
 
@@ -109,7 +107,7 @@ router.post('/scan-attendance', async (req, res) => {
 });
 
 // GET /attendance-live/:sessionId
-router.get('/live/:sessionId', async (req, res) => {
+router.get('/live/:sessionId', async (req: Request, res: Response) => {
   try {
     // Limit to 500 records to prevent payload crash if 5k students check in, sort by most recent
     const records = await Attendance.find({ sessionId: req.params.sessionId })

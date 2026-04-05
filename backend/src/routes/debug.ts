@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { Session } from '../models/Session.js';
 import { Attendance } from '../models/Attendance.js';
@@ -6,7 +6,7 @@ import { Course } from '../models/Course.js';
 
 const router = express.Router();
 
-router.post('/simulate-scan', async (req, res) => {
+router.post('/simulate-scan', async (req: Request, res: Response) => {
     try {
         const { sessionId, studentId } = req.body;
         
@@ -34,7 +34,7 @@ router.post('/simulate-scan', async (req, res) => {
 });
 
 // Advanced Seeder for scalable database (e.g. 5000 students)
-router.post('/seed-5k', async (req, res) => {
+router.post('/seed-5k', async (req: Request, res: Response) => {
     try {
         // Warning: Deletes everything first!
         await User.deleteMany({});
