@@ -21,7 +21,8 @@ let _client: MongoClient | null = null;
 
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
-  if (ENV.isProduction && !secret) {
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  if (ENV.isProduction && !secret && !isBuild) {
     throw new Error("🚨 [SECURITY CRITICAL] BETTER_AUTH_SECRET must be set in production!");
   }
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
@@ -32,7 +33,8 @@ export const getAuth = async () => {
     // 1. Ensure DB connection
     if (!_client) {
       const uri = process.env.MONGO_URI;
-      if (ENV.isProduction && !uri) {
+      const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
+      if (ENV.isProduction && !uri && !isBuild) {
         throw new Error("🚨 [SECURITY CRITICAL] MONGO_URI must be set in production!");
       }
       _client = new MongoClient(uri || "mongodb+srv://dev_user:dev_pass@cluster.mongodb.net/dev_db");
