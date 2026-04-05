@@ -393,31 +393,32 @@ router.post('/mark', async (req: Request, res: Response) => {
 
     // 2. Device check – Strict binding: One device per student per session
     if (deviceFingerprint) {
-      const deviceDuplicate = await AttendanceRecord.findOne({
+      const deviceCount = await AttendanceRecord.countDocuments({
         sessionId: session._id,
         deviceFingerprint,
-        userId: { $ne: userId },
       });
-      if (deviceDuplicate) {
-        riskScore += 55; // Immediate PROXY status
-        flags.push('DEVICE: Multiple students detected on this device');
+      
+      if (deviceCount >= 2) {
+        riskScore += 80; // CRITICAL THREAT
+        flags.push(`DEVICE_REUSE: This device (ID: ${deviceFingerprint.slice(0,8)}) has been used for ${deviceCount + 1} scans.`);
+      } else if (deviceCount === 1) {
+        riskScore += 40;
+        flags.push('DEVICE_SHARING: Device already used by another student.');
       }
     } else {
       riskScore += 20;
       flags.push('SECURITY: Device fingerprint missing');
     }
 
-    // 3. IP clustering – STRICT: Only 2 marks per IP per 2 minutes (preventing hotspot proxying)
+    // 3. IP clustering – STRICT: Flag if IP is used more than twice
     if (ip && ip !== 'unknown') {
-      const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000);
       const ipCount = await AttendanceRecord.countDocuments({
         sessionId: session._id,
         ipAddress: ip,
-        markedAt: { $gte: twoMinsAgo },
       });
       if (ipCount >= 2) {
-        riskScore += 35;
-        flags.push(`IP_CLUSTER: Multiple marks (${ipCount + 1}) from IP ${ip} detected.`);
+        riskScore += 50;
+        flags.push(`IP_EXCESSIVE: Multiple scans (${ipCount + 1}) from IP ${ip}. Possible hotspot proxy.`);
       }
     }
 
@@ -493,6 +494,7 @@ router.post('/mark', async (req: Request, res: Response) => {
         riskScore: record.riskScore,
         flagged: record.flagged,
         markedAt: record.markedAt,
+        flags: flags || [],
         user: user ? { name: user.name, email: user.email, role: user.role } : null,
       });
     }

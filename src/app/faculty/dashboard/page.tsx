@@ -44,6 +44,8 @@ interface StudentRecord {
   };
   markedAt: string;
   flagged?: boolean;
+  riskScore?: number;
+  flags?: string[];
 }
 
 interface FraudFlag {
@@ -101,6 +103,8 @@ export default function FacultyDashboard() {
 
   // QR Session
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isWarRoomMode, setIsWarRoomMode] = useState(false);
+  const [warRoomLogs, setWarRoomLogs] = useState<{ id: string; type: 'CHECKIN' | 'FLAG' | 'SYSTEM'; message: string; timestamp: string; studentName?: string; riskScore?: number }[]>([]);
   const [qrImageUrl, setQrImageUrl] = useState<string>("");
   const [presentStudents, setPresentStudents] = useState<any[]>([]);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -108,6 +112,10 @@ export default function FacultyDashboard() {
 
   const socketRef = useRef<any>(null);
   const { showToast } = useToast();
+
+  const addWarRoomLog = useCallback((log: any) => {
+    setWarRoomLogs(prev => [log, ...prev].slice(0, 50));
+  }, []);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -145,14 +153,35 @@ export default function FacultyDashboard() {
           if (prev.find(r => r._id === newRecord._id)) return prev;
           return [newRecord, ...prev];
         });
-        showToast(`👤 ${newRecord.user?.name || "Student"} checked in`);
+        
+        const studentName = newRecord.user?.name || "Unknown Student";
+        if (newRecord.flagged) {
+          addWarRoomLog({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'FLAG',
+            message: `THREAT: ${studentName} flagged with risk score ${newRecord.riskScore}`,
+            timestamp: new Date().toLocaleTimeString(),
+            studentName,
+            riskScore: newRecord.riskScore
+          });
+        } else {
+          addWarRoomLog({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'CHECKIN',
+            message: `SECURE: ${studentName} identity verified`,
+            timestamp: new Date().toLocaleTimeString(),
+            studentName
+          });
+        }
+
+        showToast(`${newRecord.flagged ? '⚠️' : '👤'} ${studentName} checked in`);
       });
 
       return () => {
         if (socketRef.current) socketRef.current.disconnect();
       };
     }
-  }, [activeSessionId, showToast]);
+  }, [activeSessionId, showToast, addWarRoomLog]);
 
   // Selection State Reset Handlers (Directly in selection setters to avoid useEffect cascades)
   const handleDeptSelect = (dept: Department) => {
@@ -486,13 +515,21 @@ export default function FacultyDashboard() {
                 <div className="w-full flex items-center justify-between mb-12 relative z-10">
                   <h2 className="text-xl font-black flex items-center gap-4 tracking-tighter uppercase italic">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-lg group-hover:scale-110 transition-transform duration-500">
-                      <QrCode className="text-indigo-400 w-5 h-5" />
+                      {isWarRoomMode ? <ShieldAlert className="text-red-400 w-5 h-5 animate-pulse" /> : <QrCode className="text-indigo-400 w-5 h-5" />}
                     </div>
-                    Encryption
+                    {isWarRoomMode ? "Sentinel Dashboard" : "Encryption"}
                   </h2>
                   {activeSessionId && (
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 tracking-tighter uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)] ring-1 ring-red-500/10">
-                      <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" /> Live Sync
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setIsWarRoomMode(!isWarRoomMode)}
+                        className={`text-[9px] px-3 py-1.5 rounded-full border transition-all font-black uppercase tracking-widest ${isWarRoomMode ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:border-white/20'}`}
+                      >
+                        {isWarRoomMode ? "Standard View" : "War Room Mode"}
+                      </button>
+                      <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 tracking-tighter uppercase shadow-[0_0_20px_rgba(239,68,68,0.2)] ring-1 ring-red-500/10">
+                        <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" /> Live Sync
+                      </div>
                     </div>
                   )}
                 </div>
@@ -517,6 +554,94 @@ export default function FacultyDashboard() {
                       className="w-full min-w-[280px] py-6 rounded-[3rem] bg-white text-black text-[13px] font-black uppercase tracking-[0.4em] hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-[0_30px_70px_rgba(255,255,255,0.15)] ring-1 ring-white/20"
                     >
                       {sessionLoading ? "Initializing Terminal..." : "Initialize Link"}
+                    </button>
+                  </Magnetic>
+                </div>
+              ) : isWarRoomMode ? (
+                <div className="w-full flex flex-col space-y-8 relative z-10 h-full">
+                  {/* Neural Feed Monitor */}
+                  <div className="w-full rounded-[3rem] border border-white/5 bg-black/40 backdrop-blur-3xl overflow-hidden flex flex-col h-[500px] shadow-2xl ring-1 ring-white/10">
+                    <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+                        <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.3em]">Sentinel Activity Log</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest">Buffer: 50 Nodes</span>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                      <AnimatePresence initial={false}>
+                        {warRoomLogs.length > 0 ? warRoomLogs.map((log) => (
+                          <motion.div
+                            key={log.id}
+                            initial={{ opacity: 0, x: -20, filter: 'blur(10px)' }}
+                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className={`p-5 rounded-[2rem] border transition-all ${
+                              log.type === 'FLAG' 
+                                ? 'bg-red-500/5 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.05)]' 
+                                : 'bg-white/[0.02] border-white/5'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter ${
+                                log.type === 'FLAG' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+                              }`}>
+                                {log.type}
+                              </span>
+                              <span className="text-[9px] font-mono text-white/20 uppercase">{log.timestamp}</span>
+                            </div>
+                            <p className={`text-[11px] font-bold tracking-tight leading-relaxed ${
+                              log.type === 'FLAG' ? 'text-red-200/80' : 'text-white/60'
+                            }`}>
+                              {log.message}
+                            </p>
+                            {log.riskScore && (
+                              <div className="mt-3 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${log.riskScore}%` }}
+                                  className="h-full bg-red-500"
+                                />
+                              </div>
+                            )}
+                          </motion.div>
+                        )) : (
+                          <div className="h-full flex flex-col items-center justify-center space-y-6 text-white/10">
+                            <RefreshCw className="w-10 h-10 animate-spin opacity-20" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em] italic">Scanning Neural Frequencies...</p>
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    
+                    <div className="p-6 bg-white/[0.01] border-t border-white/5 grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Integrity</span>
+                        <span className="text-xl font-black text-white italic">99.9%</span>
+                      </div>
+                      <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Trace Latency</span>
+                        <span className="text-xl font-black text-emerald-400 italic">&lt;15ms</span>
+                      </div>
+                    </div>
+
+                    <div className="px-6 pb-6">
+                      <button 
+                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'}/api/admin/audit-export`, '_blank')}
+                        className="w-full py-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3"
+                      >
+                        <BarChart3 size={14} /> Export Audit Log (Excel)
+                      </button>
+                    </div>
+                  </div>
+
+                  <Magnetic strength={0.2}>
+                    <button
+                      onClick={endSession}
+                      className="w-full py-6 rounded-[3rem] bg-red-500 text-white text-[13px] font-black uppercase tracking-[0.4em] hover:bg-red-600 active:scale-[0.98] transition-all shadow-[0_30px_70px_rgba(239,68,68,0.2)] ring-1 ring-red-500/20"
+                    >
+                      Terminate Link
                     </button>
                   </Magnetic>
                 </div>

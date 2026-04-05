@@ -9,7 +9,32 @@ import { Faculty } from '../models/Faculty.js';
 import { Student } from '../models/Student.js';
 import bcrypt from 'bcryptjs';
 
-export const adminRouter = Router();
+router.get('/audit-export', async (req, res) => {
+  try {
+    const records = await AttendanceRecord.find()
+      .populate('userId', 'name email')
+      .populate('sessionId', 'courseName department section period')
+      .sort({ markedAt: -1 });
+
+    let csv = "Timestamp,Student Name,Email,Course,Section,IP Address,Device Fingerprint,Latitude,Longitude,Risk Score,Status,Flags\n";
+
+    for (const r of records) {
+      const u = r.userId as any;
+      const s = r.sessionId as any;
+      const flags = (r as any).flags ? (r as any).flags.join('; ') : '';
+
+      csv += `"${r.markedAt.toISOString()}","${u?.name || 'N/A'}","${u?.email || 'N/A'}","${s?.courseName || 'N/A'}","${s?.section || 'N/A'}","${r.ipAddress || 'N/A'}","${r.deviceFingerprint || 'N/A'}","${r.latitude || 'N/A'}","${r.longitude || 'N/A'}","${r.riskScore}","${r.status}","${flags}"\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=attendai_audit_log.csv');
+    return res.status(200).send(csv);
+  } catch (error) {
+    return res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+export const adminRouter = router;
 
 // ---------------------------------------------------------------------------
 // DEPARTMENTS
