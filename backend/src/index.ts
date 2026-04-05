@@ -75,6 +75,11 @@ app.use(morgan('dev'));
 // --- 2. THE AUTH HUB (UNIVERSAL MOUNT) ---
 // We match ANY path containing /auth to ensure we catch proxy variations
 app.use((req, res, next) => {
+  // Skip auth hub if authenticated via internal token
+  if ((req as any).isInternal) {
+    return next();
+  }
+
   const url = req.url || "";
   if (url.includes('/auth')) {
     console.log(`📡 [AUTH HUB] Intercepted: ${url}`);
