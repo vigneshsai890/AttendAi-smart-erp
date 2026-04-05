@@ -48,14 +48,17 @@ export const getAuth = async () => {
     _auth = betterAuth({
       database: mongodbAdapter(db),
       secret: getBetterAuthSecret(),
+      // Advanced: baseURL is handled dynamically by Better Auth if not provided, 
+      // but we explicitly set it to the environment URL if available, otherwise it adapts.
       baseURL: ENV.frontendUrl,
       basePath: "/auth",
       emailVerification: {
-        sendOnSignUp: false, // Set to false to allow immediate login after signup for demo
+        sendOnSignUp: false,
       },
       emailAndPassword: {
         enabled: true,
       },
+      // ... (plugins)
       plugins: [
         phoneNumber({
           sendOTP: async ({ phoneNumber, code }) => {
@@ -127,23 +130,13 @@ export const getAuth = async () => {
         },
       },
       session: { expiresIn: 30 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
-      trustedOrigins: ([
-        ENV.frontendUrl,
-        process.env.NEXT_PUBLIC_APP_URL,
-        process.env.FRONTEND_URL,
-        process.env.BETTER_AUTH_URL,
-        "https://dash.better-auth.com",
-        "https://attendai-smart-erp.onrender.com",
-        "https://attendai-backend-ynnd.onrender.com",
-        "https://attendai-smart-erp-frontend.onrender.com",
-        "https://attendai-smart-erp-backend.onrender.com",
-        // Catch-all for Vercel Preview URLs
-        ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
+      // HIGH PRIORITY: Trust ALL subdomains of vercel.app and your render domains
+      trustedOrigins: [
+        "https://*.vercel.app",
+        "https://*.onrender.com",
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5001",
-        "http://127.0.0.1:5001"
-      ].filter(Boolean) as string[]),
+        "http://127.0.0.1:3000"
+      ],
     });
   }
   return _auth;
