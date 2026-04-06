@@ -83,15 +83,11 @@ export const getAuth = () => {
           },
         }),
         apiKey(),
-        dash(),
+        dash({
+          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
+        }),
         sentinel({
-          apiKey: (() => {
-            const key = process.env.BETTER_AUTH_API_KEY;
-            if (ENV.isProduction && !key) {
-              console.warn("⚠️ [BRIDGE] BETTER_AUTH_API_KEY is missing, Sentinel dashboard sync may fail.");
-            }
-            return key || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp";
-          })(),
+          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp",
           security: {
             credentialStuffing: { enabled: true },
             impossibleTravel: { enabled: true, action: "challenge" },
