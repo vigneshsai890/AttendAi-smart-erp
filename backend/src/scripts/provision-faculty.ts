@@ -49,7 +49,7 @@ async function provision() {
       console.log('Creating faculty profile...');
       await Faculty.create({
         userId: user._id,
-        employeeId: 'FAC001',
+        employeeId: 'EMP-VIGNESH-890',
         designation: 'Assistant Professor',
         departmentId: dept._id
       });
