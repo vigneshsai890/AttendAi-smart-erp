@@ -14,6 +14,8 @@ import { ProxyAlert } from '../models/ProxyAlert.js';
 import { Department } from '../models/Department.js';
 import { Section } from '../models/Section.js';
 import { generateSecret, generateURI, verify } from 'otplib';
+import mongoose from 'mongoose';
+import QRCode from 'qrcode';
 
 const router = express.Router();
 
