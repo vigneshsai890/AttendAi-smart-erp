@@ -41,6 +41,7 @@ function LoginForm() {
       if (res?.error) {
         setError(res?.error === "CredentialsSignin" ? "Invalid email or password" : res.error);
       } else {
+        // Successful login, wait for session update
         router.refresh();
       }
     } catch (err) {
