@@ -87,7 +87,7 @@ app.use(morgan('dev'));
 
 // --- 2. THE AUTH HUB (UNIVERSAL MOUNT) ---
 // We match ANY path containing /auth to ensure we catch proxy variations
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   // Skip auth hub if authenticated via internal token
   if ((req as any).isInternal) {
     return next();
@@ -100,7 +100,13 @@ app.use((req, res, next) => {
     // Better Auth Dashboard often hits /api/auth/dash/config
     // If the path starts with /api/auth, we let toNodeHandler handle it with the /api/auth basePath
     if (url.startsWith('/api/auth') || url.startsWith('/auth')) {
-      return toNodeHandler(getAuth())(req, res);
+      try {
+        const auth = await getAuth();
+        return toNodeHandler(auth)(req, res);
+      } catch (err) {
+        console.error("🔥 [AUTH HUB ERROR]:", err);
+        return res.status(500).json({ error: "AUTH_HUB_ERROR" });
+      }
     }
   }
   next();
