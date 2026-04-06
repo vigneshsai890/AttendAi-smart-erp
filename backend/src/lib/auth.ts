@@ -90,7 +90,7 @@ export const getAuth = () => {
             if (ENV.isProduction && !key) {
               console.warn("⚠️ [BRIDGE] BETTER_AUTH_API_KEY is missing, Sentinel dashboard sync may fail.");
             }
-            return key || "";
+            return key || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp";
           })(),
           security: {
             credentialStuffing: { enabled: true },

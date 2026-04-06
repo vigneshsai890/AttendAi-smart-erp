@@ -1,21 +1,39 @@
 # Session Memory: AttendAi-smart-erp
 
-## Project State (as of 5 April 2026)
-- **Architecture**: Decoupled Next.js 16.2.1 (Frontend) + Express/MongoDB (Backend).
-- **Recent Fixes**: 
-  - Wildcard origin trusting for Better Auth/CORS.
-  - Cookie-based middleware to resolve edge-runtime crashes.
-  - Role protection moved to client layouts to avoid redirect loops.
-- **Current Issue**: Users report a "reload" error during login. Root cause identified as conflicting auth providers (NextAuth and Better Auth co-existing).
-- **Recent Findings**:
-  - `AuthProvider.tsx` and `Navbar.tsx` are still using `next-auth/react` while the rest of the app uses `better-auth`.
-  - `src/proxy.ts` exists but is not being called because `src/middleware.ts` is missing.
-  - Redirection loops or invalid session states are likely caused by `NextAuth`'s `SessionProvider` trying to find a session that doesn't exist in its format.
+## Session Date: 5 April 2026
+**Status**: Critical Auth Fixes Applied & Deployed.
 
-## Tasks & Investigations
-- [x] Investigate "reload" error during login. (Root cause: Auth conflict)
-- [x] Remove `next-auth` dependency and replace all imports with `better-auth` / `authClient`.
-- [x] Create `src/middleware.ts` to call `proxy.ts`.
-- [x] Update `AuthProvider.tsx` to a simple wrapper.
-- [x] Fix `Navbar.tsx` to use `authClient` for session and sign out.
-- [x] Improve `ENV.frontendUrl` robustness to avoid origin mismatch errors.
+## 🚨 Root Cause Analysis: "Reload" Login Error
+- **Conflict**: The project had two competing authentication layers: `NextAuth` (in components and types) and `Better Auth` (in the API and client library).
+- **Symptom**: `NextAuth`'s `SessionProvider` was looking for cookies that didn't exist, causing invalid session states and triggering browser reloads/redirect loops.
+- **Middleware**: `src/proxy.ts` was present but wasn't being called because `src/middleware.ts` was missing, leaving protected routes exposed or incorrectly handled.
+
+## ✅ Actions Taken
+1.  **Auth Unification**:
+    - Removed `next-auth` imports from `AuthProvider.tsx` and `Navbar.tsx`.
+    - Converted `Navbar.tsx` to use `authClient` from `Better Auth` for session state and sign-out.
+    - Simplified `AuthProvider.tsx` to a simple wrapper (no longer needs `SessionProvider`).
+    - Deleted `src/types/next-auth.d.ts` to prevent type confusion.
+2.  **Middleware Fix**:
+    - Created `src/middleware.ts` to correctly invoke the `proxy.ts` logic.
+    - Configured Next.js matcher to protect all routes except public assets and auth paths.
+3.  **Environment Robustness**:
+    - Updated `src/lib/env.ts` to prioritize configured `BETTER_AUTH_URL` and Vercel system variables over `window.location.origin` to prevent "Invalid Origin" errors during cross-domain redirects.
+4.  **Verification & Deployment**:
+    - Verified local production build (`npm run build`) - **PASSED**.
+    - Tested local production server (`npm run start`) - **PASSED** (200 OK on login, 307 Redirect on protected routes).
+    - Committed changes and pushed to GitHub `main` branch to trigger Vercel/Render CI/CD.
+
+## 🛠 Project Architecture (Current)
+- **Frontend**: Next.js 16.2.1 (App Router).
+- **Auth**: Better Auth 1.5.6 (Unified).
+- **Backend**: Express/MongoDB (Decoupled, proxied via `src/proxy.ts`).
+- **Proxy**: Next.js Middleware redirects to `/login` if `better-auth.session_token` is missing.
+
+## 📋 Future Tasks / Considerations
+- [ ] Monitor Vercel/Render logs for any "Invalid Origin" warnings in production.
+- [ ] Verify 2FA flows now that the session state is stable.
+- [ ] Check if `next-auth` can be fully uninstalled from `package.json` once deployment is stable.
+
+---
+*End of Session Summary. Provide this file to the agent to resume context.*
