@@ -79,7 +79,7 @@ export const getAuth = async (req?: Request | Headers) => {
     // 2. Initialize Better Auth with real DB object
     _auth = betterAuth({
       database: mongodbAdapter(db),
-      secret: secret || "SMART_ERP_SECRET_KEY_DEV_2024",
+      secret: getBetterAuthSecret(),
       baseURL,
       basePath: "/auth",
       emailVerification: {
