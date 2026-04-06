@@ -14,6 +14,7 @@ import { dash, sentinel, sendEmail } from "@better-auth/infra";
 import { MongoClient } from "mongodb";
 import { ENV } from "./env";
 import { sendAWSSMS } from "./sms";
+import { headers } from "next/headers";
 
 // --- Lazy Auth & Mongo Initialization ---
 let _auth: any = null; // BetterAuth instance is complex, keeping any for now to avoid deep type issues
@@ -27,30 +28,58 @@ const getBetterAuthSecret = () => {
   return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
 };
 
-export const getAuth = async () => {
+export const getAuth = async (req?: Request | Headers) => {
   if (!_auth) {
     // 1. Ensure DB connection
     if (!_client) {
       const uri = process.env.MONGO_URI;
-      if (ENV.isProduction && !uri) {
-        console.error("🚨 [SECURITY WARNING] MONGO_URI is missing. Ensure this is set in your Render dashboard.");
+      if (!uri) {
+        throw new Error("MONGO_URI is missing. Better Auth requires a database connection.");
       }
-      _client = new MongoClient(uri || "mongodb+srv://dev_user:dev_pass@cluster.mongodb.net/dev_db");
+      _client = new MongoClient(uri);
       try {
         await _client.connect();
-      } catch (err) {
-        console.warn("⚠️ [BUILD] Skipping DB connection during static generation or invalid URI.");
+      } catch (err: any) {
+        console.error("❌ [DB CONNECTION ERROR]:", err);
+        throw new Error(`Failed to connect to MongoDB: ${err.message}`);
       }
     }
     const db = _client.db();
 
+    const secret = process.env.BETTER_AUTH_SECRET;
+    if (!secret && ENV.isProduction) {
+      throw new Error("BETTER_AUTH_SECRET is missing in production.");
+    }
+
+    // Determine baseURL:
+    // On Vercel, we must use the current request URL to avoid mismatch on preview deployments.
+    let baseURL = ENV.frontendUrl;
+    let host = "";
+    let proto = "https";
+
+    try {
+      if (req instanceof Request) {
+        const url = new URL(req.url);
+        host = url.host;
+        proto = url.protocol.replace(":", "");
+      } else {
+        const h = req || await headers();
+        host = h.get("host") || "";
+        proto = h.get("x-forwarded-proto") || "https";
+      }
+    } catch (e) {
+      console.warn("⚠️ [AUTH] Could not determine host from request, using fallback baseURL.");
+    }
+
+    if (host) {
+      baseURL = `${proto.split(",")[0]}://${host}`;
+    }
+
     // 2. Initialize Better Auth with real DB object
     _auth = betterAuth({
       database: mongodbAdapter(db),
-      secret: getBetterAuthSecret(),
-      // Advanced: baseURL is handled dynamically by Better Auth if not provided, 
-      // but we explicitly set it to the environment URL if available, otherwise it adapts.
-      baseURL: ENV.frontendUrl,
+      secret: secret || "SMART_ERP_SECRET_KEY_DEV_2024",
+      baseURL,
       basePath: "/auth",
       emailVerification: {
         sendOnSignUp: false,

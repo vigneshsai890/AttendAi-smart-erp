@@ -37,6 +37,7 @@ export const getAuth = () => {
       database: mongodbAdapter(db as unknown as Db),
       secret: getBetterAuthSecret(),
       baseURL: ENV.backendUrl,
+      basePath: "/api/auth",
       socialProviders: {
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID || (ENV.isProduction ? "" : "dev_client_id"),

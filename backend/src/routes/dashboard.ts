@@ -11,11 +11,75 @@ import { Exam } from '../models/Exam.js';
 import { ExamResult } from '../models/ExamResult.js';
 import { Notification } from '../models/Notification.js';
 import { ProxyAlert } from '../models/ProxyAlert.js';
+import { Department } from '../models/Department.js';
+import { Section } from '../models/Section.js';
 import { generateSecret, generateURI, verify } from 'otplib';
-import QRCode from 'qrcode';
-import mongoose from 'mongoose';
 
 const router = express.Router();
+
+// ---------------------------------------------------------------------------
+// POST /dashboard/onboard
+// ---------------------------------------------------------------------------
+router.post('/onboard', async (req: Request, res: Response) => {
+  try {
+    const { userId, department, specialization, rollNumber, regNumber } = req.body;
+    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    if (user.role === 'STUDENT') {
+      // Check if student already exists
+      const existingStudent = await Student.findOne({ userId: user._id });
+      if (existingStudent) {
+        return res.json({ success: true, message: 'Student already onboarded', student: existingStudent });
+      }
+
+      // Find or create department
+      let dept = await Department.findOne({ code: department }) || await Department.findOne({ name: department });
+      if (!dept) {
+        dept = await Department.create({ code: department, name: department });
+      }
+
+      // Find or create section (default to Section A for new signups)
+      let section = await Section.findOne({ departmentId: dept._id, name: 'Section A' });
+      if (!section) {
+        section = await Section.create({ name: 'Section A', departmentId: dept._id, year: 1 });
+      }
+
+      // Create Student profile
+      const student = await Student.create({
+        userId: user._id,
+        rollNumber: rollNumber || `ROLL-${Date.now().toString().slice(-6)}`,
+        regNumber: regNumber || `REG-${Date.now().toString().slice(-6)}`,
+        year: 1,
+        semester: 1,
+        sectionId: section._id,
+        departmentId: dept._id
+      });
+
+      return res.json({ success: true, student });
+    } else if (user.role === 'FACULTY') {
+      const existingFaculty = await Faculty.findOne({ userId: user._id });
+      if (existingFaculty) return res.json({ success: true, message: 'Faculty already onboarded' });
+
+      let dept = await Department.findOne({ code: department }) || await Department.findOne({ name: department });
+      if (!dept) dept = await Department.create({ code: 'GEN', name: 'General' });
+
+      await Faculty.create({
+        userId: user._id,
+        employeeId: `EMP-${Date.now().toString().slice(-6)}`,
+        designation: 'Assistant Professor',
+        departmentId: dept._id
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Onboarding error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // GET /dashboard/student

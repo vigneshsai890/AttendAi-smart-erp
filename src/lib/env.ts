@@ -6,7 +6,7 @@
 const isProduction = process.env.NODE_ENV === "production" || !!process.env.RENDER;
 
 // Final production URLs for Render deployment
-const PROD_FRONTEND_URL = "https://attendai-smart-erp.onrender.com";
+const PROD_FRONTEND_URL = "https://attend-ai-smart-erp.vercel.app";
 const PROD_BACKEND_URL = "https://attendai-backend-ynnd.onrender.com";
 
 export const ENV = {
@@ -14,14 +14,23 @@ export const ENV = {
 
   // Frontend URL (used for Better Auth baseURL and redirect origins)
   get frontendUrl() {
-    // Vercel Preview/System URLs
+    // 1. Try environment variables first
+    if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
+    if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+
+    // 2. If we're on the client, use the current window location
+    // This ensures Better Auth baseURL always matches the actual page being viewed,
+    // which is critical for Vercel Preview deployments.
+    if (typeof window !== "undefined") {
+      return window.location.origin;
+    }
+
+    // 3. Fallback to Vercel System URLs for SSR/Middleware
     if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
 
-    if (isProduction) return process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || PROD_FRONTEND_URL;
-    
-    // In client-side development, if window is available, we can use it, but only as a fallback
-    if (typeof window !== "undefined" && !isProduction) return window.location.origin;
+    // 4. Final production fallback
+    if (isProduction) return PROD_FRONTEND_URL;
 
     return "http://localhost:3000";
   },

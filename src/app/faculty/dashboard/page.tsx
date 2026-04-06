@@ -16,6 +16,7 @@ import {
 
 import { DEPARTMENTS, TIME_PERIODS } from "@/lib/constants";
 import { authClient } from "@/lib/auth-client";
+import { ENV } from "@/lib/env";
 
 interface Subject {
   id: string;
@@ -156,7 +157,8 @@ export default function FacultyDashboard() {
   // Handle Socket for real-time updates
   useEffect(() => {
     if (activeSessionId) {
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5001");
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || ENV.backendUrl;
+      socketRef.current = io(socketUrl);
       socketRef.current.emit("join-session", activeSessionId);
 
       socketRef.current.on("attendance_marked", (newRecord: StudentRecord) => {
@@ -639,7 +641,10 @@ export default function FacultyDashboard() {
 
                     <div className="px-6 pb-6">
                       <button 
-                        onClick={() => window.open(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5001'}/api/admin/audit-export`, '_blank')}
+                        onClick={() => {
+                          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || ENV.backendUrl;
+                          window.open(`${backendUrl}/api/admin/audit-export`, '_blank');
+                        }}
                         className="w-full py-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3"
                       >
                         <BarChart3 size={14} /> Export Audit Log (Excel)

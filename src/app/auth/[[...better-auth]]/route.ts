@@ -21,7 +21,7 @@ export const GET = async (req: NextRequest) => {
         deploy: "490c065f-AWS-FINALIZED"
       });
     }
-    const auth = await getAuth();
+    const auth = await getAuth(req);
     return toNextJsHandler(auth).GET(req);
   } catch (err: any) {
     console.error("🔥 [AUTH ERROR GET]:", err);
@@ -31,7 +31,7 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
-    const auth = await getAuth();
+    const auth = await getAuth(req);
     return toNextJsHandler(auth).POST(req);
   } catch (err: any) {
     console.error("🔥 [AUTH ERROR POST]:", err);

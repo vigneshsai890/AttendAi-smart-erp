@@ -25,7 +25,24 @@ export async function finalizeStudentProfile(userId: string, specialization: str
   const studentId = generateStudentId();
   const regId = generateRegistrationId(department);
 
-  // In a real scenario, this would call the backend or Better-Auth user update
+  // Call the proxy API to create the backend Student record
+  const res = await fetch("/api/student/onboard", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      department,
+      specialization,
+      rollNumber: studentId,
+      regNumber: regId
+    })
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Failed to synchronize profile with backend");
+  }
+
   return {
     studentId,
     regId,

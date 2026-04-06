@@ -6,18 +6,18 @@ import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const auth = await getAuth(req);
+  const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await req.json();
-    const res = await backend.post("/attendance/session/create", {
+    const res = await backend.post("/dashboard/onboard", {
       ...body,
-      facultyUserId: session.user.id,
+      userId: session.user.id,
     });
     return NextResponse.json(res.data);
   } catch (error: any) {
-    return NextResponse.json({ error: error.response?.data?.error || "Failed to create session" }, { status: error.response?.status || 500 });
+    return NextResponse.json({ error: error.response?.data?.error || "Onboarding failed" }, { status: error.response?.status || 500 });
   }
 }

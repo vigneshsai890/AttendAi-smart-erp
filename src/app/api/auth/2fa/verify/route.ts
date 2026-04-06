@@ -6,7 +6,7 @@ import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const auth = await getAuth();
+  const auth = await getAuth(req);
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

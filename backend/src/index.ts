@@ -95,10 +95,12 @@ app.use((req, res, next) => {
   const url = req.url || "";
   if (url.includes('/auth')) {
     console.log(`📡 [AUTH HUB] Intercepted: ${url}`);
-    if (url.endsWith('/ping')) {
-      return res.json({ status: "ALIVE", hub: "Universal Auth Hub", url });
+    
+    // Better Auth Dashboard often hits /api/auth/dash/config
+    // If the path starts with /api/auth, we let toNodeHandler handle it with the /api/auth basePath
+    if (url.startsWith('/api/auth') || url.startsWith('/auth')) {
+      return toNodeHandler(getAuth())(req, res);
     }
-    return toNodeHandler(getAuth())(req, res);
   }
   next();
 });
