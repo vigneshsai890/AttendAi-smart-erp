@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "next-auth/react";
 import { finalizeStudentProfile } from "@/lib/identity";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -29,7 +29,8 @@ const SPECIALIZATIONS: Record<string, string[]> = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { data: sessionData, isPending: sessionLoading } = authClient.useSession();
+  const { data: sessionData, status } = useSession();
+  const sessionLoading = status === "loading";
   const user = sessionData?.user as any; // Cast for custom ERP fields
   
   const [step, setStep] = useState(1);
@@ -40,13 +41,13 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
-    if (!sessionLoading && !sessionData) {
+    if (status === "unauthenticated") {
       router.push("/signup");
     }
     if (user?.isProfileComplete) {
       router.push("/student/dashboard");
     }
-  }, [sessionData, sessionLoading, router, user]);
+  }, [status, user, router]);
 
   const handleFinalize = async () => {
     setLoading(true);
@@ -56,14 +57,21 @@ export default function OnboardingPage() {
       
       const profile = await finalizeStudentProfile(user.id, specialization, department);
       
-      // Update the user record via Better-Auth
-      await authClient.updateUser({
-        // @ts-ignore - custom fields
-        studentId: profile.studentId,
-        regId: profile.regId,
-        specialization: profile.specialization,
-        isProfileComplete: true,
+      // Update the user record via our new API
+      const updateRes = await fetch("/api/user/update-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: profile.studentId,
+          regId: profile.regId,
+          specialization: profile.specialization,
+          isProfileComplete: true,
+        }),
       });
+
+      if (!updateRes.ok) {
+        throw new Error("Failed to update profile record");
+      }
 
       setResult(profile);
       setStep(3); // Result/Welcome screen

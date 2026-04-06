@@ -1,12 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { getAuth } from '../lib/auth.js';
 import mongoose from 'mongoose';
 
 /**
  * Universal Session Middleware
- * Verifies sessions from both Better-Auth and Next-Auth
+ * Verifies sessions from Next-Auth via shared MongoDB or internal proxy header
  */
-export const betterAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const universalAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // 0. Trusted Internal Proxy (Highest Priority)
     // If the request comes from our own frontend with a valid internal token
@@ -24,24 +23,7 @@ export const betterAuthMiddleware = async (req: Request, res: Response, next: Ne
       }
     }
 
-    // 1. Try Better-Auth first (Legacy/Internal)
-    const auth = getAuth();
-    if (auth) {
-      const headers = new Headers();
-      Object.entries(req.headers).forEach(([key, value]) => {
-        if (Array.isArray(value)) value.forEach(v => headers.append(key, v));
-        else if (value) headers.set(key, value as string);
-      });
-
-      const session = await auth.api.getSession({ headers });
-      if (session) {
-        (req as any).session = session;
-        (req as any).user = session.user;
-        return next();
-      }
-    }
-
-    // 2. Fallback: Manual Next-Auth Session Lookup (Shared MongoDB)
+    // 1. Next-Auth Session Lookup (Shared MongoDB)
     const cookies = req.headers.cookie || "";
     const sessionToken = cookies.split('; ').find(row => row.startsWith('next-auth.session-token='))?.split('=')[1] ||
                         cookies.split('; ').find(row => row.startsWith('__Secure-next-auth.session-token='))?.split('=')[1];

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { DEPARTMENTS, TIME_PERIODS } from "@/lib/constants";
-import { authClient } from "@/lib/auth-client";
 import { ENV } from "@/lib/env";
 
 interface Subject {
@@ -73,19 +72,24 @@ interface DashboardData {
 }
 
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function FacultyDashboard() {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, status } = useSession();
+  const isPending = status === "loading";
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
-    if (!isPending && !session) {
+    if (status === "unauthenticated") {
       router.push("/login");
-    } else if (!isPending && session?.user?.role === "STUDENT") {
-      router.push("/student/dashboard");
+    } else if (status === "authenticated") {
+      const userRole = (session?.user as any)?.role;
+      if (userRole === "STUDENT" || userRole === "USER") {
+        router.push("/student/dashboard");
+      }
     }
-  }, [session, isPending, router]);
+  }, [session, status, router]);
 
   // Selection State
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);

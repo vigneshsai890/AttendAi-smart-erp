@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { authClient } from "@/lib/auth-client";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -24,16 +24,32 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     try {
-      const { error: signUpError } = await authClient.signUp.email({
+      const signupRes = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name, phoneNumber }),
+      });
+
+      const signupData = await signupRes.json();
+      if (!signupRes.ok) {
+        setError(signupData.error || "Signup failed");
+        return;
+      }
+
+      // Automatically sign in after signup
+      const res = await signIn("credentials", {
         email,
         password,
-        name,
-        phoneNumber,
-        callbackURL: "/onboarding",
+        redirect: false,
       });
-      if (signUpError) setError(signUpError.message || "Signup failed. Please try again.");
-      else router.push("/onboarding");
-    } catch {
+
+      if (res?.error) {
+        setError("Account created, but automatic sign-in failed. Please login manually.");
+      } else {
+        router.push("/onboarding");
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
       setError("An unexpected error occurred. Please try again later.");
     } finally {
       setLoading(false);
@@ -42,36 +58,7 @@ export default function SignupPage() {
 
   const handlePhoneSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      if (!showOtp) {
-        const { error: sendError } = await authClient.phoneNumber.sendOtp({
-          phoneNumber,
-        });
-        if (sendError) {
-          setError(sendError.message || "Failed to send code.");
-        } else {
-          setShowOtp(true);
-        }
-      } else {
-        const { error: verifyError } = await authClient.phoneNumber.verify({
-          phoneNumber,
-          code: otp,
-        });
-        if (verifyError) {
-          setError(verifyError.message || "Verification failed.");
-        } else {
-          // Note: Password and Name are handled by the session update or post-signup flow
-          // since signUpOnVerification creates a temp user.
-          router.push("/onboarding");
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setLoading(false);
-    }
+    setError("Phone signup is temporarily disabled. Please use Email.");
   };
 
   return (

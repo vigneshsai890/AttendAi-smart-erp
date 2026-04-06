@@ -27,12 +27,13 @@ interface DashboardData {
   notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean }>;
 }
 
-import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 function DashboardContent() {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, status } = useSession();
+  const isPending = status === "loading";
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") || "classroom";
   const [data, setData] = useState<DashboardData | null>(null);

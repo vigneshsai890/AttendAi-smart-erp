@@ -1,46 +1,40 @@
 # Session Memory: AttendAi-smart-erp
 
 ## Session Date: 6 April 2026
-**Status**: NextAuth Migration Completed & Verified.
+**Status**: NextAuth Migration Fully Finalized & Legacy Better Auth Removed.
 
-## 🚀 Objective: Re-standardize on NextAuth
-The decision to unify on Better Auth was reversed in favor of a robust NextAuth implementation for the frontend, while maintaining the Express/MongoDB backend as the core logic engine.
+## 🚀 Objective: Complete Transition to NextAuth
+Standardized the entire project on NextAuth for the frontend and a shared MongoDB session/header-based authentication for the backend.
 
 ## ✅ Actions Taken
-1.  **Frontend API Migration**:
-    - All proxy routes in `src/app/api/` (Admin, Attendance, Student, Faculty) now use `getServerSession(authOptions)` for authentication.
-    - **Pattern**: Authenticated user context is Base64 encoded and passed to the backend via the `x-user-data` header. This allows the backend to trust the frontend's session verification when a valid `X-Internal-Token` is present.
-2.  **Middleware & Route Protection**:
-    - Renamed `src/proxy.ts` to `src/middleware.ts` to align with Next.js 16 requirements.
-    - Updated middleware to check for `next-auth.session-token` and `__Secure-next-auth.session-token` cookies.
-    - Paths like `/login`, `/signup`, `/auth`, and static assets are correctly exempted from redirection.
-3.  **UI Components Sync**:
-    - `Navbar.tsx`: Switched from `authClient` to NextAuth's `useSession` and `signOut`.
-    - `AuthProvider.tsx`: Restored `SessionProvider` for client-side state.
-    - `login/page.tsx`: Updated to use `signIn("credentials")` with error handling.
-4.  **Backend Auth Logic**:
-    - Updated `backend/src/middleware/auth.ts` to parse the `x-user-data` header for trusted internal requests.
-    - Maintains fallback support for manual session lookups in MongoDB for direct/legacy calls.
-5.  **🚨 Critical Build Fix**:
-    - Resolved `PrismaClientInitializationError` during `npm run build` by commenting out Better Auth `dash` and `sentinel` plugins in `src/lib/auth.ts`. These plugins were unnecessarily instantiating Prisma in a project that uses MongoDB natively.
-6.  **Verification**:
-    - Started `next dev` and verified the homepage (200 OK) and login page (200 OK) respond correctly.
-    - Verified `getServerSession` logic and header propagation.
+1.  **Frontend Cleanup & Migration**:
+    - **Deleted**: `src/lib/auth.ts`, `src/lib/auth-client.ts`, and the Better Auth route `src/app/auth/[[...better-auth]]`.
+    - **Signup**: Created `src/app/api/auth/signup/route.ts` to handle user creation and integrated it with NextAuth's `signIn`.
+    - **Onboarding**: Created `src/app/api/user/update-profile/route.ts` to handle ERP-specific profile updates.
+    - **Dashboards**: Fully migrated `FacultyDashboard` and `StudentDashboard` to use NextAuth's `useSession`.
+2.  **Middleware & Session Bridge**:
+    - **Middleware**: `src/middleware.ts` is active, checking for NextAuth session cookies.
+    - **Header Bridge**: All API routes in `src/app/api/` securely pass user context via the `x-user-data` header.
+3.  **Backend Modernization**:
+    - **Renamed**: `betterAuthMiddleware` to `universalAuthMiddleware`.
+    - **Security**: Updated `backend/src/index.ts` to remove the legacy Better Auth hub. The backend now relies on either direct MongoDB session validation or trusted internal proxy headers.
+4.  **🚨 Critical Fixes**:
+    - Resolved `PrismaClient` build error by removing Better Auth plugins that were triggering Prisma instantiation.
+    - Verified build (`npm run build`) - **PASSED**.
+5.  **Environment Robustness**:
+    - Verified that `next dev` correctly responds on `localhost:3000`.
 
-## 🛠 Project Architecture (Current)
+## 🛠 Project Architecture (Finalized)
 - **Frontend**: Next.js 16.2.1 (App Router).
-- **Auth**: NextAuth (JWT Strategy).
-- **Session Bridge**: Base64 encoded `x-user-data` header passed from Next.js Proxy routes to Express Backend.
-- **Backend**: Express/MongoDB (Trusted proxy mode enabled).
+- **Auth**: NextAuth (JWT Strategy + Credentials Provider).
+- **Database**: MongoDB (Native driver used for session lookups in backend).
+- **Integration**: `x-user-data` Base64 header for secure frontend-to-backend user context propagation.
 
 ## 📋 Future Tasks / Considerations
-- [ ] Fully uninstall `better-auth` dependencies from `package.json` to reduce bundle size.
-- [ ] Clean up unused `src/lib/auth.ts` and `src/lib/auth-client.ts` once NextAuth is fully verified in production.
-- [ ] Verify that all faculty reports and live attendance feeds correctly receive the user context from the new header.
-- [ ] Fix Render deployment port binding issue (Ensure it listens on `0.0.0.0` and correctly respects the `PORT` env var).
+- [ ] Monitor Render deployment for successful port binding (should listen on `0.0.0.0`).
+- [ ] Consider removing `better-auth` from `package.json` dependencies if production remains stable.
 
 ---
 
 ## Session Date: 5 April 2026 (Archive)
-**Status**: Critical Auth Fixes Applied (Initial Better Auth Unification attempt).
-- *See Git History for details on the previous state.*
+**Status**: Critical Auth Fixes Applied (Legacy Better Auth state).

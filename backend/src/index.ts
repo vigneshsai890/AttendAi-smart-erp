@@ -5,9 +5,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import http from 'http';
 import { Server } from 'socket.io';
-import { toNodeHandler } from "better-auth/node";
 import { ENV } from './lib/env.js';
-import { getAuth } from './lib/auth.js';
 
 import { sessionRouter } from './routes/session.js';
 import { attendanceRouter, setIo } from './routes/attendance.js';
@@ -15,7 +13,7 @@ import { attendanceFullRouter, setIo as setIoFull } from './routes/attendance-fu
 import { debugRouter } from './routes/debug.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
-import { betterAuthMiddleware } from './middleware/auth.js';
+import { universalAuthMiddleware } from './middleware/auth.js';
 import { internalAuth } from './middleware/internal.js';
 
 dotenv.config();
@@ -85,33 +83,6 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(morgan('dev'));
 
-// --- 2. THE AUTH HUB (UNIVERSAL MOUNT) ---
-// We match ANY path containing /auth to ensure we catch proxy variations
-app.use(async (req, res, next) => {
-  // Skip auth hub if authenticated via internal token
-  if ((req as any).isInternal) {
-    return next();
-  }
-
-  const url = req.url || "";
-  if (url.includes('/auth')) {
-    console.log(`📡 [AUTH HUB] Intercepted: ${url}`);
-    
-    // Better Auth Dashboard often hits /api/auth/dash/config
-    // If the path starts with /api/auth, we let toNodeHandler handle it with the /api/auth basePath
-    if (url.startsWith('/api/auth') || url.startsWith('/auth')) {
-      try {
-        const auth = await getAuth();
-        return toNodeHandler(auth)(req, res);
-      } catch (err) {
-        console.error("🔥 [AUTH HUB ERROR]:", err);
-        return res.status(500).json({ error: "AUTH_HUB_ERROR" });
-      }
-    }
-  }
-  next();
-});
-
 // --- 3. PUBLIC UTILITIES ---
 app.get('/api/health', (req, res) => {
   res.json({
@@ -147,7 +118,7 @@ app.use('/api', (req, res, next) => {
     return next();
   }
 
-  return betterAuthMiddleware(req, res, next);
+  return universalAuthMiddleware(req, res, next);
 });
 
 app.use('/api/session', sessionRouter);
