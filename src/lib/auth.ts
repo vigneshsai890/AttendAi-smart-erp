@@ -9,7 +9,7 @@ import {
   organization,
   username
 } from "better-auth/plugins";
-import { apiKey } from "@better-auth/api-key";
+import { apiKey as apiKeyPlugin } from "@better-auth/api-key";
 import { dash, sentinel, sendEmail } from "@better-auth/infra";
 import { MongoClient } from "mongodb";
 import { ENV } from "./env";
@@ -22,10 +22,11 @@ let _client: MongoClient | null = null;
 
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
-  if (ENV.isProduction && !secret) {
-    console.error("🚨 [SECURITY WARNING] BETTER_AUTH_SECRET is missing. Ensure this is set in your Render dashboard.");
+  if (!secret) {
+    if (ENV.isProduction) throw new Error("BETTER_AUTH_SECRET is missing in production!");
+    return "SMART_ERP_SECRET_KEY_DEV_2024";
   }
-  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
+  return secret;
 };
 
 export const getAuth = async (req?: Request | Headers) => {
@@ -46,9 +47,9 @@ export const getAuth = async (req?: Request | Headers) => {
     }
     const db = _client.db();
 
-    const secret = process.env.BETTER_AUTH_SECRET;
-    if (!secret && ENV.isProduction) {
-      throw new Error("BETTER_AUTH_SECRET is missing in production.");
+    const apiKey = process.env.BETTER_AUTH_API_KEY;
+    if (!apiKey && ENV.isProduction) {
+      throw new Error("BETTER_AUTH_API_KEY is missing in production!");
     }
 
     // Determine baseURL:
@@ -124,12 +125,12 @@ export const getAuth = async (req?: Request | Headers) => {
             return role === "ADMIN" || role === "FACULTY" || role === "HOD";
           },
         }),
-        apiKey(),
+        apiKeyPlugin(),
         dash({
-          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
+          apiKey: apiKey || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
         }),
         sentinel({
-          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp",
+          apiKey: apiKey || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp",
           security: {
             credentialStuffing: { enabled: true },
             impossibleTravel: { enabled: true, action: "challenge" },

@@ -11,7 +11,7 @@ import {
   username,
   oneTap
 } from "better-auth/plugins";
-import { apiKey } from "@better-auth/api-key";
+import { apiKey as apiKeyPlugin } from "@better-auth/api-key";
 import { dash, sentinel, sendEmail } from "@better-auth/infra";
 import { ENV } from "./env.js";
 import { sendAWSSMS } from "./sms.js";
@@ -20,10 +20,11 @@ let _auth: any = null;
 
 const getBetterAuthSecret = () => {
   const secret = process.env.BETTER_AUTH_SECRET;
-  if (ENV.isProduction && !secret) {
-    console.error("🚨 [SECURITY WARNING] BETTER_AUTH_SECRET is missing. Ensure this is set in your Render dashboard.");
+  if (!secret) {
+    if (ENV.isProduction) throw new Error("BETTER_AUTH_SECRET is missing in production!");
+    return "SMART_ERP_SECRET_KEY_DEV_2024";
   }
-  return secret || "SMART_ERP_SECRET_KEY_DEV_2024";
+  return secret;
 };
 
 export const getAuth = () => {
@@ -31,6 +32,11 @@ export const getAuth = () => {
     const db = mongoose.connection.db;
     if (mongoose.connection.readyState !== 1 || !db) {
       throw new Error("MongoDB not connected");
+    }
+
+    const apiKey = process.env.BETTER_AUTH_API_KEY;
+    if (!apiKey && ENV.isProduction) {
+      throw new Error("BETTER_AUTH_API_KEY is missing in production!");
     }
 
     _auth = betterAuth({
@@ -82,12 +88,12 @@ export const getAuth = () => {
             return user.role === "ADMIN" || user.role === "FACULTY" || user.role === "HOD";
           },
         }),
-        apiKey(),
+        apiKeyPlugin(),
         dash({
-          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
+          apiKey: apiKey || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
         }),
         sentinel({
-          apiKey: process.env.BETTER_AUTH_API_KEY || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp",
+          apiKey: apiKey || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp",
           security: {
             credentialStuffing: { enabled: true },
             impossibleTravel: { enabled: true, action: "challenge" },
