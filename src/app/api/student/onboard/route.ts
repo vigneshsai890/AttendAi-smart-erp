@@ -1,20 +1,19 @@
 export const dynamic = "force-dynamic";
 
-import { getAuth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/next-auth";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await req.json();
     const res = await backend.post("/dashboard/onboard", {
       ...body,
-      userId: session.user.id,
+      userId: (session.user as any).id,
     });
     return NextResponse.json(res.data);
   } catch (error: any) {

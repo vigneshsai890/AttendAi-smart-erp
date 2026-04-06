@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { authClient } from "@/lib/auth-client";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { Loader2, ArrowRight } from "lucide-react";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
 
   const [role, setRole] = useState<"STUDENT" | "FACULTY">("STUDENT");
   const [step, setStep] = useState<"SELECT" | "PHONE">("SELECT");
@@ -31,15 +32,16 @@ function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const { error: signInError } = await authClient.signIn.email({
+      const res = await signIn("credentials", {
         email,
         password,
+        redirect: false,
       });
 
-      if (signInError) {
-        setError(signInError.message || "Invalid credentials.");
+      if (res?.error) {
+        setError(res?.error === "CredentialsSignin" ? "Invalid email or password" : res.error);
       } else {
-        await handleAuthSuccess();
+        router.refresh();
       }
     } catch (err) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
@@ -49,45 +51,26 @@ function LoginForm() {
     }
   };
 
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const user = session.user as any;
+      const rawRole = String(user?.role || "").toUpperCase();
+      const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
+
+      if (!user?.isProfileComplete && userRole === "STUDENT") {
+        router.push("/onboarding");
+        return;
+      }
+
+      if (userRole === "ADMIN") router.push("/admin");
+      else if (userRole === "FACULTY") router.push("/faculty/dashboard");
+      else router.push("/student/dashboard");
+    }
+  }, [status, session, router]);
+
   const handlePhoneAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      if (!showOtp) {
-        const { error: sendError } = await authClient.phoneNumber.sendOtp({ phoneNumber });
-        if (sendError) setError(sendError.message || "Failed to send code.");
-        else setShowOtp(true);
-      } else {
-        const { error: verifyError } = await authClient.phoneNumber.verify({
-          phoneNumber,
-          code: otp
-        });
-        if (verifyError) setError(verifyError.message || "Verification failed.");
-        else await handleAuthSuccess();
-      }
-    } catch (err: any) {
-      console.error("❌ [MOBILE SYNC ERROR]:", err);
-      setError(err.message || "Verification failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAuthSuccess = async () => {
-    const { data: session } = await authClient.getSession();
-    const userPayload = session?.user as any;
-    const rawRole = String(userPayload?.role || "").toUpperCase();
-    const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
-
-    if (!userPayload?.isProfileComplete && userRole === "STUDENT") {
-      router.push("/onboarding");
-      return;
-    }
-
-    if (userRole === "ADMIN") router.push("/admin");
-    else if (userRole === "FACULTY") router.push("/faculty/dashboard");
-    else router.push("/student/dashboard");
+    setError("Phone login is temporarily disabled. Please use Email.");
   };
 
   return (

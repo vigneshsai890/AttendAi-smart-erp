@@ -1,46 +1,96 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAuth } from '../lib/auth.js';
+import mongoose from 'mongoose';
 
 /**
- * Better-Auth Session Middleware
- * Verifies the session from the Better-Auth API
+ * Universal Session Middleware
+ * Verifies sessions from both Better-Auth and Next-Auth
  */
 export const betterAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const auth = getAuth();
-    if (!auth) {
-      throw new Error("Better-Auth initialization failed");
-    }
-
-    // Convert Express headers to standard Headers object for Better-Auth
-    const headers = new Headers();
-    Object.entries(req.headers).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach(v => headers.append(key, v));
-      } else if (value) {
-        headers.set(key, value as string);
+    // 0. Trusted Internal Proxy (Highest Priority)
+    // If the request comes from our own frontend with a valid internal token
+    const userDataHeader = req.headers['x-user-data'];
+    if (userDataHeader && (req as any).isInternal) {
+      try {
+        const userData = JSON.parse(Buffer.from(userDataHeader as string, 'base64').toString());
+        if (userData && userData.id) {
+          (req as any).user = userData;
+          (req as any).session = { user: userData };
+          return next();
+        }
+      } catch (e) {
+        console.error("❌ [AUTH] Failed to parse x-user-data header:", e);
       }
-    });
-
-    const session = await auth.api.getSession({
-      headers,
-    });
-
-    if (!session) {
-      return res.status(401).json({ error: "Unauthorized: No active session" });
     }
 
-    // Attach session and user to request with type assertion
-    const requestWithAuth = req as Request & { 
-      session: { user: { id: string; role: string; email: string; name: string } }; 
-      user: { id: string; role: string; email: string; name: string } 
-    };
-    requestWithAuth.session = session as any;
-    requestWithAuth.user = session.user as any;
-    
-    next();
+    // 1. Try Better-Auth first (Legacy/Internal)
+    const auth = getAuth();
+    if (auth) {
+      const headers = new Headers();
+      Object.entries(req.headers).forEach(([key, value]) => {
+        if (Array.isArray(value)) value.forEach(v => headers.append(key, v));
+        else if (value) headers.set(key, value as string);
+      });
+
+      const session = await auth.api.getSession({ headers });
+      if (session) {
+        (req as any).session = session;
+        (req as any).user = session.user;
+        return next();
+      }
+    }
+
+    // 2. Fallback: Manual Next-Auth Session Lookup (Shared MongoDB)
+    const cookies = req.headers.cookie || "";
+    const sessionToken = cookies.split('; ').find(row => row.startsWith('next-auth.session-token='))?.split('=')[1] ||
+                        cookies.split('; ').find(row => row.startsWith('__Secure-next-auth.session-token='))?.split('=')[1];
+
+    if (sessionToken) {
+      const db = mongoose.connection.db;
+      if (db) {
+        // Next-Auth usually creates 'sessions' and 'users'
+        const session = await db.collection("sessions").findOne({ sessionToken });
+        if (session && session.expires > new Date()) {
+          const user = await db.collection("users").findOne({ _id: session.userId });
+          if (user) {
+            (req as any).session = { user };
+            (req as any).user = {
+              id: user._id.toString(),
+              role: user.role || "STUDENT",
+              email: user.email,
+              name: user.name,
+              isProfileComplete: user.isProfileComplete
+            };
+            return next();
+          }
+        }
+      }
+    }
+
+    // 3. Last Resort: Check if it's an internal proxy call with userId passed
+    const { userId } = req.query;
+    if (userId && (req as any).isInternal) {
+       const db = mongoose.connection.db;
+       if (db) {
+         // Check both collections for user
+         const user = await db.collection("user").findOne({ _id: new mongoose.Types.ObjectId(userId as string) }) ||
+                      await db.collection("users").findOne({ _id: new mongoose.Types.ObjectId(userId as string) });
+         if (user) {
+           (req as any).user = {
+             id: user._id.toString(),
+             role: user.role || "STUDENT",
+             email: user.email,
+             name: user.name
+           };
+           return next();
+         }
+       }
+    }
+
+    return res.status(401).json({ error: "Unauthorized: No active session" });
   } catch (err) {
-    console.error("Better-Auth Middleware Error:", err);
+    console.error("Auth Middleware Error:", err);
     res.status(500).json({ error: "Authentication protocol failure" });
   }
 };

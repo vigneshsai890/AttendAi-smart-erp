@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // 1. Define public paths that NEVER redirect
@@ -21,9 +21,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2. ONLY check for cookie existence (No DB calls here!)
+  // NextAuth uses next-auth.session-token (or __Secure- for production/https)
   const sessionCookie = 
-    request.cookies.get("better-auth.session_token") || 
-    request.cookies.get("__Secure-better-auth.session_token");
+    request.cookies.get("next-auth.session-token") || 
+    request.cookies.get("__Secure-next-auth.session-token");
 
   // 3. If no cookie, redirect to login
   if (!sessionCookie) {

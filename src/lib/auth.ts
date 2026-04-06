@@ -126,6 +126,7 @@ export const getAuth = async (req?: Request | Headers) => {
           },
         }),
         apiKeyPlugin(),
+        /*
         dash({
           apiKey: apiKey || "ba_mzne3a7dpahwre7ybfx3n9js2l5v4khp"
         }),
@@ -141,6 +142,7 @@ export const getAuth = async (req?: Request | Headers) => {
             suspiciousIpBlocking: { action: "block" },
           },
         }),
+        */
       ],
       user: {
         additionalFields: {

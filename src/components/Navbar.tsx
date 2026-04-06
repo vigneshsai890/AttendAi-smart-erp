@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnetic from "@/components/Magnetic";
 import {
@@ -14,10 +14,10 @@ function NavbarInner() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = authClient.useSession();
+  const { data: session } = useSession();
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
-  const role = session?.user?.role;
+  const role = (session?.user as any)?.role;
 
   // Don't show on login/signup page
   if (pathname === "/login" || pathname === "/signup") return null;
@@ -51,14 +51,7 @@ function NavbarInner() {
   const tabs = getTabs();
 
   const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/login");
-          router.refresh();
-        },
-      },
-    });
+    await signOut({ callbackUrl: "/login" });
   };
 
   return (
