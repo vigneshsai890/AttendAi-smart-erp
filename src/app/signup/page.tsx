@@ -29,6 +29,7 @@ export default function SignupPage() {
         password,
         name,
         phoneNumber,
+        role: "STUDENT",
         callbackURL: "/onboarding",
       });
       if (signUpError) setError(signUpError.message || "Signup failed. Please try again.");

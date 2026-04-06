@@ -41,8 +41,11 @@ function DashboardContent() {
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/login");
-    } else if (!isPending && (session?.user?.role === "FACULTY" || session?.user?.role === "ADMIN")) {
-      router.push("/faculty/dashboard");
+    } else if (!isPending) {
+      const role = String((session?.user as any)?.role || "").toUpperCase();
+      if (role === "FACULTY" || role === "ADMIN") {
+        router.push("/faculty/dashboard");
+      }
     }
   }, [session, isPending, router]);
 

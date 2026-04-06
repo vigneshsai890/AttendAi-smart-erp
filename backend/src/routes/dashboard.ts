@@ -93,8 +93,33 @@ router.get('/student', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'userId query param is required' });
     }
 
-    // Fetch user
-    const user = await User.findById(userId);
+    // Better Auth and ERP user collections can drift. If the ERP-side user
+    // record is missing, recover it from the Better Auth user collection so
+    // dashboards continue working after sign-up/login.
+    let user = await User.findById(userId);
+    if (!user) {
+      const db = mongoose.connection.db;
+      const authUser = db ? await db.collection('user').findOne({ _id: new mongoose.Types.ObjectId(userId) }) : null;
+
+      if (authUser) {
+        const normalizedRole = String(authUser.role || 'STUDENT').toUpperCase() === 'USER'
+          ? 'STUDENT'
+          : String(authUser.role || 'STUDENT').toUpperCase();
+
+        user = await User.create({
+          _id: new mongoose.Types.ObjectId(userId),
+          name: authUser.name || authUser.email || 'AttendAI User',
+          email: authUser.email,
+          phoneNumber: authUser.phoneNumber || null,
+          registrationId: authUser.regId || authUser.registrationId || null,
+          role: normalizedRole,
+          passwordHash: 'BETTER_AUTH_MANAGED',
+          isActive: true,
+          twoFactorEnabled: !!authUser.twoFactorEnabled,
+        });
+      }
+    }
+
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
@@ -110,9 +135,36 @@ router.get('/student', async (req: Request, res: Response) => {
     }
 
     // Fetch student profile with department and section populated
-    const student = await Student.findOne({ userId: user._id })
+    let student = await Student.findOne({ userId: user._id })
       .populate('departmentId')
       .populate('sectionId');
+
+    if (!student) {
+      let dept = await Department.findOne({ code: 'CSE' }) || await Department.findOne({ name: 'Computer Science & Engineering' });
+      if (!dept) {
+        dept = await Department.create({ code: 'CSE', name: 'Computer Science & Engineering' });
+      }
+
+      let section = await Section.findOne({ departmentId: dept._id, name: 'Section A' });
+      if (!section) {
+        section = await Section.create({ name: 'Section A', departmentId: dept._id, year: 1 });
+      }
+
+      student = await Student.create({
+        userId: user._id,
+        rollNumber: (user.registrationId || `AT-${Date.now().toString().slice(-6)}`).replace(/[^A-Z0-9-]/gi, ''),
+        regNumber: user.registrationId || `REG-${Date.now().toString().slice(-6)}`,
+        year: 1,
+        semester: 1,
+        sectionId: section._id,
+        departmentId: dept._id,
+      });
+
+      student = await Student.findOne({ userId: user._id })
+        .populate('departmentId')
+        .populate('sectionId');
+    }
+
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student profile not found' });
     }

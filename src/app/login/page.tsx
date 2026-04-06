@@ -77,14 +77,17 @@ function LoginForm() {
   const handleAuthSuccess = async () => {
     const { data: session } = await authClient.getSession();
     const userPayload = session?.user as any;
-    if (!userPayload?.isProfileComplete && userPayload?.role === "STUDENT") {
+    const rawRole = String(userPayload?.role || "").toUpperCase();
+    const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
+
+    if (!userPayload?.isProfileComplete && userRole === "STUDENT") {
       router.push("/onboarding");
-    } else {
-      const userRole = userPayload?.role;
-      if (userRole === "ADMIN") router.push("/admin");
-      else if (userRole === "FACULTY") router.push("/faculty/dashboard");
-      else router.push("/student/dashboard");
+      return;
     }
+
+    if (userRole === "ADMIN") router.push("/admin");
+    else if (userRole === "FACULTY") router.push("/faculty/dashboard");
+    else router.push("/student/dashboard");
   };
 
   return (
