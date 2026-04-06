@@ -50,7 +50,8 @@ const allowedOrigins = ([
   ENV.frontendUrl,
   process.env.FRONTEND_URL,
   process.env.NEXT_PUBLIC_APP_URL,
-  'https://attendai-smart-erp.onrender.com',
+  'https://attend-ai-smart-erp.vercel.app',
+  'https://attend-ai-smart-erp.onrender.com',
   'https://dash.better-auth.com',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
