@@ -27,28 +27,7 @@ router.post('/onboard', async (req: Request, res: Response) => {
     const { userId, department, specialization, rollNumber, regNumber } = req.body;
     if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
 
-    let user = await User.findById(userId);
-    if (!user) {
-      const db = mongoose.connection.db;
-      const authUser = db ? await db.collection('user').findOne({ _id: new mongoose.Types.ObjectId(userId) }) : null;
-
-      if (authUser) {
-        const normalizedRole = String(authUser.role || 'STUDENT').toUpperCase() === 'USER'
-          ? 'STUDENT'
-          : String(authUser.role || 'STUDENT').toUpperCase();
-
-        user = await User.create({
-          _id: new mongoose.Types.ObjectId(userId),
-          name: authUser.name || authUser.email || 'AttendAI User',
-          email: authUser.email,
-          phoneNumber: authUser.phoneNumber || null,
-          role: normalizedRole,
-          passwordHash: 'NEXT_AUTH_MANAGED',
-          isActive: true,
-        });
-      }
-    }
-
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     if (user.role === 'STUDENT') {
@@ -114,32 +93,8 @@ router.get('/student', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'userId query param is required' });
     }
 
-    // Better Auth and ERP user collections can drift. If the ERP-side user
-    // record is missing, recover it from the Better Auth user collection so
-    // dashboards continue working after sign-up/login.
+    // Unified User lookup (singular 'user' collection)
     let user = await User.findById(userId);
-    if (!user) {
-      const db = mongoose.connection.db;
-      const authUser = db ? await db.collection('user').findOne({ _id: new mongoose.Types.ObjectId(userId) }) : null;
-
-      if (authUser) {
-        const normalizedRole = String(authUser.role || 'STUDENT').toUpperCase() === 'USER'
-          ? 'STUDENT'
-          : String(authUser.role || 'STUDENT').toUpperCase();
-
-        user = await User.create({
-          _id: new mongoose.Types.ObjectId(userId),
-          name: authUser.name || authUser.email || 'AttendAI User',
-          email: authUser.email,
-          phoneNumber: authUser.phoneNumber || null,
-          registrationId: authUser.regId || authUser.registrationId || null,
-          role: normalizedRole,
-          passwordHash: 'BETTER_AUTH_MANAGED',
-          isActive: true,
-          twoFactorEnabled: !!authUser.twoFactorEnabled,
-        });
-      }
-    }
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
