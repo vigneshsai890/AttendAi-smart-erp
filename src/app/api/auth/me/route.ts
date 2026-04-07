@@ -49,7 +49,18 @@ export async function GET(req: Request) {
       }
 
       if (!user) {
-        return NextResponse.json({ error: "User profile not found in MongoDB" }, { status: 404 });
+        console.log(`[AUTH_ME] Auto-healing zombie user: ${email}. Creating missing MongoDB record.`);
+        const newUser = {
+          firebaseUid,
+          email,
+          name: decoded.name || (email ? email.split('@')[0] : "Student"),
+          role: "STUDENT",
+          isProfileComplete: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        const result = await collection.insertOne(newUser);
+        user = { _id: result.insertedId, ...newUser };
       }
 
       return NextResponse.json({

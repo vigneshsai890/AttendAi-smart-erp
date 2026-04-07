@@ -35,11 +35,19 @@ function LoginForm() {
     setError("");
     console.log("[AUTH_DEBUG] Attempting email login for:", email);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("[AUTH_DEBUG] Firebase signIn success, waiting for AuthProvider sync...");
-      // Don't setLoading(false) here — the useEffect watching `status` will handle it.
-      // The AuthProvider's onAuthStateChanged will fire, fetch the MongoDB profile,
-      // and once status changes to "authenticated", the redirect useEffect will trigger.
+      
+      // Zombie State Safety Net: If the user was already logged in to Firebase but we threw them onto the login page
+      // because of a missing MongoDB DB record previously, Firebase's onAuthStateChanged will NOT fire locally since
+      // the logged-in user technically hasn't changed. We aggressively perform a router redirect if nothing happens.
+      setTimeout(() => {
+         const firebaseUser = userCredential.user;
+         if (firebaseUser) {
+           console.log("[AUTH_DEBUG] Safety timeout triggered. Force redirecting to break out of UI freeze.");
+           window.location.href = "/student/dashboard";
+         }
+      }, 1500);
     } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
       setLoading(false);
