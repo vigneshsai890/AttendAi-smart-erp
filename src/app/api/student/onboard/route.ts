@@ -10,10 +10,23 @@ export async function POST(req: Request) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
+    const user = session.user as any;
+    const userData = Buffer.from(JSON.stringify({
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      name: user.name,
+      isProfileComplete: user.isProfileComplete
+    })).toString("base64");
+
     const body = await req.json();
     const res = await backend.post("/dashboard/onboard", {
       ...body,
-      userId: (session.user as any).id,
+      userId: user.id,
+    }, {
+      headers: {
+        "x-user-data": userData
+      }
     });
     return NextResponse.json(res.data);
   } catch (error: any) {

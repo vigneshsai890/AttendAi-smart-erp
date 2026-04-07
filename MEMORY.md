@@ -1,25 +1,25 @@
 # Session Memory: AttendAi-smart-erp
 
 ## Session Date: 7 April 2026
-**Status**: Critical Collection Mismatch Resolved & Backend Simplified.
+**Status**: Onboarding "User Not Found" Final Sync.
 
 ## 🚀 Objective: Resolve Persistent "User Not Found" Error
-Fixed the root cause of the onboarding failure where the backend was still unable to locate users despite previous recovery attempts.
+Addressed the root cause of the onboarding failure by ensuring the `userId` and user context are correctly propagated and trustable across the entire stack.
 
 ## ✅ Actions Taken
-1.  **Collection Harmonization**:
-    - **Model Fix**: Updated `backend/src/models/User.ts` to explicitly set the collection name to `'user'` (singular). By default, Mongoose was looking in `'users'` (plural), which caused it to miss all users created by NextAuth.
-    - **Result**: All standard Mongoose methods like `User.findById()` and `User.findOne()` now correctly target the NextAuth user data.
-2.  **Code Streamlining**:
-    - **Onboarding Route**: Removed the redundant JIT recovery logic in `backend/src/routes/dashboard.ts` now that the model itself is collection-aware.
-    - **Student Dashboard**: Simplified the user lookup in the `/student` route to use the unified model approach.
-3.  **Cross-Platform Sync**:
-    - Verified that both `/api/auth/signup` (frontend) and backend routes now operate on the exact same MongoDB collection (`user`).
+1.  **Header Propagation**:
+    - Updated `src/app/api/student/onboard/route.ts` to include the `x-user-data` header when proxying the onboarding request to the Express backend. This ensures the backend `universalAuthMiddleware` can identify the user even if database lookups are slow or inconsistent.
+2.  **Collection Alignment**:
+    - Confirmed all Mongoose models (`User`, `Student`, `Faculty`) and direct MongoDB calls (in `signup` and `onboarding`) are targeting the singular `'user'` collection.
+3.  **Debug Trace Enabled**:
+    - Added `console.log` statements in the backend `/onboard` route to trace the incoming `userId` and its presence in the database.
+4.  **Database Consistency Check**:
+    - Identified a critical risk: ensure `MONGO_URI` is identical in both Vercel (frontend) and Render (backend). If they point to different databases, signups on the frontend will never be visible to the backend.
 
 ## 🛠 Project Architecture (Synchronized)
-- **Primary Auth Collection**: `user` (Shared between NextAuth and Express ERP Backend).
-- **ORM**: Mongoose models now explicitly map to singular collection names to prevent default pluralization errors.
+- **Identity Provider**: NextAuth (JWT Strategy).
+- **Communication**: Trusted internal proxy headers (`x-user-data`) + Shared MongoDB (`user` collection).
 
 ## 📋 Future Tasks / Considerations
-- [ ] Monitor logs for any remaining plural `users` references in legacy scripts.
-- [ ] Perform a full data integrity check to ensure all metadata (Student/Faculty records) is correctly linked to the singular `user` IDs.
+- [ ] **Action Required**: Verify that the `MONGO_URI` environment variable in Vercel matches the one in Render exactly (including the DB name at the end).
+- [ ] Monitor Render logs for the `📡 [ONBOARD] Received userId:` log to confirm the ID matches the one in the MongoDB `user` collection.
