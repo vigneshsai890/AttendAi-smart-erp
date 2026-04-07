@@ -33,23 +33,42 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    console.log("[AUTH_DEBUG] Attempting email login for:", email);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let the onAuthStateChanged in AuthProvider handle the rest and trigger the useEffect below
+      console.log("[AUTH_DEBUG] Firebase signIn success, waiting for AuthProvider sync...");
+      // We don't call setLoading(false) here because we want to wait for the redirect 
+      // in the useEffect that depends on session status.
+      // However, we should add a timeout just in case the sync never finishes.
+      setTimeout(() => {
+        if (status !== "authenticated") {
+          console.warn("[AUTH_DEBUG] Login timeout: AuthProvider sync taking too long");
+          setLoading(false);
+          // If after 10 seconds we're still not authenticated, something is wrong with the bridge
+          setError("Session sync is taking longer than expected. Please refresh.");
+        }
+      }, 10000);
     } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
+      setLoading(false);
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
          setError("Invalid email or password");
       } else {
          setError(err.message || "Sign in failed. Please try again.");
       }
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Reset loading if we are authenticated
+  useEffect(() => {
+    if (status === "authenticated" || status === "unauthenticated") {
+      setLoading(false);
+    }
+  }, [status]);
+
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
+      console.log("[AUTH_DEBUG] User authenticated, redirecting based on role:", (session.user as any)?.role);
       const user = session.user as any;
       const rawRole = String(user?.role || "").toUpperCase();
       const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
@@ -62,6 +81,11 @@ function LoginForm() {
       if (userRole === "ADMIN") router.push("/admin");
       else if (userRole === "FACULTY") router.push("/faculty/dashboard");
       else router.push("/student/dashboard");
+    } else if (status === "authenticated" && !session?.user) {
+      // This is the case where Firebase is logged in but MongoDB profile fetch failed
+      console.error("[AUTH_DEBUG] Firebase logged in but MongoDB profile missing");
+      setError("Your account exists but your profile could not be loaded. Please contact support.");
+      setLoading(false);
     }
   }, [status, session, router]);
 

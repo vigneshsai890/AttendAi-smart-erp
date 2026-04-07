@@ -42,12 +42,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentFirebaseUser) => {
+      console.log("[AUTH_DEBUG] Firebase Auth State Changed:", currentFirebaseUser?.email);
       setFirebaseUser(currentFirebaseUser);
       
       if (currentFirebaseUser) {
+        setLoading(true);
         // Now fetch the MongoDB profile using the Firebase token
         try {
           const token = await currentFirebaseUser.getIdToken();
+          console.log("[AUTH_DEBUG] Fetching MongoDB profile...");
           // We need an API route to securely fetch the MongoDB user profile 
           // based on the Firebase token.
           const res = await fetch("/api/auth/me", {
@@ -58,13 +61,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           
           if (res.ok) {
             const data = await res.json();
+            console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
             setUser(data.user);
           } else {
-            console.error("Failed to sync Firebase user with MongoDB profile");
+            console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status);
             setUser(null);
           }
         } catch (error) {
-          console.error("Error fetching user profile:", error);
+          console.error("[AUTH_DEBUG] Error fetching user profile:", error);
           setUser(null);
         }
       } else {
@@ -72,6 +76,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
       
       setLoading(false);
+      console.log("[AUTH_DEBUG] Auth initialization complete. Loading: false");
     });
 
     return () => unsubscribe();
