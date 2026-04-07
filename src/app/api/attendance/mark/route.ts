@@ -1,16 +1,15 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getSessionUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const userId = (session.user as any).id;
+  const userId = user.id;
   const rl = checkRateLimit(`mark:${userId}`, 5, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    const user = session.user as any;
     const userData = Buffer.from(JSON.stringify({
       id: user.id,
       role: user.role,
@@ -37,7 +35,8 @@ export async function POST(req: Request) {
       ip,
     }, {
       headers: {
-        "x-user-data": userData
+        "x-user-data": userData,
+        Authorization: req.headers.get("Authorization") || ""
       }
     });
     return NextResponse.json(res.data);

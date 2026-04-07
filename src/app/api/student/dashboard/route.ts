@@ -1,18 +1,16 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+export async function GET(req: Request) {
+  const user = await getSessionUser(req);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const user = session.user as any;
     const userData = Buffer.from(JSON.stringify({
       id: user.id,
       role: user.role,
@@ -21,10 +19,13 @@ export async function GET() {
       isProfileComplete: user.isProfileComplete
     })).toString("base64");
 
+    const authHeader = req.headers.get("Authorization");
+
     const res = await backend.get("/dashboard/student", {
       params: { userId: user.id },
       headers: {
-        "x-user-data": userData
+        "x-user-data": userData,
+        "Authorization": authHeader
       }
     });
     return NextResponse.json(res.data);

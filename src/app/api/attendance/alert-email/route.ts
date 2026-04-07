@@ -1,12 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
-function getUserDataHeader(session: any) {
-  const user = session.user;
+function getUserDataHeader(user: any) {
   return Buffer.from(JSON.stringify({
     id: user.id,
     role: user.role,
@@ -17,15 +15,18 @@ function getUserDataHeader(session: any) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "FACULTY") {
+  const user = await getSessionUser(req);
+  if (!user || user.role !== "FACULTY") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await req.json();
     const res = await backend.post("/attendance/alert-email", body, {
-      headers: { "x-user-data": getUserDataHeader(session) }
+      headers: { 
+        "x-user-data": getUserDataHeader(user),
+        Authorization: req.headers.get("Authorization") || ""
+      }
     });
     return NextResponse.json(res.data);
   } catch (error: any) {

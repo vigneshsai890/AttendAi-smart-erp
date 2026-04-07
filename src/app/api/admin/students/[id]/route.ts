@@ -1,17 +1,15 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { NextResponse } from "next/server";
 
-async function getAdminSession() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") return null;
-  return session;
+async function getAdminUser(req: Request) {
+  const user = await getSessionUser(req);
+  if (!user || user.role !== "ADMIN") return null;
+  return user;
 }
 
-function getUserDataHeader(session: any) {
-  const user = session.user;
+function getUserDataHeader(user: any) {
   return Buffer.from(JSON.stringify({
     id: user.id,
     role: user.role,
@@ -22,15 +20,18 @@ function getUserDataHeader(session: any) {
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getAdminSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getAdminUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   try {
     const body = await req.json();
     const { backend } = await import("@/lib/backend");
     const res = await backend.put(`/admin/students/${id}`, body, {
-      headers: { "x-user-data": getUserDataHeader(session) }
+      headers: {
+        "x-user-data": getUserDataHeader(user),
+        "Authorization": req.headers.get("Authorization")
+      }
     });
     return NextResponse.json(res.data);
   } catch (error: any) {
@@ -38,15 +39,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getAdminSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getAdminUser(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   try {
     const { backend } = await import("@/lib/backend");
     const res = await backend.delete(`/admin/students/${id}`, {
-      headers: { "x-user-data": getUserDataHeader(session) }
+      headers: {
+        "x-user-data": getUserDataHeader(user),
+        "Authorization": req.headers.get("Authorization")
+      }
     });
     return NextResponse.json(res.data);
   } catch (error: any) {

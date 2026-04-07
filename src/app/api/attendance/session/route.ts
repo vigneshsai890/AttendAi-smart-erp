@@ -1,18 +1,16 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
+import { getSessionUser } from "@/lib/auth-utils";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "FACULTY") {
+  const user = await getSessionUser(req);
+  if (!user || user.role !== "FACULTY") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const user = session.user as any;
     const userData = Buffer.from(JSON.stringify({
       id: user.id,
       role: user.role,
@@ -27,7 +25,8 @@ export async function POST(req: Request) {
       facultyUserId: user.id,
     }, {
       headers: {
-        "x-user-data": userData
+        "x-user-data": userData,
+        "Authorization": req.headers.get("Authorization") || ""
       }
     });
     return NextResponse.json(res.data);
@@ -37,13 +36,12 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "FACULTY") {
+  const user = await getSessionUser(req);
+  if (!user || user.role !== "FACULTY") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const user = session.user as any;
     const userData = Buffer.from(JSON.stringify({
       id: user.id,
       role: user.role,
@@ -55,7 +53,8 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const res = await backend.patch("/attendance/session/update", body, {
       headers: {
-        "x-user-data": userData
+        "x-user-data": userData,
+        "Authorization": req.headers.get("Authorization") || ""
       }
     });
     return NextResponse.json(res.data);

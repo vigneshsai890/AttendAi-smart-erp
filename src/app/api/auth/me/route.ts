@@ -27,6 +27,7 @@ export async function GET(req: Request) {
 
     const decoded = JSON.parse(jsonPayload);
     const firebaseUid = decoded.user_id;
+    const email = decoded.email;
 
     if (!firebaseUid) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 400 });
@@ -36,7 +37,19 @@ export async function GET(req: Request) {
     try {
       await client.connect();
       const db = client.db();
-      const user = await db.collection("user").findOne({ firebaseUid });
+      const collection = db.collection("user");
+      
+      // Try finding by firebaseUid first
+      let user = await collection.findOne({ firebaseUid });
+
+      // Fallback: If not found by firebaseUid, try finding by email and link it
+      if (!user && email) {
+        user = await collection.findOne({ email });
+        if (user) {
+          await collection.updateOne({ _id: user._id }, { $set: { firebaseUid } });
+          console.log(`Linked user ${email} to firebaseUid ${firebaseUid}`);
+        }
+      }
 
       if (!user) {
         return NextResponse.json({ error: "User profile not found in MongoDB" }, { status: 404 });
