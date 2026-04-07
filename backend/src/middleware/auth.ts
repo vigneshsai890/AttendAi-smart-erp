@@ -13,9 +13,10 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
     if (userDataHeader && (req as any).isInternal) {
       try {
         const userData = JSON.parse(Buffer.from(userDataHeader as string, 'base64').toString());
-        if (userData && userData.id) {
-          (req as any).user = userData;
-          (req as any).session = { user: userData };
+        if (userData && (userData.id || userData._id)) {
+          const id = userData.id || userData._id;
+          (req as any).user = { ...userData, id: id.toString() };
+          (req as any).session = { user: (req as any).user };
           return next();
         }
       } catch (e) {

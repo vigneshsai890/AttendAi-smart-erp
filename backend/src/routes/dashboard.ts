@@ -25,10 +25,15 @@ const router = express.Router();
 router.post('/onboard', async (req: Request, res: Response) => {
   try {
     const { userId, department, specialization, rollNumber, regNumber } = req.body;
+    console.log(`📡 [ONBOARD] Received userId: ${userId}`);
     if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user) {
+      console.error(`❌ [ONBOARD] User not found in DB: ${userId}`);
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    console.log(`✅ [ONBOARD] User found: ${user.email} (Role: ${user.role})`);
 
     if (user.role === 'STUDENT') {
       // Check if student already exists
