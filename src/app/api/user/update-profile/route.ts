@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     try {
       await client.connect();
       const db = client.db();
-      const collection = db.collection("user");
+      const collection = db.collection("user"); // NextAuth collection
 
       await collection.updateOne(
         { _id: new ObjectId(userId) },

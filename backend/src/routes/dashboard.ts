@@ -27,7 +27,28 @@ router.post('/onboard', async (req: Request, res: Response) => {
     const { userId, department, specialization, rollNumber, regNumber } = req.body;
     if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
 
-    const user = await User.findById(userId);
+    let user = await User.findById(userId);
+    if (!user) {
+      const db = mongoose.connection.db;
+      const authUser = db ? await db.collection('user').findOne({ _id: new mongoose.Types.ObjectId(userId) }) : null;
+
+      if (authUser) {
+        const normalizedRole = String(authUser.role || 'STUDENT').toUpperCase() === 'USER'
+          ? 'STUDENT'
+          : String(authUser.role || 'STUDENT').toUpperCase();
+
+        user = await User.create({
+          _id: new mongoose.Types.ObjectId(userId),
+          name: authUser.name || authUser.email || 'AttendAI User',
+          email: authUser.email,
+          phoneNumber: authUser.phoneNumber || null,
+          role: normalizedRole,
+          passwordHash: 'NEXT_AUTH_MANAGED',
+          isActive: true,
+        });
+      }
+    }
+
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     if (user.role === 'STUDENT') {

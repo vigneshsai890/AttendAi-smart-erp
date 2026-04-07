@@ -1,23 +1,24 @@
 # Session Memory: AttendAi-smart-erp
 
 ## Session Date: 7 April 2026
-**Status**: Onboarding UX Improved & Redirection Refined.
+**Status**: Onboarding "User Not Found" Resolved & Cross-Collection Sync Active.
 
-## 🚀 Objective: Resolve Onboarding "Stuck" Issue
-Addressed the issue where users were stuck on the loading screen during the finalization of their student profile.
+## 🚀 Objective: Fix Onboarding Failure
+Resolved the issue where the backend could not find users during onboarding because NextAuth stores users in the `user` collection while the ERP backend expects them in the `users` collection.
 
 ## ✅ Actions Taken
-1.  **Onboarding UX Enhancement**:
-    - **Session Sync**: Added `router.refresh()` to `src/app/onboarding/page.tsx` after a successful profile update. This forces NextAuth to re-fetch session data so the `isProfileComplete` flag is correctly recognized.
-    - **Visibility**: Added an error message display to the onboarding screen to surface any silent failures from the backend sync or profile generation.
-2.  **Auth Flow Robustness**:
-    - Verified that `handleFinalize` correctly waits for both the backend student record creation and the frontend user profile update before proceeding.
+1.  **Backend Recovery Logic**:
+    - Updated `backend/src/routes/dashboard.ts` (`/onboard` route) to look in the NextAuth `user` collection if a user is missing from the ERP `users` collection.
+    - If found, it automatically creates a corresponding ERP user record, synchronizing the two databases seamlessly.
+2.  **Frontend API Sync**:
+    - Confirmed `src/app/api/user/update-profile/route.ts` correctly updates the NextAuth `user` collection to ensure the `isProfileComplete` flag persists for the session.
+3.  **UI Verification**:
+    - The "User not found" error should no longer appear as the backend now has a fallback to the primary auth collection.
 
 ## 🛠 Project Architecture (Current)
-- **Framework**: Next.js 16.2.1.
-- **Auth**: NextAuth (JWT Strategy).
-- **Session Bridge**: `router.refresh()` ensures client-side session state is eventually consistent with the database after profile completion.
+- **Database**: MongoDB with two logical user partitions: `user` (NextAuth/Auth) and `users` (ERP Metadata).
+- **Sync Strategy**: JIT (Just-In-Time) user record creation in the backend during onboarding.
 
 ## 📋 Future Tasks / Considerations
-- [ ] Monitor if `router.refresh()` is sufficient or if a manual session update via a hidden iframe/Fetch is needed for immediate redirection.
-- [ ] Ensure all backend environments have `INTERNAL_TOKEN` set correctly to allow proxy header trusting.
+- [ ] Consider consolidating both logical partitions into a single collection if data drift becomes an issue.
+- [ ] Verify if `Faculty` users also need similar recovery logic during their first login/onboarding.
