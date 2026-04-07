@@ -72,7 +72,7 @@ interface DashboardData {
 }
 
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/components/AuthProvider";
 
 export default function FacultyDashboard() {
   const router = useRouter();

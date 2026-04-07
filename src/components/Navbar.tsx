@@ -1,7 +1,9 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "@/components/AuthProvider";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Magnetic from "@/components/Magnetic";
@@ -51,7 +53,8 @@ function NavbarInner() {
   const tabs = getTabs();
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/login" });
+    await signOut(auth);
+    router.push("/login");
   };
 
   return (

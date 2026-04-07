@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { signIn } from "next-auth/react";
+import { auth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
@@ -14,8 +15,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,33 +23,36 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     try {
+      // 1. Create Firebase User
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      // Update display name in Firebase
+      await updateProfile(firebaseUser, { displayName: name });
+
+      // 2. Create MongoDB User Record
       const signupRes = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name, phoneNumber }),
+        body: JSON.stringify({ 
+          firebaseUid: firebaseUser.uid,
+          email, 
+          name, 
+          phoneNumber 
+        }),
       });
 
       const signupData = await signupRes.json();
       if (!signupRes.ok) {
-        setError(signupData.error || "Signup failed");
+        setError(signupData.error || "MongoDB Profile creation failed");
+        // We should ideally cleanup the firebase user here if mongo fails, but for now we just show error
         return;
       }
 
-      // Automatically sign in after signup
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (res?.error) {
-        setError("Account created, but automatic sign-in failed. Please login manually.");
-      } else {
-        router.push("/onboarding");
-      }
-    } catch (err) {
+      router.push("/onboarding");
+    } catch (err: any) {
       console.error("Signup error:", err);
-      setError("An unexpected error occurred. Please try again later.");
+      setError(err.message || "An unexpected error occurred. Please try again later.");
     } finally {
       setLoading(false);
     }

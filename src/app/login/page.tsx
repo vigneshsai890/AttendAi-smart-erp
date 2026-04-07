@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useSession } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -32,21 +34,15 @@ function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (res?.error) {
-        setError(res?.error === "CredentialsSignin" ? "Invalid email or password" : res.error);
-      } else {
-        // Successful login, wait for session update
-        router.refresh();
-      }
-    } catch (err) {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Let the onAuthStateChanged in AuthProvider handle the rest and trigger the useEffect below
+    } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
-      setError("Sign in failed. Please try again.");
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+         setError("Invalid email or password");
+      } else {
+         setError(err.message || "Sign in failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

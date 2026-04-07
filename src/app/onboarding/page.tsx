@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/components/AuthProvider";
 import { finalizeStudentProfile } from "@/lib/identity";
 import { motion, AnimatePresence } from "framer-motion";
 import { 

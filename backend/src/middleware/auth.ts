@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { adminAuth } from '../lib/firebase-admin.js';
+import { User } from '../models/User.js';
 
 /**
  * Universal Session Middleware
- * Verifies sessions from Next-Auth via shared MongoDB or internal proxy header
+ * Verifies sessions via Firebase ID Tokens
  */
 export const universalAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -24,54 +26,35 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
       }
     }
 
-    // 1. Next-Auth Session Lookup (Shared MongoDB)
-    const cookies = req.headers.cookie || "";
-    const sessionToken = cookies.split('; ').find(row => row.startsWith('next-auth.session-token='))?.split('=')[1] ||
-                        cookies.split('; ').find(row => row.startsWith('__Secure-next-auth.session-token='))?.split('=')[1];
-
-    if (sessionToken) {
-      const db = mongoose.connection.db;
-      if (db) {
-        // Next-Auth usually creates 'sessions' and 'users'
-        const session = await db.collection("sessions").findOne({ sessionToken });
-        if (session && session.expires > new Date()) {
-          const user = await db.collection("users").findOne({ _id: session.userId });
-          if (user) {
-            (req as any).session = { user };
-            (req as any).user = {
-              id: user._id.toString(),
-              role: user.role || "STUDENT",
-              email: user.email,
-              name: user.name,
-              isProfileComplete: user.isProfileComplete
-            };
-            return next();
-          }
+    // 1. Firebase Token Verification
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        
+        // Find corresponding user in MongoDB using firebaseUid
+        const user = await User.findOne({ firebaseUid: decodedToken.uid });
+        if (user) {
+          (req as any).user = {
+            id: user._id.toString(),
+            firebaseUid: decodedToken.uid,
+            role: user.role || "STUDENT",
+            email: user.email,
+            name: user.name,
+            isProfileComplete: user.isProfileComplete
+          };
+          (req as any).session = { user: (req as any).user };
+          return next();
+        } else {
+          console.warn(`⚠️ [AUTH] Verified Firebase token but no MongoDB user found for uid: ${decodedToken.uid}`);
         }
+      } catch (tokenError) {
+        console.error("❌ [AUTH] Firebase token verification failed:", tokenError);
       }
     }
 
-    // 3. Last Resort: Check if it's an internal proxy call with userId passed
-    const { userId } = req.query;
-    if (userId && (req as any).isInternal) {
-       const db = mongoose.connection.db;
-       if (db) {
-         // Check both collections for user
-         const user = await db.collection("user").findOne({ _id: new mongoose.Types.ObjectId(userId as string) }) ||
-                      await db.collection("users").findOne({ _id: new mongoose.Types.ObjectId(userId as string) });
-         if (user) {
-           (req as any).user = {
-             id: user._id.toString(),
-             role: user.role || "STUDENT",
-             email: user.email,
-             name: user.name
-           };
-           return next();
-         }
-       }
-    }
-
-    return res.status(401).json({ error: "Unauthorized: No active session" });
+    return res.status(401).json({ error: "Unauthorized: No active session or valid token" });
   } catch (err) {
     console.error("Auth Middleware Error:", err);
     res.status(500).json({ error: "Authentication protocol failure" });

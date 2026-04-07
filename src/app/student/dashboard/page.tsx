@@ -28,7 +28,7 @@ interface DashboardData {
 }
 
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/components/AuthProvider";
 
 function DashboardContent() {
   const router = useRouter();

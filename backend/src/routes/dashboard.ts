@@ -25,10 +25,17 @@ const router = express.Router();
 router.post('/onboard', async (req: Request, res: Response) => {
   try {
     const { userId, department, specialization, rollNumber, regNumber } = req.body;
-    console.log(`📡 [ONBOARD] Received userId: ${userId}`);
-    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
+    console.log(`📡 [ONBOARD] Received userId/firebaseUid: ${userId}`);
+    if (!userId) return res.status(400).json({ success: false, error: 'userId/firebaseUid is required' });
 
-    const user = await User.findById(userId);
+    // In the new Firebase setup, the frontend sends the firebaseUid as 'userId'
+    let user = await User.findOne({ firebaseUid: userId });
+    
+    // Fallback if userId was actually the Mongo ID
+    if (!user && mongoose.Types.ObjectId.isValid(userId)) {
+        user = await User.findById(userId);
+    }
+
     if (!user) {
       console.error(`❌ [ONBOARD] User not found in DB: ${userId}`);
       return res.status(404).json({ success: false, error: 'User not found' });

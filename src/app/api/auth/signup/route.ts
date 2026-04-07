@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
-import bcrypt from "bcryptjs";
 
 const MONGO_URI = process.env.MONGO_URI || "";
 
 export async function POST(req: Request) {
   try {
-    const { email, password, name, phoneNumber } = await req.json();
+    const { firebaseUid, email, name, phoneNumber } = await req.json();
 
-    if (!email || !password || !name) {
+    if (!firebaseUid || !email || !name) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -21,14 +20,18 @@ export async function POST(req: Request) {
       // Check if user already exists
       const existingUser = await collection.findOne({ email });
       if (existingUser) {
+        // If they exist but don't have a firebaseUid, we could potentially link them here, 
+        // but for now let's just return an error or update them.
+        if (!existingUser.firebaseUid) {
+           await collection.updateOne({ _id: existingUser._id }, { $set: { firebaseUid } });
+           return NextResponse.json({ message: "Linked existing user to Firebase", userId: existingUser._id.toString() }, { status: 200 });
+        }
         return NextResponse.json({ error: "User with this email already exists" }, { status: 400 });
       }
 
-      const passwordHash = await bcrypt.hash(password, 10);
-
       const result = await collection.insertOne({
+        firebaseUid,
         email,
-        passwordHash,
         name,
         phoneNumber,
         role: "STUDENT",

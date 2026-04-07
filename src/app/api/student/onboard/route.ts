@@ -1,31 +1,36 @@
 export const dynamic = "force-dynamic";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/next-auth";
 import { backend } from "@/lib/backend";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const user = session.user as any;
-    const userData = Buffer.from(JSON.stringify({
-      id: user.id,
-      role: user.role,
-      email: user.email,
-      name: user.name,
-      isProfileComplete: user.isProfileComplete
-    })).toString("base64");
-
+    // We expect the client to send the Firebase ID Token
+    // We just proxy it to the backend where verification happens
     const body = await req.json();
+    
+    // We also need to extract uid for the onboard body if the backend expects userId.
+    // The backend middleware will attach the real user to req.user after verifying.
+    // For safety, let the backend infer userId from the token, or decode the token here
+    // just to fulfill the payload requirement.
+    const token = authHeader.split("Bearer ")[1];
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join('')));
+    
+    const firebaseUid = decoded.user_id;
+
     const res = await backend.post("/dashboard/onboard", {
       ...body,
-      userId: user.id,
+      userId: firebaseUid, // Temporarily pass firebaseUid, backend must handle this
     }, {
       headers: {
-        "x-user-data": userData
+        "Authorization": authHeader
       }
     });
     return NextResponse.json(res.data);
