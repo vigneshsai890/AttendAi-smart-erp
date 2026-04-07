@@ -20,15 +20,27 @@ export function generateRegistrationId(department: string = "GEN"): string {
 
 /**
  * Onboarding Helper: Complete the student profile with generated identities
+ * @param userId - The MongoDB _id of the user
+ * @param specialization - Selected specialization
+ * @param department - Selected department code
+ * @param authToken - Firebase ID token for authenticating API calls
  */
-export async function finalizeStudentProfile(userId: string, specialization: string, department: string) {
+export async function finalizeStudentProfile(
+  userId: string,
+  specialization: string,
+  department: string,
+  authToken: string
+) {
   const studentId = generateStudentId();
   const regId = generateRegistrationId(department);
 
   // Call the proxy API to create the backend Student record
   const res = await fetch("/api/student/onboard", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${authToken}`,
+    },
     body: JSON.stringify({
       userId,
       department,
@@ -39,7 +51,7 @@ export async function finalizeStudentProfile(userId: string, specialization: str
   });
 
   if (!res.ok) {
-    const errorData = await res.json();
+    const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(errorData.error || "Failed to synchronize profile with backend");
   }
 

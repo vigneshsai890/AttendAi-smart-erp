@@ -37,17 +37,9 @@ function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       console.log("[AUTH_DEBUG] Firebase signIn success, waiting for AuthProvider sync...");
-      // We don't call setLoading(false) here because we want to wait for the redirect 
-      // in the useEffect that depends on session status.
-      // However, we should add a timeout just in case the sync never finishes.
-      setTimeout(() => {
-        if (status !== "authenticated") {
-          console.warn("[AUTH_DEBUG] Login timeout: AuthProvider sync taking too long");
-          setLoading(false);
-          // If after 10 seconds we're still not authenticated, something is wrong with the bridge
-          setError("Session sync is taking longer than expected. Please refresh.");
-        }
-      }, 10000);
+      // Don't setLoading(false) here — the useEffect watching `status` will handle it.
+      // The AuthProvider's onAuthStateChanged will fire, fetch the MongoDB profile,
+      // and once status changes to "authenticated", the redirect useEffect will trigger.
     } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
       setLoading(false);

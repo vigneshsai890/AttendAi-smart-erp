@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/components/AuthProvider";
+import { useSession, getAuthToken } from "@/components/AuthProvider";
 import { finalizeStudentProfile } from "@/lib/identity";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -53,14 +53,27 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
     try {
-      if (!user?.id) throw new Error("No session found");
+      // Get the Firebase auth token
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        throw new Error("Authentication token not available. Please log in again.");
+      }
+
+      if (!user?.id) throw new Error("No session found. Please log in again.");
       
-      const profile = await finalizeStudentProfile(user.id, specialization, department);
+      console.log("[ONBOARD] Finalizing profile for userId:", user.id, "department:", department, "spec:", specialization);
       
-      // Update the user record via our new API
+      const profile = await finalizeStudentProfile(user.id, specialization, department, authToken);
+      
+      console.log("[ONBOARD] Profile created, updating MongoDB record...");
+      
+      // Update the user record via our API — send auth token!
       const updateRes = await fetch("/api/user/update-profile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           studentId: profile.studentId,
           regId: profile.regId,
@@ -70,8 +83,12 @@ export default function OnboardingPage() {
       });
 
       if (!updateRes.ok) {
-        throw new Error("Failed to update profile record");
+        const errData = await updateRes.json().catch(() => ({}));
+        console.error("[ONBOARD] Profile update failed:", errData);
+        throw new Error(errData.error || "Failed to update profile record");
       }
+
+      console.log("[ONBOARD] Profile update successful!");
 
       // Refresh session to pick up isProfileComplete: true
       router.refresh();
@@ -79,6 +96,7 @@ export default function OnboardingPage() {
       setResult(profile);
       setStep(3); // Result/Welcome screen
     } catch (err: any) {
+      console.error("[ONBOARD] Error:", err);
       setError(err.message || "Failed to finalize profile");
     } finally {
       setLoading(false);

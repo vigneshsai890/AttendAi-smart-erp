@@ -28,7 +28,7 @@ interface DashboardData {
 }
 
 import { useRouter } from "next/navigation";
-import { useSession } from "@/components/AuthProvider";
+import { useSession, getAuthToken } from "@/components/AuthProvider";
 
 function DashboardContent() {
   const router = useRouter();
@@ -67,13 +67,35 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/student/dashboard")
-      .then(r => r.json())
-      .then(d => {
-        setData(d);
+    const fetchDashboard = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) {
+          console.warn("[DASHBOARD] No auth token available, redirecting to login");
+          setLoading(false);
+          return;
+        }
+        const res = await fetch("/api/student/dashboard", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const d = await res.json();
+          setData(d);
+        } else {
+          console.error("[DASHBOARD] Failed to fetch:", res.status);
+        }
+      } catch (err) {
+        console.error("[DASHBOARD] Fetch error:", err);
+      } finally {
         setLoading(false);
-      });
-  }, []);
+      }
+    };
+    if (!isPending && session) {
+      fetchDashboard();
+    }
+  }, [isPending, session]);
 
   if (loading || !data) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center">

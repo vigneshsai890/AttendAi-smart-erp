@@ -26,6 +26,35 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+/**
+ * Get the current Firebase ID token for API calls.
+ * Returns null if user is not signed in.
+ */
+export async function getAuthToken(): Promise<string | null> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) return null;
+  try {
+    return await currentUser.getIdToken();
+  } catch (error) {
+    console.error("[AUTH] Failed to get ID token:", error);
+    return null;
+  }
+}
+
+/**
+ * Helper to create auth headers for fetch calls.
+ * Usage: const headers = await getAuthHeaders();
+ *        fetch("/api/something", { headers })
+ */
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getAuthToken();
+  if (!token) return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+  };
+}
+
 export const useSession = () => {
   const context = useContext(AuthContext);
   return {
@@ -47,12 +76,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       
       if (currentFirebaseUser) {
         setLoading(true);
-        // Now fetch the MongoDB profile using the Firebase token
         try {
           const token = await currentFirebaseUser.getIdToken();
           console.log("[AUTH_DEBUG] Fetching MongoDB profile...");
-          // We need an API route to securely fetch the MongoDB user profile 
-          // based on the Firebase token.
+          
           const res = await fetch("/api/auth/me", {
             headers: {
               "Authorization": `Bearer ${token}`
@@ -64,8 +91,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
             setUser(data.user);
           } else {
-            console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status);
-            setUser(null);
+            const errData = await res.json().catch(() => ({}));
+            console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status, errData);
+            // If 404 — user just signed up via Firebase and the MongoDB record may not exist yet.
+            // This is expected during signup flow — the signup page will create the record.
+            if (res.status === 404) {
+              console.log("[AUTH_DEBUG] User not in MongoDB yet (new signup). Setting minimal user from Firebase.");
+              setUser(null); // Keep null — signup page will handle creation
+            } else {
+              setUser(null);
+            }
           }
         } catch (error) {
           console.error("[AUTH_DEBUG] Error fetching user profile:", error);
