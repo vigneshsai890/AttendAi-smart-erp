@@ -73,6 +73,9 @@ export default function OnboardingPage() {
         throw new Error("Failed to update profile record");
       }
 
+      // Refresh session to pick up isProfileComplete: true
+      router.refresh();
+
       setResult(profile);
       setStep(3); // Result/Welcome screen
     } catch (err: any) {
@@ -174,6 +177,12 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 </div>
+
+                {error && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] font-bold text-center">
+                    {error}
+                  </div>
+                )}
 
                 <Magnetic strength={0.3}>
                   <button 
