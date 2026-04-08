@@ -37,17 +37,7 @@ function LoginForm() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("[AUTH_DEBUG] Firebase signIn success, waiting for AuthProvider sync...");
-      
-      // Zombie State Safety Net: If the user was already logged in to Firebase but we threw them onto the login page
-      // because of a missing MongoDB DB record previously, Firebase's onAuthStateChanged will NOT fire locally since
-      // the logged-in user technically hasn't changed. We aggressively perform a router redirect if nothing happens.
-      setTimeout(() => {
-         const firebaseUser = userCredential.user;
-         if (firebaseUser) {
-           console.log("[AUTH_DEBUG] Safety timeout triggered. Force redirecting to break out of UI freeze.");
-           window.location.href = "/student/dashboard";
-         }
-      }, 1500);
+      // No safety timeout — let AuthProvider handle it naturally
     } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
       setLoading(false);
@@ -74,13 +64,13 @@ function LoginForm() {
       const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
 
       if (!user?.isProfileComplete && userRole === "STUDENT") {
-        router.push("/onboarding");
+        router.replace("/onboarding");
         return;
       }
 
-      if (userRole === "ADMIN") router.push("/admin");
-      else if (userRole === "FACULTY") router.push("/faculty/dashboard");
-      else router.push("/student/dashboard");
+      if (userRole === "ADMIN") router.replace("/admin");
+      else if (userRole === "FACULTY") router.replace("/faculty/dashboard");
+      else router.replace("/student/dashboard");
     } else if (status === "authenticated" && !session?.user) {
       // This is the case where Firebase is logged in but MongoDB profile fetch failed
       console.error("[AUTH_DEBUG] Firebase logged in but MongoDB profile missing");
@@ -99,9 +89,9 @@ function LoginForm() {
       {/* Global Nav */}
       <nav className="fixed top-0 left-0 right-0 z-[100] h-12 bg-black/80 backdrop-blur-md border-b border-[#333336] flex items-center justify-center px-4 md:px-8">
         <div className="w-full max-w-[1024px] flex items-center justify-between">
-          <Link href="/" className="text-white hover:opacity-70 transition-opacity">
+          <div className="text-white hover:opacity-70 transition-opacity cursor-default">
             <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 2L2 22h20L12 2zm0 4l7.5 15h-15L12 6z"/></svg>
-          </Link>
+          </div>
           <div className="flex items-center gap-4">
             <Link href="/signup" className="text-[12px] font-normal text-[#f5f5f7] hover:text-white transition-colors">
               Sign Up
