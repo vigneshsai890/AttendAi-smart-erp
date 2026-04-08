@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAuthToken } from "@/components/AuthProvider";
 import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/Toast";
@@ -25,7 +26,8 @@ export default function SecuritySettings() {
   const setupTwoFA = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+      const t = await getAuthToken();
+      const res = await fetch("/api/auth/2fa/setup", { method: "POST", headers: { Authorization: `Bearer ${t}` } });
       const data = await res.json();
       if (data.error) { showToast(`❌ ${data.error}`); return; }
       setQrCode(data.qrCodeImage);
@@ -37,9 +39,11 @@ export default function SecuritySettings() {
   const verifyTwoFA = async () => {
     setLoading(true);
     try {
+      const t = await getAuthToken();
       const res = await fetch("/api/auth/2fa/verify", {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        
         body: JSON.stringify({ token }),
       });
       const data = await res.json();

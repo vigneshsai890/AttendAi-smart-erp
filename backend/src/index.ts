@@ -14,7 +14,7 @@ import { debugRouter } from './routes/debug.js';
 import { adminRouter } from './routes/admin.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { universalAuthMiddleware } from './middleware/auth.js';
-import { AuthenticatedRequest } from './lib/types.js';
+
 
 dotenv.config();
 
@@ -22,7 +22,7 @@ const app = express();
 const server = http.createServer(app);
 
 // --- 0. ULTIMATE DEBUG & PATH SNIFFER ---
-app.use((req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   // INTERNAL TOKEN BYPASS (Highest Priority)
   const internalToken = req.headers['x-internal-token'];
   if (internalToken && internalToken === ENV.internalToken) {
@@ -114,20 +114,19 @@ app.use('/api', (req, res, next) => {
   }
 
   // Bypass session check if already authenticated via internal token higher up
-  if ((req as AuthenticatedRequest).isInternal) {
+  if (req.isInternal) {
     return next();
   }
 
-  return universalAuthMiddleware(req as AuthenticatedRequest, res, next);
+  return universalAuthMiddleware(req, res, next);
 });
 
 // Explicitly add /api/auth/me with the middleware (since /auth bypasses the global one above)
-app.get('/api/auth/me', universalAuthMiddleware as any, (req: Request, res: Response) => {
-  const authReq = req as AuthenticatedRequest;
-  if (!authReq.user) {
+app.get('/api/auth/me', universalAuthMiddleware, (req: Request, res: Response) => {
+  if (!req.user) {
     return res.status(404).json({ error: 'User profile not found' });
   }
-  return res.json({ user: authReq.user });
+  return res.json({ user: req.user });
 });
 
 app.use('/api/session', sessionRouter);

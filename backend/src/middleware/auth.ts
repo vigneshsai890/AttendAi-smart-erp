@@ -1,14 +1,9 @@
-import { Response, NextFunction } from 'express';
-import { adminAuth } from '../lib/firebase-admin.js';
 import { User } from '../models/User.js';
+import { Request, Response, NextFunction } from 'express';
+import { adminAuth } from '../lib/firebase-admin.js';
+import { AuthenticatedUser } from '../types/auth.js';
 
-/**
- * Universal Session Middleware
- * Verifies sessions via Firebase ID Tokens
- */
-import { AuthenticatedRequest, AuthenticatedUser } from '../lib/types.js';
-
-export const universalAuthMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const universalAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // 0. Trusted Internal Proxy (Highest Priority)
     // If the request comes from our own frontend with a valid internal token
@@ -95,7 +90,7 @@ export const universalAuthMiddleware = async (req: AuthenticatedRequest, res: Re
  * Role-based Authorization Guard
  */
 export const requireRole = (roles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
     if (!user || !roles.includes(user.role)) {
       return res.status(403).json({ error: "Forbidden: Insufficient privileges" });

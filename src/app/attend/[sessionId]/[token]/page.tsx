@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAuthToken } from "@/components/AuthProvider";
 import { useParams } from "next/navigation";
 import Background from "@/components/Background";
 import Magnetic from "@/components/Magnetic";
@@ -42,9 +43,11 @@ export default function AttendPage() {
         return;
       }
 
+      const t = await getAuthToken();
       const res = await fetch("/api/attendance/mark", {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        
         body: JSON.stringify({
           sessionId,
           qrToken: token,

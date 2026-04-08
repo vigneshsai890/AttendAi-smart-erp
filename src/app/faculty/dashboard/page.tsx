@@ -7,6 +7,15 @@ import { useToast } from "@/components/Toast";
 import TiltCard from "@/components/TiltCard";
 import io from "socket.io-client";
 import axios from "axios";
+import { getAuthToken } from "@/components/AuthProvider";
+
+axios.interceptors.request.use(async (config) => {
+  const token = await getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown, Users, ShieldAlert, Activity,

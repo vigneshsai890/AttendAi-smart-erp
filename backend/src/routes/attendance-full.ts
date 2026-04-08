@@ -12,16 +12,16 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import mongoose from 'mongoose';
+import { Server } from 'socket.io';
+
 
 const router = express.Router();
 
-// ULTRAMAX Sanitizers
-const isValidId = (id: any) => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
-const cleanStr = (str: any) => (typeof str === 'string' ? str : '');
+
 
 // Socket.io reference – set externally via setIo()
-let io: any;
-export const setIo = (socketIo: any) => {
+let io: Server | null = null;
+export const setIo = (socketIo: Server) => {
   io = socketIo;
 };
 
@@ -488,7 +488,8 @@ router.post('/mark', async (req: Request, res: Response) => {
     // Fetch user info for socket emission
     const user = await User.findById(userId, 'name email role');
     if (io) {
-      io.to(sessionId.toString()).emit('attendance_marked', {
+      const socketIo = io as Server;
+      socketIo.to(sessionId.toString()).emit('attendance_marked', {
         _id: record._id,
         sessionId: record.sessionId,
         userId: record.userId,

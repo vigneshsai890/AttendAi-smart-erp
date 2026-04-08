@@ -7,7 +7,6 @@ import { AttendanceSession } from '../models/Session.js';
 import { AttendanceRecord } from '../models/Attendance.js';
 import { CourseAssignment } from '../models/CourseAssignment.js';
 import { Schedule } from '../models/Schedule.js';
-import { Exam } from '../models/Exam.js';
 import { ExamResult } from '../models/ExamResult.js';
 import { Notification } from '../models/Notification.js';
 import { ProxyAlert } from '../models/ProxyAlert.js';
@@ -17,6 +16,7 @@ import { generateSecret, generateURI, verify } from 'otplib';
 import mongoose from 'mongoose';
 import QRCode from 'qrcode';
 
+
 const router = express.Router();
 
 // ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 router.post('/onboard', async (req: Request, res: Response) => {
   try {
-    const { userId, department, specialization, rollNumber, regNumber } = req.body;
+    const { userId, department, rollNumber, regNumber } = req.body;
     console.log(`📡 [ONBOARD] Received userId/firebaseUid: ${userId}`);
     if (!userId) return res.status(400).json({ success: false, error: 'userId/firebaseUid is required' });
 
@@ -89,9 +89,10 @@ router.post('/onboard', async (req: Request, res: Response) => {
     }
 
     return res.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Onboarding error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    const err = error as Error;
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -100,20 +101,20 @@ router.post('/onboard', async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.get('/student', async (req: Request, res: Response) => {
   try {
-    const { userId } = req.query;
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, error: 'userId query param is required' });
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Missing User ID' });
     }
 
     // Unified User lookup (singular 'user' collection)
-    let user = await User.findById(userId);
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
     // --- Automatic Registration ID Generation ---
-    if (!user.registrationId) {
+    if (user && !user.registrationId) {
       const year = new Date().getFullYear();
       const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
       const newRegId = `ATD-${year}-${randomPart}`;
@@ -402,7 +403,7 @@ router.get('/student', async (req: Request, res: Response) => {
       })),
       activeSession: activeSessionPayload,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Student dashboard error:', error);
     return res.status(500).json({ success: false, error: (error as Error).message });
   }
@@ -413,9 +414,9 @@ router.get('/student', async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.get('/faculty', async (req: Request, res: Response) => {
   try {
-    const { userId } = req.query;
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, error: 'userId query param is required' });
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Missing User ID' });
     }
 
     const user = await User.findById(userId);
@@ -441,8 +442,8 @@ router.get('/faculty', async (req: Request, res: Response) => {
     }).populate('courseId');
 
     // Use the primary (first) course assignment
-    const primaryAssignment = courseAssignments[0] as any;
-    const course = primaryAssignment?.courseId as any;
+    const primaryAssignment = courseAssignments[0];
+    const course = primaryAssignment?.courseId;
 
     if (!course) {
       return res.json({

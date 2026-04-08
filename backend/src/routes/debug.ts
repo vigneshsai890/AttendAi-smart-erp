@@ -106,7 +106,7 @@ router.post('/seed-faculty', async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash('Faculty@123', 10);
     
     // 1. Ensure a default department exists
-    let dept = await mongoose.connection.db?.collection('departments').findOne({ code: 'CS' });
+    const dept = await mongoose.connection.db?.collection('departments').findOne({ code: 'CS' });
     let deptId;
     if (!dept) {
       const result = await mongoose.connection.db?.collection('departments').insertOne({

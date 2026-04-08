@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { getAuthToken } from "@/components/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import Background from "@/components/Background";
 import Navbar from "@/components/Navbar";
@@ -53,16 +54,16 @@ export default function AdminPanel() {
     setLoading(true);
     try {
       if (tab === "students") {
-        const r = await fetch(`/api/admin/students?search=${search}`);
+        const t = await getAuthToken(); const r = await fetch(`/api/admin/students?search=${search}`, { headers: { Authorization: `Bearer ${t}` }});
         const d = await r.json(); setStudents(d.students || []);
       } else if (tab === "faculty") {
-        const r = await fetch("/api/admin/faculty");
+        const t = await getAuthToken(); const r = await fetch("/api/admin/faculty", { headers: { Authorization: `Bearer ${t}` }});
         const d = await r.json(); setFaculty(d.faculty || []);
       } else if (tab === "courses") {
-        const r = await fetch("/api/admin/courses");
+        const t = await getAuthToken(); const r = await fetch("/api/admin/courses", { headers: { Authorization: `Bearer ${t}` }});
         const d = await r.json(); setCourses(d.courses || []);
       } else {
-        const r = await fetch("/api/admin/departments");
+        const t = await getAuthToken(); const r = await fetch("/api/admin/departments", { headers: { Authorization: `Bearer ${t}` }});
         const d = await r.json(); setDepartments(d.departments || []);
       }
     } catch { showToast("❌ Failed to load data", "error"); }
@@ -89,7 +90,7 @@ export default function AdminPanel() {
         body = { code: form.code, name: form.name, description: form.description, sections: form.sectionNames ? form.sectionNames.split(",").map(s => ({ name: s.trim(), year: 1, batchYear: new Date().getFullYear() })) : [] };
       }
 
-      const r = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const t = await getAuthToken(); const r = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${t}` }, body: JSON.stringify(body) });
       const d = await r.json();
       if (r.ok) { showToast(`✅ ${tab.slice(0, -1)} created!`, "success"); setModal(null); setForm({}); fetchData(); }
       else showToast(`❌ ${d.error}`, "error");
@@ -100,7 +101,7 @@ export default function AdminPanel() {
   const handleDelete = async (type: string, id: string) => {
     if (!confirm("Are you sure you want to delete this record?")) return;
     try {
-      const r = await fetch(`/api/admin/${type}/${id}`, { method: "DELETE" });
+      const t = await getAuthToken(); const r = await fetch(`/api/admin/${type}/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } });
       if (r.ok) { showToast("✅ Deleted!", "success"); fetchData(); }
       else { const d = await r.json(); showToast(`❌ ${d.error}`, "error"); }
     } catch { showToast("❌ Failed to delete", "error"); }

@@ -3,12 +3,20 @@ import { Session } from '../models/Session.js';
 import { Attendance } from '../models/Attendance.js';
 import jwt from 'jsonwebtoken';
 
+import { Server } from 'socket.io';
+
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-qr-key';
 
+interface QRDecoded {
+  sessionId: string;
+  iat: number;
+  exp: number;
+}
+
 // Socket.io reference – set externally via setIo()
-let io: any;
-export const setIo = (socketIo: any) => {
+let io: Server | null = null;
+export const setIo = (socketIo: Server) => {
   io = socketIo;
 };
 
@@ -29,9 +37,9 @@ router.post('/scan-attendance', async (req: Request, res: Response) => {
   try {
     const { token, studentId, latitude, longitude, deviceFingerprint } = req.body;
 
-    let decoded: any;
+    let decoded: QRDecoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, JWT_SECRET) as unknown as QRDecoded;
     } catch (err) {
       return res.status(400).json({ success: false, error: 'QR Code Expired or Invalid' });
     }

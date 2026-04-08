@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getAuthToken } from "@/components/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Background from "@/components/Background";
@@ -20,7 +21,8 @@ export default function TwoFactorSetup() {
   const generateSecret = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/2fa/setup", { method: "POST" });
+      const t = await getAuthToken();
+      const res = await fetch("/api/auth/2fa/setup", { method: "POST", headers: { Authorization: `Bearer ${t}` } });
       const data = await res.json();
       if (res.ok) {
         setQrCode(data.qrCodeImage);
@@ -40,9 +42,11 @@ export default function TwoFactorSetup() {
     setVerifying(true);
     setError("");
     try {
+      const t = await getAuthToken();
       const res = await fetch("/api/auth/2fa/verify", {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        
         body: JSON.stringify({ token }),
       });
       const data = await res.json();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getAuthToken } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import Background from "@/components/Background";
 import { Html5Qrcode } from "html5-qrcode";
@@ -115,9 +116,11 @@ export default function StudentScanPage() {
     const fp = `${navigator.userAgent}-${screen.width}x${screen.height}-${navigator.language}`;
 
     try {
+      const t = await getAuthToken();
       const res = await fetch("/api/attendance/mark", {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+
         body: JSON.stringify({
           sessionId: qrPayload?.sessionId,
           qrToken: qrPayload?.token,

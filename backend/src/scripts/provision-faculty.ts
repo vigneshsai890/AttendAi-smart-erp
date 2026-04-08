@@ -44,7 +44,7 @@ async function provision() {
     }
 
     // 3. Ensure Faculty profile exists
-    let faculty = await Faculty.findOne({ userId: user._id });
+    const faculty = await Faculty.findOne({ userId: user._id });
     if (!faculty) {
       console.log('Creating faculty profile...');
       await Faculty.create({
