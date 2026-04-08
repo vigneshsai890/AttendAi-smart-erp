@@ -13,9 +13,7 @@ export async function getSessionUser(req: Request) {
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
+    const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
 
     const decoded = JSON.parse(jsonPayload);
     const firebaseUid = decoded.user_id;
@@ -38,7 +36,21 @@ export async function getSessionUser(req: Request) {
         }
       }
 
-      if (!user) return null;
+      // Auto-healing: Create record if missing
+      if (!user) {
+        console.log(`[AUTH_UTILS] Auto-healing zombie user: ${email}. Creating missing MongoDB record.`);
+        const newUser = {
+          firebaseUid,
+          email,
+          name: decoded.name || (email ? email.split('@')[0] : "Student"),
+          role: "STUDENT",
+          isProfileComplete: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        const result = await collection.insertOne(newUser);
+        user = { _id: result.insertedId, ...newUser };
+      }
 
       return {
         id: user._id.toString(),
