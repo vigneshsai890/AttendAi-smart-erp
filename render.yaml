@@ -30,8 +30,6 @@ services:
           type: web
           name: attendai-backend
           property: host
-      - key: BETTER_AUTH_SECRET
-        generateValue: true
       - key: NODE_ENV
         value: production
 
