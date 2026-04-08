@@ -632,8 +632,8 @@ router.get('/faculty', async (req: Request, res: Response) => {
       },
       course: {
         id: courseId,
-        code: course.code,
-        name: course.name,
+        code: (course as any).code,
+        name: (course as any).name,
       },
       stats: {
         totalStudents: enrolledCount,
