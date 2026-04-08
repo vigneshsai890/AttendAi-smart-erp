@@ -76,8 +76,9 @@ export async function GET(req: Request) {
     } finally {
       await client.close();
     }
-  } catch (error: any) {
-    console.error("Auth me error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch (error) {
+    const err = error as Error;
+    console.error("Auth me error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }

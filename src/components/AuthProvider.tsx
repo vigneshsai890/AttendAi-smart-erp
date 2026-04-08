@@ -70,6 +70,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      console.error("[AUTH_DEBUG] Firebase Auth is not initialized properly!");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentFirebaseUser) => {
       console.log("[AUTH_DEBUG] Firebase Auth State Changed:", currentFirebaseUser?.email);
       setFirebaseUser(currentFirebaseUser);
