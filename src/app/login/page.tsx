@@ -71,13 +71,12 @@ function LoginForm() {
       if (userRole === "ADMIN") router.replace("/admin");
       else if (userRole === "FACULTY") router.replace("/faculty/dashboard");
       else router.replace("/student/dashboard");
-    } else if (status === "authenticated" && !session?.user) {
-      // This is the case where Firebase is logged in but MongoDB profile fetch failed
-      console.error("[AUTH_DEBUG] Firebase logged in but MongoDB profile missing");
-      setError("Your account exists but your profile could not be loaded. Please contact support.");
-      setLoading(false);
+    } else if (status === "authenticated" && !session?.user && !loading) {
+      // This is the case where Firebase is logged in but MongoDB profile fetch failed or user is new
+      console.log("[AUTH_DEBUG] Firebase logged in but MongoDB profile missing. Redirecting to onboarding.");
+      router.replace("/onboarding");
     }
-  }, [status, session, router]);
+  }, [status, session, router, loading]);
 
   const handlePhoneAuth = async (e: React.FormEvent) => {
     e.preventDefault();

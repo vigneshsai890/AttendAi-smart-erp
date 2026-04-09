@@ -60,7 +60,12 @@ export const useSession = () => {
   return {
     data: context.user ? { user: context.user } : null,
     firebaseUser: context.firebaseUser,
-    status: context.loading ? "loading" : context.user ? "authenticated" : "unauthenticated",
+    loading: context.loading,
+    status: context.loading 
+      ? "loading" 
+      : (context.user || context.firebaseUser) 
+        ? "authenticated" 
+        : "unauthenticated",
   };
 };
 

@@ -29,6 +29,7 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
       const token = authHeader.split('Bearer ')[1];
       try {
         const decodedToken = await adminAuth.verifyIdToken(token);
+        console.log(`🔍 [AUTH] Verified Firebase token for: ${decodedToken.email || decodedToken.uid}`);
         
         // Find corresponding user in MongoDB using firebaseUid
         let user = await User.findOne({ firebaseUid: decodedToken.uid });
@@ -49,14 +50,21 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
           const email = decodedToken.email;
           const name = decodedToken.name || email.split('@')[0] || "Student";
           
-          user = await User.create({
-            firebaseUid: decodedToken.uid,
-            email,
-            name,
-            role: "STUDENT",
-            isProfileComplete: false,
-            passwordHash: "", // Not used
-          });
+          try {
+            user = await User.create({
+              firebaseUid: decodedToken.uid,
+              email,
+              name,
+              role: "STUDENT",
+              isProfileComplete: false,
+              passwordHash: "", // Not used
+            });
+            console.log(`✅ [AUTH] Auto-healing successful for ${email}`);
+          } catch (createError: any) {
+            console.error(`❌ [AUTH] Auto-healing failed to create user:`, createError.message);
+            // Fallback: search one more time, maybe it was created by a concurrent request
+            user = await User.findOne({ email: decodedToken.email });
+          }
         }
 
         if (user) {
@@ -72,10 +80,10 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
           req.session = { user: authUser };
           return next();
         } else {
-          console.warn(`❌ [AUTH] Verified Firebase token but failed to auto-heal or find user for uid: ${decodedToken.uid}`);
+          console.warn(`❌ [AUTH] Verified Firebase token but failed to find/create user for uid: ${decodedToken.uid}`);
         }
-      } catch (tokenError) {
-        console.error("❌ [AUTH] Firebase token verification failed:", tokenError);
+      } catch (tokenError: any) {
+        console.error("❌ [AUTH] Firebase token verification failed:", tokenError.message);
       }
     }
 
