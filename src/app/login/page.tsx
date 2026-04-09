@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useSession } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,13 +15,14 @@ function LoginForm() {
   const { data: session, status } = useSession();
 
   const [role, setRole] = useState<"STUDENT" | "FACULTY">("STUDENT");
-  const [step, setStep] = useState<"SELECT" | "PHONE">("SELECT");
+  const [step, setStep] = useState<"SELECT" | "PHONE" | "FORGOT">("SELECT");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
     console.log("[AUTH_DEBUG] Attempting email login for:", email);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -47,6 +49,26 @@ function LoginForm() {
       } else {
          setError(err.message || "Sign in failed. Please try again.");
       }
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess("Reset link sent! Check your inbox.");
+      setTimeout(() => setStep("SELECT"), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -163,6 +185,15 @@ function LoginForm() {
                         className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
                       />
                     </div>
+                    <div className="flex justify-end">
+                      <button 
+                        type="button" 
+                        onClick={() => { setStep("FORGOT"); setError(""); setSuccess(""); }}
+                        className="text-[12px] font-medium text-[#2997ff] hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <button disabled={loading} className="w-full py-3.5 rounded-xl bg-[#f5f5f7] text-black text-[15px] font-medium hover:bg-white active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                       {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
                     </button>
@@ -246,6 +277,34 @@ function LoginForm() {
                   </form>
                 </motion.div>
               )}
+
+              {step === "FORGOT" && (
+                <motion.div
+                  key="forgot-password"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  <div className="text-center mb-4">
+                    <h2 className="text-xl font-semibold text-white">Reset Password</h2>
+                    <p className="text-[13px] text-[#86868b] mt-1">We'll send a recovery link to your email.</p>
+                  </div>
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <input
+                      type="email" required placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-xl bg-black border border-[#333336] text-[#f5f5f7] text-[15px] placeholder:text-[#86868b] focus:border-[#2997ff] focus:ring-1 focus:ring-[#2997ff] outline-none transition-all"
+                    />
+                    <button disabled={loading} className="w-full py-3.5 rounded-xl bg-[#2997ff] text-white text-[15px] font-medium hover:bg-[#0077ED] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                      {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Reset Link"}
+                    </button>
+                    <button type="button" onClick={() => setStep("SELECT")} className="w-full text-[13px] font-medium text-[#86868b] hover:text-white transition-colors mt-2 text-center">
+                      Back to sign in
+                    </button>
+                  </form>
+                </motion.div>
+              )}
             </AnimatePresence>
 
             <AnimatePresence>
@@ -255,6 +314,14 @@ function LoginForm() {
                   className="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-[#ff3b30] text-[13px] font-medium text-center"
                 >
                   {error}
+                </motion.div>
+              )}
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }}
+                  className="mt-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[#34c759] text-[13px] font-medium text-center"
+                >
+                  {success}
                 </motion.div>
               )}
             </AnimatePresence>
