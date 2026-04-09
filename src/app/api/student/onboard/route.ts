@@ -18,6 +18,14 @@ export async function POST(req: Request) {
 
     console.log("[ONBOARD_PROXY] User from session:", user.email, "MongoDB ID:", user.id);
 
+    const userData = Buffer.from(JSON.stringify({
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      name: user.name,
+      isProfileComplete: user.isProfileComplete
+    })).toString("base64");
+
     // Send to backend with the identity and basic profile info for auto-creation
     const res = await backend.post("/dashboard/onboard", {
       ...body,
@@ -28,6 +36,7 @@ export async function POST(req: Request) {
     }, {
       headers: {
         ...(authHeader ? { "Authorization": authHeader } : {}),
+        "x-user-data": userData
       }
     });
     return NextResponse.json(res.data);

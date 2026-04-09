@@ -32,12 +32,15 @@ export async function getSessionUser(req: Request) {
   try {
     const parts = token.split(".");
     if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
-      if (payload && payload.sub) {
-        console.log("[AUTH_UTILS] Fallback success. Identity:", payload.email || payload.sub);
+      // Use atob for better compatibility across Next.js environments
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(base64));
+      if (payload && (payload.sub || payload.user_id)) {
+        const uid = payload.sub || payload.user_id;
+        console.log("[AUTH_UTILS] Fallback success. Identity:", payload.email || uid);
         return {
-          id: payload.sub, // Use UID as temporary ID
-          firebaseUid: payload.sub,
+          id: uid, // Use UID as temporary ID
+          firebaseUid: uid,
           email: payload.email || "",
           name: payload.name || payload.email?.split("@")[0] || "User",
           role: "STUDENT", // Default to student during fallback
@@ -45,8 +48,8 @@ export async function getSessionUser(req: Request) {
         };
       }
     }
-  } catch (e) {
-    console.error("[AUTH_UTILS] Fatal: Failed to decode fallback token.");
+  } catch (e: any) {
+    console.error("[AUTH_UTILS] Fatal: Failed to decode fallback token:", e.message);
   }
 
   return null;
