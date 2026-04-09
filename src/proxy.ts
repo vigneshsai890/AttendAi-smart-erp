@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export default async function middleware(request: NextRequest) {
-  // Pure pass-through. Client-side AuthProvider handles protection.
+export async function proxy(request: NextRequest) {
+  // Let the client-side AuthProvider handle route protection
   return NextResponse.next();
 }
 

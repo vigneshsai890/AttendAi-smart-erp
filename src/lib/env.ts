@@ -7,7 +7,7 @@ const isProduction = process.env.NODE_ENV === "production" || !!process.env.REND
 
 // Final production URLs for Render deployment
 const PROD_FRONTEND_URL = "https://attendai-smart-erp.onrender.com";
-const PROD_BACKEND_URL = "https://attendai-backend.onrender.com";
+const PROD_BACKEND_URL = "https://attendai-backend-ynnd.onrender.com";
 
 export const ENV = {
   isProduction,
