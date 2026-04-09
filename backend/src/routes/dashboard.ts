@@ -438,14 +438,23 @@ router.get('/student', async (req: Request, res: Response) => {
 // ---------------------------------------------------------------------------
 router.get('/faculty', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || req.user?.firebaseUid;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized: Missing User ID' });
     }
 
-    const user = await User.findById(userId);
+    // Unified User lookup: try MongoDB ID then Firebase UID
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(userId);
+    }
+    
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      user = await User.findOne({ firebaseUid: userId });
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User profile not established' });
     }
 
     // Faculty profile with department
