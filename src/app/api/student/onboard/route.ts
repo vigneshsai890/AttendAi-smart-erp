@@ -9,6 +9,7 @@ export async function POST(req: Request) {
     // Authenticate using the Firebase token from the Authorization header
     const user = await getSessionUser(req);
     if (!user) {
+      console.warn("[ONBOARD_PROXY] Authentication check failed — getSessionUser returned null");
       return NextResponse.json({ error: "Unauthorized — no valid session" }, { status: 401 });
     }
 
@@ -17,11 +18,11 @@ export async function POST(req: Request) {
 
     console.log("[ONBOARD_PROXY] User from session:", user.email, "MongoDB ID:", user.id);
 
-    // Send to backend with the MongoDB userId (not firebaseUid)
-    // The backend /dashboard/onboard expects userId to find the User document
+    // Send to backend with the identity (could be MongoDB ID or Firebase UID)
     const res = await backend.post("/dashboard/onboard", {
       ...body,
-      userId: user.id, // Use the authenticated user's MongoDB _id
+      userId: user.id, 
+      firebaseUid: user.firebaseUid
     }, {
       headers: {
         ...(authHeader ? { "Authorization": authHeader } : {}),

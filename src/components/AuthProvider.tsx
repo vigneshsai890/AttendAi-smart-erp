@@ -102,9 +102,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         try {
           console.log("[AUTH_DEBUG] Fetching MongoDB profile...");
           
-          // 15 second timeout for production reliability
+          // 25 second timeout for production reliability (Render cold starts)
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
 
           const res = await fetch("/api/auth/me", {
             headers: { "Authorization": `Bearer ${token}` },

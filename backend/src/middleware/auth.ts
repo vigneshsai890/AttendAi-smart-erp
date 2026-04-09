@@ -27,6 +27,12 @@ export const universalAuthMiddleware = async (req: Request, res: Response, next:
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split('Bearer ')[1];
+      
+      if (!adminAuth) {
+        console.error("❌ [AUTH] Firebase Admin not initialized. Cannot verify token.");
+        return res.status(503).json({ error: "Authentication service temporarily unavailable" });
+      }
+
       try {
         const decodedToken = await adminAuth.verifyIdToken(token);
         console.log(`🔍 [AUTH] Verified Firebase token for: ${decodedToken.email || decodedToken.uid}`);
