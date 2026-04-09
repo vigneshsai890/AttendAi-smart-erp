@@ -112,14 +112,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             } else {
               const errData = await res.json().catch(() => ({}));
               console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status, errData);
-              // If 404 — user just signed up via Firebase and the MongoDB record may not exist yet.
-              // This is expected during signup flow — the signup page will create the record.
-              if (res.status === 404) {
-                console.log("[AUTH_DEBUG] User not in MongoDB yet (new signup). Setting minimal user from Firebase.");
-                setUser(null); // Keep null — signup page will handle creation
-              } else {
-                setUser(null);
-              }
+              
+              // Fallback: If Firebase is valid but MongoDB is missing, provide a "partial" user
+              // so the onboarding flow doesn't crash. Use firebaseUid as the temporary ID.
+              console.log("[AUTH_DEBUG] Setting fallback partial user from Firebase credentials.");
+              setUser({
+                id: currentFirebaseUser.uid, 
+                firebaseUid: currentFirebaseUser.uid,
+                email: currentFirebaseUser.email || "",
+                name: currentFirebaseUser.displayName || currentFirebaseUser.email?.split('@')[0] || "User",
+                role: "STUDENT",
+                isProfileComplete: false
+              });
             }
           } catch (fetchErr: any) {
             if (fetchErr.name === 'AbortError') {
