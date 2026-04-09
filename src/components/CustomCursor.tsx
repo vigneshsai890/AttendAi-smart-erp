@@ -17,15 +17,12 @@ export default function CustomCursor() {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
     };
-
     const handleHover = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       setIsHovered(!!target.closest("button, a, input, select, [role='button']"));
     };
-
     window.addEventListener("mousemove", moveCursor);
     window.addEventListener("mouseover", handleHover);
-
     return () => {
       window.removeEventListener("mousemove", moveCursor);
       window.removeEventListener("mouseover", handleHover);
@@ -34,44 +31,11 @@ export default function CustomCursor() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999] hidden md:block">
-      {/* Main Cursor Dot */}
       <motion.div
-        className="fixed w-3 h-3 bg-white rounded-full mix-blend-difference"
-        style={{
-          x: cursorXSpring,
-          y: cursorYSpring,
-          translateX: "-50%",
-          translateY: "-50%",
-        }}
-        animate={{
-          scale: isHovered ? 2.5 : 1,
-        }}
-      />
-
-      {/* Outer Ring */}
-      <motion.div
-        className="fixed w-8 h-8 border border-white/20 rounded-full"
-        style={{
-          x: cursorXSpring,
-          y: cursorYSpring,
-          translateX: "-50%",
-          translateY: "-50%",
-        }}
-        animate={{
-          scale: isHovered ? 1.8 : 1,
-          opacity: isHovered ? 0.4 : 0.2,
-        }}
-      />
-
-      {/* Neural Glow */}
-      <motion.div
-        className="fixed w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"
-        style={{
-          x: cursorXSpring,
-          y: cursorYSpring,
-          translateX: "-50%",
-          translateY: "-50%",
-        }}
+        className="fixed w-2.5 h-2.5 bg-zinc-900 dark:bg-white rounded-full mix-blend-difference"
+        style={{ x: cursorXSpring, y: cursorYSpring, translateX: "-50%", translateY: "-50%" }}
+        animate={{ scale: isHovered ? 2.5 : 1 }}
+        transition={{ type: "spring", damping: 20, stiffness: 300 }}
       />
     </div>
   );
