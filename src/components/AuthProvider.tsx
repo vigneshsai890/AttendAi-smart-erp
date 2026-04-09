@@ -87,57 +87,43 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       
       if (currentFirebaseUser) {
         setLoading(true);
+        const token = await currentFirebaseUser.getIdToken();
+        
+        // Critical Fallback Object (used if MongoDB sync fails)
+        const fallbackUser: SessionUser = {
+          id: currentFirebaseUser.uid, // Use UID as temporary ID
+          firebaseUid: currentFirebaseUser.uid,
+          email: currentFirebaseUser.email || "",
+          name: currentFirebaseUser.displayName || currentFirebaseUser.email?.split('@')[0] || "User",
+          role: "STUDENT",
+          isProfileComplete: false
+        };
+
         try {
-          const token = await currentFirebaseUser.getIdToken();
           console.log("[AUTH_DEBUG] Fetching MongoDB profile...");
           
-          // Add a safety controller to avoid infinite hang
+          // 15 second timeout for production reliability
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-          try {
-            const res = await fetch("/api/auth/me", {
-              headers: {
-                "Authorization": `Bearer ${token}`
-              },
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (res.ok) {
-              const data = await res.json();
-              console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
-              setUser(data.user);
-            } else {
-              const errData = await res.json().catch(() => ({}));
-              console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status, errData);
-              
-              // Fallback: If Firebase is valid but MongoDB is missing, provide a "partial" user
-              // so the onboarding flow doesn't crash. Use firebaseUid as the temporary ID.
-              console.log("[AUTH_DEBUG] Setting fallback partial user from Firebase credentials.");
-              setUser({
-                id: currentFirebaseUser.uid, 
-                firebaseUid: currentFirebaseUser.uid,
-                email: currentFirebaseUser.email || "",
-                name: currentFirebaseUser.displayName || currentFirebaseUser.email?.split('@')[0] || "User",
-                role: "STUDENT",
-                isProfileComplete: false
-              });
-            }
-          } catch (fetchErr: any) {
-            if (fetchErr.name === 'AbortError') {
-              console.error("[AUTH_DEBUG] Profile fetch timed out after 10s");
-            } else {
-              console.error("[AUTH_DEBUG] Profile fetch error:", fetchErr);
-            }
-            setUser(null);
-          } finally {
-            clearTimeout(timeoutId);
+          const res = await fetch("/api/auth/me", {
+            headers: { "Authorization": `Bearer ${token}` },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (res.ok) {
+            const data = await res.json();
+            console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
+            setUser(data.user);
+          } else {
+            console.warn("[AUTH_DEBUG] MongoDB Profile sync failed. Status:", res.status);
+            setUser(fallbackUser);
           }
-        } catch (error) {
-          console.error("[AUTH_DEBUG] Error fetching user profile:", error);
-          setUser(null);
+        } catch (error: any) {
+          console.error("[AUTH_DEBUG] Profile sync error:", error.name === 'AbortError' ? 'Timeout' : error.message);
+          setUser(fallbackUser);
         }
       } else {
         setUser(null);

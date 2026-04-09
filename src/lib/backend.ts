@@ -5,7 +5,7 @@ const BACKEND_URL = ENV.backendUrl;
 
 export const backend: AxiosInstance = axios.create({
   baseURL: BACKEND_URL + "/api",
-  timeout: 15000, // Increased timeout for production reliability
+  timeout: 30000, // 30s timeout for production reliability (Render cold starts)
   headers: {
     "Content-Type": "application/json",
     "X-Internal-Token": ENV.internalToken,

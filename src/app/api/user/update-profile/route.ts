@@ -12,20 +12,31 @@ export async function POST(req: Request) {
     }
 
     const { studentId, regId, specialization, isProfileComplete } = await req.json();
-    const userId = user.id;
+    
+    // Identity can be either MongoDB _id or Firebase UID (in fallback case)
+    const identity = user.id;
 
-    if (!userId) {
-      return NextResponse.json({ error: "User ID not found" }, { status: 400 });
+    if (!identity) {
+      return NextResponse.json({ error: "User identity not found" }, { status: 400 });
     }
 
     const client = new MongoClient(MONGO_URI);
     try {
       await client.connect();
       const db = client.db();
-      const collection = db.collection("user"); // NextAuth collection
+      const collection = db.collection("user");
 
-      await collection.updateOne(
-        { _id: new ObjectId(userId) },
+      // Try to update by MongoDB _id first
+      let filter: any = {};
+      if (ObjectId.isValid(identity)) {
+        filter = { _id: new ObjectId(identity) };
+      } else {
+        // If not a valid ObjectId, it must be a Firebase UID
+        filter = { firebaseUid: identity };
+      }
+
+      const result = await collection.updateOne(
+        filter,
         {
           $set: {
             studentId,
@@ -36,6 +47,22 @@ export async function POST(req: Request) {
           },
         }
       );
+
+      if (result.matchedCount === 0) {
+         // Final fallback: try email from session
+         await collection.updateOne(
+            { email: user.email },
+            {
+              $set: {
+                studentId,
+                regId,
+                specialization,
+                isProfileComplete,
+                updatedAt: new Date(),
+              },
+            }
+         );
+      }
 
       return NextResponse.json({ message: "Profile updated successfully" });
     } finally {
