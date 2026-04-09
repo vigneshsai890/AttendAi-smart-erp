@@ -81,12 +81,11 @@ function LoginForm() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      console.log("[AUTH_DEBUG] User authenticated, redirecting based on role:", (session.user as any)?.role);
+      console.log("[AUTH_DEBUG] User authenticated, sync success. Role:", (session.user as any)?.role);
       const user = session.user as any;
-      const rawRole = String(user?.role || "").toUpperCase();
-      const userRole = rawRole === "USER" ? "STUDENT" : rawRole;
+      const userRole = String(user?.role || "").trim().toUpperCase();
 
-      if (!user?.isProfileComplete && userRole === "STUDENT") {
+      if (!user?.isProfileComplete && userRole !== "FACULTY" && userRole !== "ADMIN") {
         router.replace("/onboarding");
         return;
       }
