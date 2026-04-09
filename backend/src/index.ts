@@ -106,6 +106,19 @@ app.get('/api/debug/db-test', async (req, res) => {
 });
 
 // --- 4. SECURE API ROUTES ---
+
+// Define Auth router first to ensure /api/auth/me is matched correctly
+const authRouter = express.Router();
+authRouter.get('/me', universalAuthMiddleware, (req: Request, res: Response) => {
+  if (!req.user) {
+    console.error("❌ [AUTH_ME] Request passed middleware but req.user is missing");
+    return res.status(404).json({ error: 'User profile not found after verification' });
+  }
+  return res.json({ user: req.user });
+});
+
+app.use('/api/auth', authRouter);
+
 app.use('/api', (req, res, next) => {
   // Public routes bypass internal token check
   if (req.path.includes('/auth') || req.path.includes('/health')) {
@@ -118,14 +131,6 @@ app.use('/api', (req, res, next) => {
   }
 
   return universalAuthMiddleware(req, res, next);
-});
-
-// Explicitly add /api/auth/me with the middleware (since /auth bypasses the global one above)
-app.get('/api/auth/me', universalAuthMiddleware, (req: Request, res: Response) => {
-  if (!req.user) {
-    return res.status(404).json({ error: 'User profile not found' });
-  }
-  return res.json({ user: req.user });
 });
 
 app.use('/api/session', sessionRouter);

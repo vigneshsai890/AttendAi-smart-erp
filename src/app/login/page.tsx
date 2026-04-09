@@ -35,9 +35,10 @@ function LoginForm() {
     setError("");
     console.log("[AUTH_DEBUG] Attempting email login for:", email);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       console.log("[AUTH_DEBUG] Firebase signIn success, waiting for AuthProvider sync...");
-      // No safety timeout — let AuthProvider handle it naturally
+      // Explicitly clear loading after a short delay to allow AuthProvider state to settle
+      setTimeout(() => setLoading(false), 500);
     } catch (err: any) {
       console.error("[AUTH_DEBUG] Email login failed:", err);
       setLoading(false);
