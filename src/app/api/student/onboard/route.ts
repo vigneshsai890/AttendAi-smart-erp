@@ -18,11 +18,13 @@ export async function POST(req: Request) {
 
     console.log("[ONBOARD_PROXY] User from session:", user.email, "MongoDB ID:", user.id);
 
-    // Send to backend with the identity (could be MongoDB ID or Firebase UID)
+    // Send to backend with the identity and basic profile info for auto-creation
     const res = await backend.post("/dashboard/onboard", {
       ...body,
       userId: user.id, 
-      firebaseUid: user.firebaseUid
+      firebaseUid: user.firebaseUid,
+      email: user.email,
+      name: user.name
     }, {
       headers: {
         ...(authHeader ? { "Authorization": authHeader } : {}),

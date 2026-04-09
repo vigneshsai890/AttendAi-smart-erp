@@ -24,23 +24,40 @@ const router = express.Router();
 // ---------------------------------------------------------------------------
 router.post('/onboard', async (req: Request, res: Response) => {
   try {
-    const { userId, department, rollNumber, regNumber } = req.body;
-    console.log(`📡 [ONBOARD] Received userId/firebaseUid: ${userId}`);
-    if (!userId) return res.status(400).json({ success: false, error: 'userId/firebaseUid is required' });
+    const { userId, department, rollNumber, regNumber, email, name, firebaseUid } = req.body;
+    console.log(`📡 [ONBOARD] Received userId/firebaseUid: ${userId || firebaseUid}`);
+    if (!userId && !firebaseUid) return res.status(400).json({ success: false, error: 'userId/firebaseUid is required' });
 
     // In the new Firebase setup, the frontend sends the firebaseUid as 'userId'
-    let user = await User.findOne({ firebaseUid: userId });
+    let user = await User.findOne({ firebaseUid: userId || firebaseUid });
     
     // Fallback if userId was actually the Mongo ID
-    if (!user && mongoose.Types.ObjectId.isValid(userId)) {
+    if (!user && userId && mongoose.Types.ObjectId.isValid(userId)) {
         user = await User.findById(userId);
     }
 
-    if (!user) {
-      console.error(`❌ [ONBOARD] User not found in DB: ${userId}`);
-      return res.status(404).json({ success: false, error: 'User not found' });
+    // FINAL FALLBACK: If user still doesn't exist, CREATE them (Auto-Healing)
+    if (!user && email) {
+      console.warn(`⚠️ [ONBOARD] User not found, auto-creating record for: ${email}`);
+      try {
+        user = await User.create({
+          firebaseUid: userId || firebaseUid,
+          email: email.trim(),
+          name: (name || email.split('@')[0]).trim(),
+          role: 'STUDENT',
+          isProfileComplete: false
+        });
+        console.log(`✅ [ONBOARD] User created: ${user._id}`);
+      } catch (createErr: any) {
+        console.error(`❌ [ONBOARD] Failed to create user: ${createErr.message}`);
+      }
     }
-    console.log(`✅ [ONBOARD] User found: ${user.email} (Role: ${user.role})`);
+
+    if (!user) {
+      console.error(`❌ [ONBOARD] User not found in DB even after auto-heal attempt: ${userId || firebaseUid}`);
+      return res.status(404).json({ success: false, error: 'User record could not be established' });
+    }
+    console.log(`✅ [ONBOARD] User resolved: ${user.email} (Role: ${user.role})`);
 
     if (user.role === 'STUDENT') {
       // Check if student already exists
