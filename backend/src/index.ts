@@ -27,6 +27,22 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const internalToken = req.headers['x-internal-token'];
   if (internalToken && internalToken === ENV.internalToken) {
     req.isInternal = true;
+    
+    // We should still try to parse x-user-data if present to populate req.user
+    const userDataHeader = req.headers['x-user-data'];
+    if (userDataHeader) {
+      try {
+        const userData = JSON.parse(Buffer.from(userDataHeader as string, 'base64').toString());
+        if (userData && (userData.id || userData._id)) {
+          const id = userData.id || userData._id;
+          const user: AuthenticatedUser = { ...userData, id: id.toString() };
+          req.user = user;
+          req.session = { user };
+        }
+      } catch (e) {
+        console.error("❌ [AUTH] Failed to parse x-user-data header:", e);
+      }
+    }
     return next();
   }
 

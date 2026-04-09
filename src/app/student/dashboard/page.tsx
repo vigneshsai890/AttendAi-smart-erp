@@ -38,6 +38,7 @@ function DashboardContent() {
   const tab = searchParams.get("tab") || "classroom";
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -68,11 +69,12 @@ function DashboardContent() {
 
   useEffect(() => {
     const fetchDashboard = async () => {
+      setError(null);
       try {
         const token = await getAuthToken();
         if (!token) {
           console.warn("[DASHBOARD] No auth token available, redirecting to login");
-          setLoading(false);
+          router.push("/login");
           return;
         }
         const res = await fetch("/api/student/dashboard", {
@@ -84,10 +86,13 @@ function DashboardContent() {
           const d = await res.json();
           setData(d);
         } else {
-          console.error("[DASHBOARD] Failed to fetch:", res.status);
+          const errData = await res.json().catch(() => ({}));
+          console.error("[DASHBOARD] Failed to fetch:", res.status, errData);
+          setError(errData.error || `Error ${res.status}: Failed to synchronize with Neural Link.`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("[DASHBOARD] Fetch error:", err);
+        setError("Network Interrupt: Connection to Neural Hub lost.");
       } finally {
         setLoading(false);
       }
@@ -95,11 +100,40 @@ function DashboardContent() {
     if (!isPending && session) {
       fetchDashboard();
     }
-  }, [isPending, session]);
+  }, [isPending, session, router]);
 
-  if (loading || !data) return (
+  if (loading) return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-white/20 border-t-indigo-500 rounded-full animate-spin" />
+    </div>
+  );
+
+  if (error || !data) return (
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center">
+      <Background />
+      <div className="w-16 h-16 rounded-3xl bg-red-500/10 flex items-center justify-center text-red-500 mb-6 border border-red-500/20">
+        <ShieldAlert size={32} />
+      </div>
+      <h2 className="text-2xl font-black italic mb-2">Access Denied</h2>
+      <p className="text-white/40 text-sm max-w-xs mb-8">{error || "Neural Link could not be established."}</p>
+      <div className="flex gap-4">
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all"
+        >
+          Retry Sync
+        </button>
+        <button 
+          onClick={() => {
+            const { auth } = require("@/lib/firebase");
+            const { signOut } = require("firebase/auth");
+            signOut(auth).then(() => router.push("/login"));
+          }}
+          className="px-6 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all"
+        >
+          Logout
+        </button>
+      </div>
     </div>
   );
 
