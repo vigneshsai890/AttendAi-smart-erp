@@ -14,7 +14,8 @@ export async function POST(req: Request) {
     const client = new MongoClient(MONGO_URI);
     try {
       await client.connect();
-      const db = client.db();
+      // Explicitly target 'attendai' database to prevent data loss in 'test' DB
+      const db = client.db("attendai");
       const collection = db.collection("user");
 
       // Check if user already exists
