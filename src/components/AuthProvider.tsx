@@ -91,27 +91,45 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           const token = await currentFirebaseUser.getIdToken();
           console.log("[AUTH_DEBUG] Fetching MongoDB profile...");
           
-          const res = await fetch("/api/auth/me", {
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
-            setUser(data.user);
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status, errData);
-            // If 404 — user just signed up via Firebase and the MongoDB record may not exist yet.
-            // This is expected during signup flow — the signup page will create the record.
-            if (res.status === 404) {
-              console.log("[AUTH_DEBUG] User not in MongoDB yet (new signup). Setting minimal user from Firebase.");
-              setUser(null); // Keep null — signup page will handle creation
+          // Add a safety controller to avoid infinite hang
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          try {
+            const res = await fetch("/api/auth/me", {
+              headers: {
+                "Authorization": `Bearer ${token}`
+              },
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+              const data = await res.json();
+              console.log("[AUTH_DEBUG] MongoDB Profile sync success:", data.user?.email);
+              setUser(data.user);
             } else {
-              setUser(null);
+              const errData = await res.json().catch(() => ({}));
+              console.error("[AUTH_DEBUG] Failed to sync Firebase user with MongoDB profile. Status:", res.status, errData);
+              // If 404 — user just signed up via Firebase and the MongoDB record may not exist yet.
+              // This is expected during signup flow — the signup page will create the record.
+              if (res.status === 404) {
+                console.log("[AUTH_DEBUG] User not in MongoDB yet (new signup). Setting minimal user from Firebase.");
+                setUser(null); // Keep null — signup page will handle creation
+              } else {
+                setUser(null);
+              }
             }
+          } catch (fetchErr: any) {
+            if (fetchErr.name === 'AbortError') {
+              console.error("[AUTH_DEBUG] Profile fetch timed out after 10s");
+            } else {
+              console.error("[AUTH_DEBUG] Profile fetch error:", fetchErr);
+            }
+            setUser(null);
+          } finally {
+            clearTimeout(timeoutId);
           }
         } catch (error) {
           console.error("[AUTH_DEBUG] Error fetching user profile:", error);

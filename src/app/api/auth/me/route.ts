@@ -9,11 +9,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing token" }, { status: 401 });
     }
 
-    const targetUrl = backend.defaults.baseURL + "/api/auth/me";
+    const targetUrl = backend.defaults.baseURL + "/auth/me";
     console.log("[AUTH_ME] Proxying to backend:", targetUrl);
 
     // Call the Express backend to verify token and fetch/auto-heal profile
-    const res = await backend.get("/api/auth/me", {
+    const res = await backend.get("/auth/me", {
       headers: {
         "Authorization": authHeader
       }
