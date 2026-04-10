@@ -17,7 +17,7 @@ import {
   Layers, Clock, RefreshCw, AlertCircle, TrendingUp, ChevronDown,
   LogOut, Sun, Moon, Activity, BarChart3, ShieldCheck, Bell,
   Download, ChevronRight, Check, X, Wifi, WifiOff, Printer,
-  Keyboard, History
+  Keyboard, History, Loader2, Sparkles, Target, Eye
 } from "lucide-react";
 import { DEPARTMENTS, TIME_PERIODS } from "@/lib/constants";
 import { ENV } from "@/lib/env";
@@ -105,20 +105,30 @@ function StatCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: "easeOut" }}
-      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 flex flex-col gap-4"
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 flex flex-col gap-3 relative overflow-hidden group cursor-default"
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{label}</span>
-        <span className={`p-2 rounded-lg ${color}`}>{icon}</span>
+      {/* Decorative background circle */}
+      <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-700 bg-current" style={{ color: color.includes("indigo") ? "#6366f1" : color.includes("amber") ? "#f59e0b" : color.includes("red") ? "#ef4444" : "#71717a" }} />
+
+      <div className="flex items-center justify-between relative z-10">
+        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{label}</span>
+        <motion.span
+          className={`p-2.5 rounded-xl ${color}`}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ type: "spring", stiffness: 400 }}
+        >
+          {icon}
+        </motion.span>
       </div>
-      <div>
-        <div className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight font-[var(--font-inter)]">
+      <div className="relative z-10">
+        <div className="text-4xl font-bold text-zinc-900 dark:text-white tracking-tight font-[var(--font-inter)] tabular-nums">
           <AnimatedNumber value={value} suffix={suffix} />
         </div>
-        <div className="text-xs text-zinc-400 mt-1">{sub}</div>
+        <p className="text-xs text-zinc-400 mt-1.5">{sub}</p>
       </div>
     </motion.div>
   );
@@ -155,6 +165,7 @@ export default function FacultyDashboard() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   // Session state (unchanged)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -163,7 +174,7 @@ export default function FacultyDashboard() {
   const [qrImageUrl, setQrImageUrl] = useState<string>("");
   const [presentStudents, setPresentStudents] = useState<any[]>([]);
   const [sessionLoading, setSessionLoading] = useState(false);
-  const [qrTimer, setQrTimer] = useState(15);
+  const [qrTimer, setQrTimer] = useState(60);
   const socketRef = useRef<any>(null);
   const hasFetched = useRef(false);
 
@@ -180,11 +191,11 @@ export default function FacultyDashboard() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
-      if (e.key === "n" || e.key === "N") { setActiveTab("session"); }
+      if (e.key === "n" || e.key === "N") { setActiveTab("session"); setIsPickerOpen(true); }
       if (e.key === "r" || e.key === "R") { fetchDashboard(); showToast("Refreshed"); }
       if (e.key === "e" || e.key === "E") { if (activeSessionId) endSession(); }
       if (e.key === "?") { setShowShortcuts(prev => !prev); }
-      if (e.key === "Escape") { setSelectedStudent(null); setShowShortcuts(false); }
+      if (e.key === "Escape") { setSelectedStudent(null); setShowShortcuts(false); setIsPickerOpen(false); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -447,12 +458,27 @@ export default function FacultyDashboard() {
           className="sticky top-0 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between"
         >
           <div>
-            <h1 className="text-base font-semibold text-zinc-900 dark:text-white">
-              Welcome back, <span className="text-indigo-600">Prof. {facultyName.split(" ")[0]}</span>
-            </h1>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            </p>
+            <motion.h1
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight"
+            >
+              {(() => {
+                const h = new Date().getHours();
+                const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+                return <>{greeting}, <span className="text-indigo-600 dark:text-indigo-400">Prof. {facultyName.split(" ")[0]}</span></>;
+              })()}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-sm text-zinc-400 mt-0.5"
+            >
+              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              {activeSessionId && " — Session in progress"}
+            </motion.p>
           </div>
           <div className="flex items-center gap-2">
             {activeSessionId && (
@@ -504,44 +530,58 @@ export default function FacultyDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25 }}
-                className="space-y-6"
+                className="space-y-8"
               >
+                {/* Hero insight banner */}
+                {dashboardData && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-72 h-72 opacity-[0.03] dark:opacity-[0.06]">
+                      <svg viewBox="0 0 200 200" fill="none"><defs><pattern id="hero-dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="currentColor" /></pattern></defs><rect width="200" height="200" fill="url(#hero-dots)" className="text-indigo-500" /></svg>
+                    </div>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                      <div className="flex-1">
+                        <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+                          className="flex items-center gap-2 mb-4">
+                          <Sparkles size={14} className="text-indigo-500" />
+                          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Today's Insights</span>
+                        </motion.div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white tracking-tight leading-snug">
+                          Your classes are at{" "}
+                          <span className={dashboardData.stats.avgAttendance >= 80 ? "text-emerald-600 dark:text-emerald-400" : dashboardData.stats.avgAttendance >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}>
+                            <AnimatedNumber value={dashboardData.stats.avgAttendance} suffix="%" />
+                          </span>{" "}average attendance
+                        </h2>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-3 max-w-lg leading-relaxed">
+                          {dashboardData.stats.avgAttendance >= 80 ? "Outstanding engagement. Your students are consistently showing up."
+                            : dashboardData.stats.atRiskStudents > 0 ? `${dashboardData.stats.atRiskStudents} student${dashboardData.stats.atRiskStudents > 1 ? "s need" : " needs"} attention before the review period.`
+                            : "Monitoring attendance across all your assigned classes."}
+                        </p>
+                      </div>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => { setActiveTab("session"); setIsPickerOpen(true); }}
+                        className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20 shrink-0">
+                        <QrCode size={16} /> Start a session
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Stat cards */}
                 {dashboardData ? (
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard
-                      label="Avg Attendance"
-                      value={dashboardData.stats.avgAttendance}
-                      suffix="%"
-                      sub="across all students"
-                      icon={<TrendingUp size={14} />}
-                      color="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                      delay={0}
-                    />
-                    <StatCard
-                      label="Total Students"
-                      value={dashboardData.stats.totalStudents}
-                      sub="enrolled"
-                      icon={<Users size={14} />}
-                      color="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                      delay={0.05}
-                    />
-                    <StatCard
-                      label="At Risk"
-                      value={dashboardData.stats.atRiskStudents}
-                      sub="below 75%"
-                      icon={<AlertCircle size={14} />}
-                      color="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      delay={0.1}
-                    />
-                    <StatCard
-                      label="Proxy Alerts"
-                      value={dashboardData.stats.fraudFlagCount}
-                      sub="flagged sessions"
-                      icon={<ShieldAlert size={14} />}
-                      color="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-                      delay={0.15}
-                    />
+                    <StatCard label="Avg Attendance" value={dashboardData.stats.avgAttendance} suffix="%" sub="across all students"
+                      icon={<TrendingUp size={16} />} color="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" delay={0.1} />
+                    <StatCard label="Total Students" value={dashboardData.stats.totalStudents} sub="enrolled in your courses"
+                      icon={<Users size={16} />} color="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400" delay={0.15} />
+                    <StatCard label="At Risk" value={dashboardData.stats.atRiskStudents} sub="below 75% attendance"
+                      icon={<Target size={16} />} color="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" delay={0.2} />
+                    <StatCard label="Proxy Alerts" value={dashboardData.stats.fraudFlagCount} sub="suspicious check-ins"
+                      icon={<Eye size={16} />} color="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400" delay={0.25} />
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -551,6 +591,14 @@ export default function FacultyDashboard() {
                   </div>
                 )}
 
+                {/* Charts section header */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                  className="flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider shrink-0">Analytics</span>
+                  <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                </motion.div>
+
                 {/* Charts row */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -558,8 +606,8 @@ export default function FacultyDashboard() {
                   <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
-                    className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5"
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6"
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div>
@@ -571,7 +619,7 @@ export default function FacultyDashboard() {
                       </span>
                     </div>
                     {trendData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={240}>
                         <AreaChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                           <defs>
                             <linearGradient id="attendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -595,7 +643,7 @@ export default function FacultyDashboard() {
                         </AreaChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-44 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-sm">
+                      <div className="h-56 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-sm">
                         No data yet
                       </div>
                     )}
@@ -613,7 +661,7 @@ export default function FacultyDashboard() {
                       <p className="text-xs text-zinc-400 mt-0.5">Students by attendance %</p>
                     </div>
                     {chartData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={240}>
                         <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "#27272a" : "#f4f4f5"} vertical={false} />
                           <XAxis dataKey="range" tick={{ fontSize: 9, fill: theme === "dark" ? "#71717a" : "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -627,10 +675,18 @@ export default function FacultyDashboard() {
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-44 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-sm">No data yet</div>
+                      <div className="h-56 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-sm">No data yet</div>
                     )}
                   </motion.div>
                 </div>
+
+                {/* Students section divider */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                  className="flex items-center gap-3 pt-2">
+                  <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider shrink-0">Students Requiring Attention</span>
+                  <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                </motion.div>
 
                 {/* At-risk students */}
                 <motion.div
@@ -737,86 +793,26 @@ export default function FacultyDashboard() {
                       <p className="text-sm text-zinc-400 mt-1">Select your class details, then start the session to generate a QR code.</p>
                     </div>
 
-                    {/* Selectors */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {[
-                        { id: "dept", label: "Department", icon: <Layers size={14} />, current: selectedDept?.name || "Select", items: DEPARTMENTS, onSelect: handleDeptSelect },
-                        { id: "sect", label: "Section", icon: <Users size={14} />, current: selectedSection?.name || "Select", disabled: !selectedDept, items: selectedDept?.sections || [], onSelect: handleSectionSelect },
-                        { id: "subj", label: "Subject", icon: <BookOpen size={14} />, current: selectedSubject?.name || "Select", disabled: !selectedSection, items: selectedSection?.subjects || [], onSelect: setSelectedSubject },
-                        { id: "period", label: "Period", icon: <Clock size={14} />, current: selectedPeriod || "Select", items: TIME_PERIODS.map(p => ({ id: p, name: p })), onSelect: (p: any) => setSelectedPeriod(p.name) },
-                      ].map((dd) => (
-                        <div key={dd.id} className="relative">
-                          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 block mb-1.5">{dd.label}</label>
-                          <button
-                            onClick={() => !(dd as any).disabled && setActiveDropdown(activeDropdown === dd.id ? null : dd.id)}
-                            disabled={(dd as any).disabled}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all
-                              ${ (dd as any).disabled
-                                ? "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-600 bg-zinc-50 dark:bg-zinc-900/50 cursor-not-allowed"
-                                : "border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white bg-white dark:bg-zinc-900 hover:border-indigo-300 dark:hover:border-indigo-500/50 cursor-pointer"
-                              }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="text-zinc-400">{dd.icon}</span>
-                              <span className="truncate font-medium">{dd.current}</span>
-                            </div>
-                            <ChevronDown size={14} className={`text-zinc-400 transition-transform ${activeDropdown === dd.id ? "rotate-180" : ""}`} />
-                          </button>
-
-                          <AnimatePresence>
-                            {activeDropdown === dd.id && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto"
-                              >
-                                {dd.items.map((item: any) => (
-                                  <button
-                                    key={item.id}
-                                    onClick={() => { dd.onSelect(item); setActiveDropdown(null); }}
-                                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                                  >
-                                    <span className="font-medium text-zinc-900 dark:text-white">{item.name}</span>
-                                    {item.code && <span className="text-xs text-zinc-400 font-mono">{item.code}</span>}
-                                  </button>
-                                ))}
-                                {dd.items.length === 0 && (
-                                  <div className="px-3 py-4 text-xs text-zinc-400 text-center">Select previous step first</div>
-                                )}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Summary + start */}
-                    {selectedSubject && selectedPeriod && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                    {/* Setup Session Button */}
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2">
+                        <QrCode size={32} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Ready to start a class?</h3>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
+                          Generate a secure, rotating QR code for your students to mark their attendance.
+                        </p>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setIsPickerOpen(true)}
+                        className="mt-4 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/25"
                       >
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-900 dark:text-white">{selectedSubject.name}</p>
-                          <p className="text-xs text-zinc-400 mt-0.5">
-                            {selectedDept?.name} · {selectedSection?.name} · {selectedPeriod}
-                          </p>
-                        </div>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={startSession}
-                          disabled={sessionLoading}
-                          className="px-6 py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 shrink-0 flex items-center gap-2"
-                        >
-                          {sessionLoading ? <RefreshCw size={14} className="animate-spin" /> : <QrCode size={14} />}
-                          {sessionLoading ? "Starting..." : "Start Session"}
-                        </motion.button>
-                      </motion.div>
-                    )}
+                        <QrCode size={16} /> Generate QR Code
+                      </motion.button>
+                    </div>
                   </>
                 ) : (
                   /* Active session */
@@ -1243,6 +1239,85 @@ export default function FacultyDashboard() {
       {activeDropdown && (
         <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
       )}
+
+      {/* ── iOS-style Picker Modal ──────────────────────────────────── */}
+      <AnimatePresence>
+        {isPickerOpen && (
+          <>
+            <motion.div 
+              key="picker-backdrop" 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md z-[60]"
+              onClick={() => setIsPickerOpen(false)} 
+            />
+            <motion.div 
+              key="picker-modal"
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[480px] md:rounded-3xl md:max-h-[80vh]"
+            >
+              <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md z-10">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Setup Class Session</h3>
+                <button onClick={() => setIsPickerOpen(false)} className="p-2 -mr-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                {[
+                  { id: "dept", label: "Department", current: selectedDept, items: DEPARTMENTS, onSelect: handleDeptSelect },
+                  { id: "sect", label: "Section", current: selectedSection, disabled: !selectedDept, items: selectedDept?.sections || [], onSelect: handleSectionSelect },
+                  { id: "subj", label: "Subject", current: selectedSubject, disabled: !selectedSection, items: selectedSection?.subjects || [], onSelect: setSelectedSubject },
+                  { id: "period", label: "Period", current: { name: selectedPeriod }, items: TIME_PERIODS.map(p => ({ id: p, name: p })), onSelect: (p: any) => setSelectedPeriod(p.name) },
+                ].map((group) => (
+                  <div key={group.id} className={`transition-opacity ${group.disabled ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-3 pl-1">
+                      {group.label}
+                    </label>
+                    <div className="flex overflow-x-auto gap-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
+                      {group.items.length > 0 ? group.items.map((item: any) => {
+                        const isSelected = group.current?.name === item.name;
+                        return (
+                          <button
+                            key={item.id || item.name}
+                            onClick={() => group.onSelect(item)}
+                            className={`snap-center shrink-0 px-4 py-3 rounded-2xl border text-sm font-medium transition-all
+                              ${isSelected 
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-105" 
+                                : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-indigo-300 dark:hover:border-indigo-500/50"
+                              }`}
+                          >
+                            <span className="block">{item.name}</span>
+                            {item.code && <span className={`text-[10px] block mt-0.5 ${isSelected ? "text-indigo-200" : "text-zinc-400 font-mono"}`}>{item.code}</span>}
+                          </button>
+                        );
+                      }) : (
+                        <div className="text-sm text-zinc-400 italic px-2">Complete previous selection first</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={startSession}
+                  disabled={sessionLoading || !selectedDept || !selectedSection || !selectedSubject || !selectedPeriod}
+                  className="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-[15px] font-semibold transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/20"
+                >
+                  {sessionLoading ? <Loader2 size={18} className="animate-spin" /> : <QrCode size={18} />}
+                  {sessionLoading ? "Initializing..." : "Generate Session QR"}
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── Student Drawer ──────────────────────────────────────────── */}
       <StudentDrawer
