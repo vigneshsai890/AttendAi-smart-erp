@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { Student } from '../models/Student.js';
+import { Course } from '../models/Course.js';
 import { Faculty } from '../models/Faculty.js';
 import { Enrollment } from '../models/Enrollment.js';
 import { AttendanceSession } from '../models/Session.js';
@@ -153,9 +154,9 @@ router.get('/student', async (req: Request, res: Response) => {
       .populate('sectionId');
 
     if (!student) {
-      let dept = await Department.findOne({ code: 'CSE' }) || await Department.findOne({ name: 'Computer Science & Engineering' });
+      let dept = await Department.findOne({ code: 'CSE-AIML' }) || await Department.findOne({ name: 'Computer Science & Engineering (AIML)' });
       if (!dept) {
-        dept = await Department.create({ code: 'CSE', name: 'Computer Science & Engineering' });
+        dept = await Department.create({ code: 'CSE-AIML', name: 'Computer Science & Engineering (AIML)' });
       }
 
       let section = await Section.findOne({ departmentId: dept._id, name: 'Section A' });
@@ -183,10 +184,28 @@ router.get('/student', async (req: Request, res: Response) => {
     }
 
     // Fetch active enrollments with course data
-    const enrollments = await Enrollment.find({
+    let enrollments = await Enrollment.find({
       studentId: student._id,
       status: 'ACTIVE',
     }).populate('courseId');
+
+    // Auto-enroll if no enrollments found
+    if (enrollments.length === 0) {
+      const deptCourses = await Course.find({ departmentId: student.departmentId });
+      for (const course of deptCourses) {
+        await Enrollment.create({
+          studentId: student._id,
+          courseId: course._id,
+          status: 'ACTIVE'
+        });
+      }
+      
+      // Fetch again after auto-enrolling
+      enrollments = await Enrollment.find({
+        studentId: student._id,
+        status: 'ACTIVE',
+      }).populate('courseId');
+    }
 
     // Fetch last 10 notifications
     const notifications = await Notification.find({ userId: user._id })

@@ -8,6 +8,7 @@ import { Course } from '../models/Course.js';
 import { User } from '../models/User.js';
 import { ProxyAlert } from '../models/ProxyAlert.js';
 import { Notification } from '../models/Notification.js';
+import { ENV } from '../lib/env.js';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
@@ -304,15 +305,8 @@ router.get('/session/:id/qr', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No active QR code for this session' });
     }
 
-    const payload = JSON.stringify({
-      sessionId: session._id,
-      token: session.qrCode,
-      exp: session.qrExpiry,
-      subject: session.courseName || '',
-      period: session.period || '',
-      department: session.department || '',
-      section: session.section || '',
-    });
+    // Generate a URL for the QR code so native camera apps can open it directly
+    const payload = `${ENV.frontendUrl}/student/mark-attendance?sessionId=${session._id}&token=${session.qrCode}&exp=${session.qrExpiry?.getTime() || 0}&subject=${encodeURIComponent(session.courseName || '')}`;
 
     const qrDataUrl = await QRCode.toDataURL(payload);
 

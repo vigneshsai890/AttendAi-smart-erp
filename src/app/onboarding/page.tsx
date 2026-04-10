@@ -9,7 +9,7 @@ import {
   GraduationCap, Building2, 
   BookOpen, Sparkles, Loader2, 
   ChevronRight, CheckCircle2,
-  Database
+  Database, Briefcase
 } from "lucide-react";
 import Magnetic from "@/components/Magnetic";
 
@@ -45,9 +45,47 @@ export default function OnboardingPage() {
       router.push("/signup");
     }
     if (user?.isProfileComplete) {
-      router.push("/student/dashboard");
+      if (user?.role === "FACULTY") {
+        router.push("/faculty/dashboard");
+      } else {
+        router.push("/student/dashboard");
+      }
     }
   }, [status, user, router]);
+
+  const handleFacultyFinalize = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const authToken = await getAuthToken();
+      if (!authToken) throw new Error("Authentication token not available. Please log in again.");
+      if (!user?.id) throw new Error("No session found. Please log in again.");
+
+      const updateRes = await fetch("/api/user/update-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          isProfileComplete: true,
+        }),
+      });
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to update profile record");
+      }
+
+      router.refresh();
+      router.push("/faculty/dashboard");
+    } catch (err: any) {
+      console.error("[ONBOARD] Error:", err);
+      setError(err.message || "Failed to finalize profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFinalize = async () => {
     setLoading(true);
@@ -125,7 +163,42 @@ export default function OnboardingPage() {
         <div className="bg-[#0c0c0e]/80 border border-white/5 rounded-[4.5rem] p-12 backdrop-blur-3xl shadow-[0_0_100px_rgba(0,0,0,0.8)] relative overflow-hidden ring-1 ring-white/10">
           
           <AnimatePresence mode="wait">
-            {step === 1 && (
+            {user?.role === "FACULTY" && (
+              <motion.div 
+                key="faculty-welcome"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center space-y-12"
+              >
+                <div className="space-y-4">
+                  <div className="w-24 h-24 bg-white text-black rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-[0_30px_60px_rgba(255,255,255,0.15)] rotate-6">
+                    <Briefcase size={48} strokeWidth={3} />
+                  </div>
+                  <h1 className="text-5xl font-black tracking-tighter italic">WELCOME <span className="text-white/20">{user.name?.split(' ')[0]?.toUpperCase() || "FACULTY"}</span></h1>
+                  <p className="text-[13px] text-white/30 font-bold uppercase tracking-widest">Faculty Neural Link Established.</p>
+                </div>
+                
+                {error && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] font-bold text-center">
+                    {error}
+                  </div>
+                )}
+
+                <div className="pt-8">
+                  <Magnetic strength={0.2}>
+                    <button 
+                      onClick={handleFacultyFinalize}
+                      disabled={loading}
+                      className="w-full py-6 rounded-[3rem] bg-indigo-500 text-white hover:bg-indigo-400 transition-all text-[11px] font-black uppercase tracking-[0.4em] italic shadow-[0_20px_50px_rgba(79,70,229,0.3)] disabled:opacity-50"
+                    >
+                      {loading ? <Loader2 size={16} className="animate-spin inline-block" /> : <>Enter Faculty Dashboard <ChevronRight className="inline-block ml-2 w-4 h-4" /></>}
+                    </button>
+                  </Magnetic>
+                </div>
+              </motion.div>
+            )}
+
+            {user?.role !== "FACULTY" && step === 1 && (
               <motion.div 
                 key="step1"
                 initial={{ opacity: 0, x: -20 }}
@@ -214,7 +287,7 @@ export default function OnboardingPage() {
               </motion.div>
             )}
 
-            {step === 3 && (
+            {user?.role !== "FACULTY" && step === 3 && (
               <motion.div 
                 key="welcome"
                 initial={{ opacity: 0, scale: 0.9 }}

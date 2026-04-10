@@ -37,6 +37,7 @@ export const ENV = {
 
   // Backend URL (used for API proxying)
   get backendUrl() {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
     if (isProduction) return process.env.BACKEND_URL || PROD_BACKEND_URL;
     return "http://127.0.0.1:5001";
   },
