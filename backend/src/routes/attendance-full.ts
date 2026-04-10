@@ -12,7 +12,6 @@ import { ENV } from '../lib/env.js';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
-import mongoose from 'mongoose';
 import { Server } from 'socket.io';
 
 
@@ -115,8 +114,8 @@ router.patch('/session/update', async (req: Request, res: Response) => {
     if (action === 'CLOSE') {
       session.status = 'CLOSED';
       session.endTime = nowHHMM();
-      session.qrCode = null as any;
-      session.qrExpiry = null as any;
+      session.qrCode = null as string | null;
+      session.qrExpiry = null as Date | null;
       await session.save();
 
       return res.json({ success: true, message: 'Session closed', session });
@@ -211,9 +210,9 @@ router.post('/session/end', async (req: Request, res: Response) => {
     const markedUserIds = new Set(existingRecords.map((r) => r.userId?.toString()));
 
     // Mark absent students who have not been recorded yet
-    const absentRecords: any[] = [];
+    const absentRecords: Array<Record<string, unknown>> = [];
     for (const enrollment of enrollments) {
-      const student = enrollment.studentId as any;
+      const student = enrollment.studentId as unknown as { userId: string };
       if (!student || !student.userId) continue;
 
       const studentUserId = student.userId.toString();
@@ -239,8 +238,8 @@ router.post('/session/end', async (req: Request, res: Response) => {
     // Close session
     session.status = 'CLOSED';
     session.endTime = nowHHMM();
-    session.qrCode = null as any;
-    session.qrExpiry = null as any;
+    session.qrCode = null as string | null;
+    session.qrExpiry = null as Date | null;
     await session.save();
 
     const totalEnrolled = enrollments.length;
@@ -447,7 +446,7 @@ router.post('/mark', async (req: Request, res: Response) => {
 
     // Create proxy alerts if flagged
     if (isFlagged) {
-      const alertDocs: any[] = [];
+      const alertDocs: Array<Record<string, unknown>> = [];
       for (const flag of flags) {
         let alertType: string = 'TIMING';
         let severity: string = 'MEDIUM';
@@ -496,7 +495,7 @@ router.post('/mark', async (req: Request, res: Response) => {
       });
     }
 
-    const course = session.courseId as any;
+    const course = session.courseId as unknown as { name?: string };
     const courseName = course?.name ?? session.courseName ?? '';
 
     return res.status(201).json({
@@ -551,7 +550,7 @@ router.get('/live', async (req: Request, res: Response) => {
     const presentRecords = records
       .filter((r) => r.status === 'PRESENT' || r.status === 'PROXY')
       .map((r) => {
-        const userObj = r.userId as any;
+        const userObj = r.userId as unknown as { _id: string; name: string; email: string };
         return {
           _id: r._id,
           userId: userObj?._id ?? r.userId,
@@ -565,7 +564,7 @@ router.get('/live', async (req: Request, res: Response) => {
         };
       });
 
-    const course = session.courseId as any;
+    const course = session.courseId as unknown as { name?: string; code?: string };
 
     return res.json({
       success: true,
@@ -651,9 +650,9 @@ router.post('/alert-email', async (req: Request, res: Response) => {
     }
 
     // Find students below threshold
-    const alerts: any[] = [];
+    const alerts: Array<Record<string, unknown>> = [];
     for (const enrollment of enrollments) {
-      const student = enrollment.studentId as any;
+      const student = enrollment.studentId as unknown as { userId: { toString: () => string }; rollNumber: string };
       if (!student || !student.userId) continue;
 
       const studentUserId = student.userId.toString();

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { backend } from "@/lib/backend";
+import { MongoClient } from "mongodb";
+import { ENV } from "@/lib/env";
+
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://vigneshsaisai412_db_user:Qmewj1Fu2CNbYFz0@cluster1.4omhez7.mongodb.net/smart_erp_realtime?appName=Cluster1";
 
 /**
- * Robustly fetch the current session user from the backend.
- * Falls back to manual token decoding if the backend is slow or unreachable.
+ * Robustly fetch the current session user from MongoDB directly.
+ * Completely avoids HTTP proxy timeouts and Render cold starts.
  */
 export async function getSessionUser(req: Request) {
   const authHeader = req.headers.get("Authorization");
@@ -14,42 +17,67 @@ export async function getSessionUser(req: Request) {
   const token = authHeader.split(" ")[1];
 
   try {
-    // Attempt backend sync with a short timeout to prevent hanging the edge function
-    const res = await backend.get("/auth/me", {
-      headers: { "Authorization": authHeader },
-      timeout: 8000 // 8s timeout for the check
-    });
-
-    if (res.data && res.data.user) {
-      return res.data.user;
-    }
-  } catch (error: any) {
-    console.warn("[AUTH_UTILS] Backend profile sync failed or timed out. Falling back to token decode.");
-  }
-
-  // CRITICAL FALLBACK: If backend is slow/down, decode the JWT to get the Firebase identity
-  // This allows proxying to proceed; the backend will perform the final verification anyway.
-  try {
+    // 1. Decode token manually (Firebase JWT format)
     const parts = token.split(".");
-    if (parts.length === 3) {
-      // Use atob for better compatibility across Next.js environments
-      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(atob(base64));
-      if (payload && (payload.sub || payload.user_id)) {
-        const uid = payload.sub || payload.user_id;
-        console.log("[AUTH_UTILS] Fallback success. Identity:", payload.email || uid);
+    if (parts.length !== 3) return null;
+    
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+    const decodedToken = JSON.parse(jsonPayload);
+    const uid = decodedToken.user_id || decodedToken.uid || decodedToken.sub;
+    const email = decodedToken.email;
+
+    if (!uid) return null;
+
+    // 2. Connect to MongoDB directly
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    
+    try {
+      const db = client.db("attendai");
+      const users = db.collection("user");
+      
+      let user = await users.findOne({ firebaseUid: uid });
+      
+      // Auto-heal by email if not found by uid
+      if (!user && email) {
+         user = await users.findOne({ email });
+         if (user) {
+           await users.updateOne({ _id: user._id }, { $set: { firebaseUid: uid } });
+         }
+      }
+      
+      // Auto-create if completely missing
+      if (!user && email) {
+         const name = decodedToken.name || email.split('@')[0] || "User";
+         const result = await users.insertOne({
+            firebaseUid: uid,
+            email,
+            name,
+            role: "STUDENT",
+            isProfileComplete: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+         });
+         user = await users.findOne({ _id: result.insertedId });
+      }
+
+      if (user) {
         return {
-          id: uid, // Use UID as temporary ID
-          firebaseUid: uid,
-          email: payload.email || "",
-          name: payload.name || payload.email?.split("@")[0] || "User",
-          role: "STUDENT", // Default to student during fallback
-          isProfileComplete: false
+          id: user._id.toString(),
+          firebaseUid: user.firebaseUid,
+          role: user.role || "STUDENT",
+          email: user.email,
+          name: user.name,
+          isProfileComplete: user.isProfileComplete
         };
       }
+    } finally {
+      await client.close();
     }
-  } catch (e: any) {
-    console.error("[AUTH_UTILS] Fatal: Failed to decode fallback token:", e.message);
+  } catch (error: any) {
+    console.error("[AUTH_UTILS] Fatal Mongo sync error:", error);
   }
 
   return null;

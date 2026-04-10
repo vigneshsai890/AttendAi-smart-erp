@@ -1,35 +1,77 @@
 import { NextResponse } from "next/server";
-import { backend } from "@/lib/backend";
+import { MongoClient } from "mongodb";
+
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://vigneshsaisai412_db_user:Qmewj1Fu2CNbYFz0@cluster1.4omhez7.mongodb.net/smart_erp_realtime?appName=Cluster1";
 
 export async function GET(req: Request) {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.warn("[AUTH_ME] Request missing valid Bearer token");
       return NextResponse.json({ error: "Missing token" }, { status: 401 });
     }
 
-    const targetUrl = backend.defaults.baseURL + "/auth/me";
-    console.log("[AUTH_ME] Proxying to backend:", targetUrl);
+    const token = authHeader.split("Bearer ")[1];
 
-    // Call the Express backend to verify token and fetch/auto-heal profile
-    const res = await backend.get("/auth/me", {
-      headers: {
-        "Authorization": authHeader
+    // Decode token manually
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+    const decodedToken = JSON.parse(jsonPayload);
+    const uid = decodedToken.user_id || decodedToken.uid;
+    const email = decodedToken.email;
+
+    // Connect to MongoDB directly for instantaneous auth checks!
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    
+    try {
+      const db = client.db("attendai"); // MUST use attendai db
+      const users = db.collection("user");
+      
+      let user = await users.findOne({ firebaseUid: uid });
+      
+      // Auto-heal by email
+      if (!user && email) {
+         user = await users.findOne({ email });
+         if (user) {
+           await users.updateOne({ _id: user._id }, { $set: { firebaseUid: uid } });
+         }
       }
-    });
+      
+      // Create if missing
+      if (!user && email) {
+         const name = decodedToken.name || email.split('@')[0] || "User";
+         const result = await users.insertOne({
+            firebaseUid: uid,
+            email,
+            name,
+            role: "STUDENT",
+            isProfileComplete: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+         });
+         user = await users.findOne({ _id: result.insertedId });
+      }
 
-    console.log("[AUTH_ME] Backend response success:", res.status);
-    return NextResponse.json(res.data);
+      if (user) {
+        return NextResponse.json({
+          user: {
+            id: user._id.toString(),
+            firebaseUid: user.firebaseUid,
+            role: user.role || "STUDENT",
+            email: user.email,
+            name: user.name,
+            isProfileComplete: user.isProfileComplete
+          }
+        });
+      }
+
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    } finally {
+      await client.close();
+    }
   } catch (error: any) {
-    console.error("[AUTH_ME] Proxy error:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-      url: error.config?.url
-    });
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.error || "Internal server error";
-    return NextResponse.json({ error: message }, { status });
+    console.error("[AUTH_ME] Direct DB proxy error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

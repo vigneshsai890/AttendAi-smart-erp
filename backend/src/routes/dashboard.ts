@@ -49,8 +49,8 @@ router.post('/onboard', async (req: Request, res: Response) => {
           isProfileComplete: false
         });
         console.log(`✅ [ONBOARD] User created: ${user._id}`);
-      } catch (createErr: any) {
-        console.error(`❌ [ONBOARD] Failed to create user: ${createErr.message}`);
+      } catch (err: unknown) {
+        console.error(`❌ [ONBOARD] Failed to create user: ${(err as Error).message}`);
       }
     }
 
@@ -214,7 +214,7 @@ router.get('/student', async (req: Request, res: Response) => {
 
     // Gather course IDs from active enrollments
     const courseIds = enrollments
-      .map((e: any) => e.courseId?._id)
+      .map((e: unknown) => (e as { courseId?: { _id: string } }).courseId?._id)
       .filter(Boolean);
 
     // Today boundaries for schedule lookup
@@ -281,13 +281,13 @@ router.get('/student', async (req: Request, res: Response) => {
     }).populate('sessionId');
 
     // Map records by courseId
-    const recordsByCourse: Record<string, any[]> = {};
+    const recordsByCourse: Record<string, Array<Record<string, unknown>>> = {};
     for (const record of studentRecords) {
-      const session = record.sessionId as any;
+      const session = record.sessionId as unknown as { courseId?: { toString: () => string } };
       if (!session?.courseId) continue;
       const cid = session.courseId.toString();
       if (!recordsByCourse[cid]) recordsByCourse[cid] = [];
-      recordsByCourse[cid].push(record);
+      recordsByCourse[cid].push(record as unknown as Record<string, unknown>);
     }
 
     // Per-course attendance stats
@@ -296,14 +296,14 @@ router.get('/student', async (req: Request, res: Response) => {
     let safeCount = 0;
     let atRiskCount = 0;
 
-    const subjects = enrollments.map((enrollment: any) => {
-      const course = enrollment.courseId;
+    const subjects = enrollments.map((enrollment: unknown) => {
+      const course = (enrollment as { courseId: { _id: { toString: () => string }; code: string; name: string } }).courseId;
       if (!course) return null;
       const cid = course._id.toString();
       const totalSessions = sessionCountMap[cid] || 0;
       const courseRecords = recordsByCourse[cid] || [];
       const attended = courseRecords.filter(
-        (r: any) => r.status === 'PRESENT' || r.status === 'LATE'
+        (r: Record<string, unknown>) => r.status === 'PRESENT' || r.status === 'LATE'
       ).length;
       const percentage = totalSessions > 0 ? Math.round((attended / totalSessions) * 100) : 0;
 
@@ -346,53 +346,56 @@ router.get('/student', async (req: Request, res: Response) => {
 
     const facultyByCourse: Record<string, string> = {};
     for (const ca of courseAssignments) {
-      const fa = ca.facultyId as any;
+      const fa = ca.facultyId as unknown as { userId?: { name: string } };
       if (fa?.userId?.name) {
         facultyByCourse[ca.courseId.toString()] = fa.userId.name;
       }
     }
 
-    const timetable = todaySchedules.map((sched: any) => {
-      const course = sched.courseId;
+    const timetable = todaySchedules.map((sched: unknown) => {
+      const s = sched as { courseId?: { _id?: { toString: () => string }; code: string; name: string }; startTime: string; endTime: string; room: string };
+      const course = s.courseId;
       const cid = course?._id?.toString();
       const isActive = activeSession
-        ? (activeSession.courseId as any)?._id?.toString() === cid
+        ? (activeSession.courseId as unknown as { _id?: { toString: () => string } })?._id?.toString() === cid
         : false;
 
       return {
         courseId: cid,
         courseCode: course?.code,
         courseName: course?.name,
-        startTime: sched.startTime,
-        endTime: sched.endTime,
-        room: sched.room,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        room: s.room,
         faculty: cid ? facultyByCourse[cid] || null : null,
         isActive,
       };
     });
 
     // Format recent activity
-    const recentActivity = recentRecords.map((record: any) => {
-      const session = record.sessionId as any;
+    const recentActivity = recentRecords.map((record: unknown) => {
+      const r = record as { _id: string; sessionId: { courseId?: { name: string; code: string }; courseName?: string }; markedAt: Date; status: string };
+      const session = r.sessionId;
       return {
-        id: record._id,
+        id: r._id,
         courseName: session?.courseId?.name || session?.courseName || 'Unknown',
         courseCode: session?.courseId?.code || '',
-        date: record.markedAt,
-        status: record.status,
+        date: r.markedAt,
+        status: r.status,
       };
     });
 
     // Format exams
-    const exams = examResults.map((er: any) => {
-      const exam = er.examId as any;
+    const exams = examResults.map((er: unknown) => {
+      const res = er as { _id: string; examId: { name: string; courseCode: string; maxMarks: number; date: Date }; marks: number; grade: string };
+      const exam = res.examId;
       return {
-        id: er._id,
+        id: res._id,
         examName: exam?.name || '',
         courseCode: exam?.courseCode || '',
-        marks: er.marks,
+        marks: res.marks,
         maxMarks: exam?.maxMarks || 0,
-        grade: er.grade,
+        grade: res.grade,
         date: exam?.date,
       };
     });
@@ -401,15 +404,15 @@ router.get('/student', async (req: Request, res: Response) => {
     const activeSessionPayload = activeSession
       ? {
           id: activeSession._id,
-          courseName: (activeSession.courseId as any)?.name || activeSession.courseName,
-          courseCode: (activeSession.courseId as any)?.code || '',
+          courseName: (activeSession.courseId as unknown as { name?: string })?.name || activeSession.courseName,
+          courseCode: (activeSession.courseId as unknown as { code?: string })?.code || '',
           qrCode: activeSession.qrCode,
           qrExpiry: activeSession.qrExpiry,
         }
       : null;
 
-    const dept = student.departmentId as any;
-    const sect = student.sectionId as any;
+    const dept = student.departmentId as unknown as { name?: string; code?: string };
+    const sect = student.sectionId as unknown as { name?: string };
 
     return res.json({
       success: true,
@@ -436,14 +439,17 @@ router.get('/student', async (req: Request, res: Response) => {
       exams,
       timetable,
       recentActivity,
-      notifications: notifications.map((n: any) => ({
-        id: n._id,
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        isRead: n.isRead,
-        createdAt: n.createdAt,
-      })),
+      notifications: notifications.map((n: unknown) => {
+        const item = n as { _id: string; title: string; message: string; type: string; isRead: boolean; createdAt: Date };
+        return {
+          id: item._id,
+          title: item.title,
+          message: item.message,
+          type: item.type,
+          isRead: item.isRead,
+          createdAt: item.createdAt,
+        };
+      }),
       activeSession: activeSessionPayload,
     });
   } catch (error: unknown) {
@@ -503,7 +509,7 @@ router.get('/faculty', async (req: Request, res: Response) => {
         faculty: {
           name: user.name,
           email: user.email,
-          department: (faculty.departmentId as any)?.name || null,
+          department: (faculty.departmentId as unknown as { name?: string })?.name || null,
         },
         course: null,
         stats: { totalStudents: 0, avgAttendance: 0, atRiskStudents: 0, fraudFlagCount: 0 },
@@ -542,17 +548,17 @@ router.get('/faculty', async (req: Request, res: Response) => {
       flagged: true,
     }).populate('userId', 'name email');
 
-    const flaggedRecordIds = flaggedRecords.map((r: any) => r._id);
+    const flaggedRecordIds = (flaggedRecords as unknown as Array<{ _id: string }>).map((r) => r._id);
     const proxyAlerts = await ProxyAlert.find({
       recordId: { $in: flaggedRecordIds },
     });
 
     // Map proxy alerts by recordId
-    const alertsByRecord: Record<string, any[]> = {};
+    const alertsByRecord: Record<string, Array<Record<string, unknown>>> = {};
     for (const alert of proxyAlerts) {
-      const rid = alert.recordId.toString();
+      const rid = (alert.recordId as { toString: () => string }).toString();
       if (!alertsByRecord[rid]) alertsByRecord[rid] = [];
-      alertsByRecord[rid].push(alert);
+      alertsByRecord[rid].push(alert as unknown as Record<string, unknown>);
     }
 
     // Get enrolled students with their user info and roll numbers
@@ -573,21 +579,24 @@ router.get('/faculty', async (req: Request, res: Response) => {
 
     // Check which students are flagged
     const flaggedUserIds = new Set(
-      flaggedRecords.map((r: any) => r.userId?._id?.toString() || r.userId?.toString())
+      flaggedRecords.map((r: unknown) => {
+        const rec = r as { userId?: { _id?: { toString: () => string } } | { toString: () => string } };
+        return (rec.userId as { _id?: { toString: () => string } })?._id?.toString() || rec.userId?.toString();
+      })
     );
 
     let totalPercentageSum = 0;
     let atRiskStudents = 0;
 
-    const students = enrollments.map((enrollment: any) => {
-      const studentProfile = enrollment.studentId;
+    const students = enrollments.map((enrollment: unknown) => {
+      const e = enrollment as { studentId: { userId: { _id: { toString: () => string }; name: string; email: string }; rollNumber: string } };
+      const studentProfile = e.studentId;
       const userProfile = studentProfile?.userId;
       if (!userProfile) return null;
 
       const uid = userProfile._id.toString();
       const stats = studentStatsMap[uid] || {};
       const present = (stats['PRESENT'] || 0) + (stats['LATE'] || 0);
-      const absent = stats['ABSENT'] || 0;
       const total = totalSessionCount;
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
       const isFlagged = flaggedUserIds.has(uid);
@@ -611,35 +620,39 @@ router.get('/faculty', async (req: Request, res: Response) => {
       students.length > 0 ? Math.round(totalPercentageSum / students.length) : 0;
 
     // Build fraud flags
-    const fraudFlags = flaggedRecords.map((record: any) => {
-      const alerts = alertsByRecord[record._id.toString()] || [];
+    const fraudFlags = flaggedRecords.map((record: unknown) => {
+      const r = record as { _id: { toString: () => string }; userId?: { name: string; email: string }; markedAt: Date; riskScore: number };
+      const alerts = alertsByRecord[r._id.toString()] || [];
       return {
-        recordId: record._id,
-        studentName: record.userId?.name || 'Unknown',
-        studentEmail: record.userId?.email || '',
-        date: record.markedAt,
-        riskScore: record.riskScore,
-        alerts: alerts.map((a: any) => ({
-          type: a.alertType,
-          severity: a.severity,
-          description: a.description,
-        })),
+        recordId: r._id,
+        studentName: r.userId?.name || 'Unknown',
+        studentEmail: r.userId?.email || '',
+        date: r.markedAt,
+        riskScore: r.riskScore,
+        alerts: alerts.map((a: unknown) => {
+          const alert = a as { alertType: string; severity: string; description: string };
+          return {
+            type: alert.alertType,
+            severity: alert.severity,
+            description: alert.description,
+          };
+        }),
       };
     });
 
     // Session summary for active session
     let sessionSummary = { present: 0, absent: 0, flagged: 0, percentage: 0 };
-    const activeSession = activeSessions[0] as any;
+    const activeSession = activeSessions[0] as unknown as { _id: string; courseId: unknown; courseName: string; qrCode: string; qrExpiry: Date };
 
     if (activeSession) {
       const activeSessionRecords = await AttendanceRecord.find({
         sessionId: activeSession._id,
       });
 
-      const presentCount = activeSessionRecords.filter(
-        (r: any) => r.status === 'PRESENT' || r.status === 'LATE'
+      const presentCount = (activeSessionRecords as unknown as Array<{ status: string }>).filter(
+        (r) => r.status === 'PRESENT' || r.status === 'LATE'
       ).length;
-      const flaggedCount = activeSessionRecords.filter((r: any) => r.flagged).length;
+      const flaggedCount = (activeSessionRecords as unknown as Array<{ flagged: boolean }>).filter((r) => r.flagged).length;
       const absentCount = enrolledCount - presentCount;
 
       sessionSummary = {
@@ -651,10 +664,10 @@ router.get('/faculty', async (req: Request, res: Response) => {
     }
 
     // Format active session payload
-    const activeSessionPayload = activeSession
+    const activeSessionPayload = (activeSession as unknown)
       ? {
           id: activeSession._id,
-          courseName: (activeSession.courseId as any)?.name || activeSession.courseName,
+          courseName: (activeSession.courseId as unknown as { name?: string })?.name || activeSession.courseName,
           qrCode: activeSession.qrCode,
           qrExpiry: activeSession.qrExpiry,
           room: '',
@@ -673,7 +686,7 @@ router.get('/faculty', async (req: Request, res: Response) => {
       }
     }
 
-    const dept = faculty.departmentId as any;
+    const dept = faculty.departmentId as unknown as { name?: string };
 
     return res.json({
       success: true,
@@ -684,8 +697,8 @@ router.get('/faculty', async (req: Request, res: Response) => {
       },
       course: {
         id: courseId,
-        code: (course as any).code,
-        name: (course as any).name,
+        code: (course as unknown as { code: string }).code,
+        name: (course as unknown as { name: string }).name,
       },
       stats: {
         totalStudents: enrolledCount,
@@ -728,7 +741,7 @@ router.get('/faculty/reports', async (req: Request, res: Response) => {
       .sort({ markedAt: -1 });
 
     // Collect record IDs that are flagged to look up proxy alerts
-    const flaggedRecordIds = records.filter((r: any) => r.flagged).map((r: any) => r._id);
+    const flaggedRecordIds = (records as unknown as Array<{ flagged: boolean; _id: string }>).filter((r) => r.flagged).map((r) => r._id);
     const proxyAlerts = await ProxyAlert.find({ recordId: { $in: flaggedRecordIds } });
 
     // Map alerts by recordId for quick lookup
@@ -741,21 +754,22 @@ router.get('/faculty/reports', async (req: Request, res: Response) => {
 
     // Build CSV
     const csvHeader = 'Name,Email,Date,Time,Status,IP Address,Device Flags,Risk Score';
-    const csvRows = records.map((record: any) => {
-      const userDoc = record.userId;
-      const session = record.sessionId as any;
+    const csvRows = (records as unknown as Record<string, unknown>[]).map((record) => {
+      const rec = record as unknown as { userId?: { name: string; email: string }; sessionId?: { sessionDate: Date }; markedAt: Date; status: string; ipAddress: string; _id: { toString: () => string }; riskScore: number };
+      const userDoc = rec.userId;
+      const session = rec.sessionId;
       const name = userDoc?.name || 'Unknown';
       const email = userDoc?.email || '';
       const date = session?.sessionDate
         ? new Date(session.sessionDate).toISOString().split('T')[0]
         : '';
-      const time = record.markedAt
-        ? new Date(record.markedAt).toISOString().split('T')[1]?.slice(0, 8) || ''
+      const time = rec.markedAt
+        ? new Date(rec.markedAt).toISOString().split('T')[1]?.slice(0, 8) || ''
         : '';
-      const status = record.status || '';
-      const ipAddress = record.ipAddress || '';
-      const deviceFlags = alertsByRecord[record._id.toString()]?.join('; ') || '';
-      const riskScore = record.riskScore ?? 0;
+      const status = rec.status || '';
+      const ipAddress = rec.ipAddress || '';
+      const deviceFlags = alertsByRecord[rec._id.toString()]?.join('; ') || '';
+      const riskScore = rec.riskScore ?? 0;
 
       // Escape fields that might contain commas
       const escapeCSV = (val: string) => {

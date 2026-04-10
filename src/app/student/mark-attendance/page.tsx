@@ -4,8 +4,24 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, getAuthToken } from "@/components/AuthProvider";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ShieldAlert, Loader2, MapPin, Fingerprint, Clock, Check, AlertCircle, XCircle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ShieldAlert, Loader2, MapPin, Fingerprint, Clock, Check, AlertCircle, XCircle, ShieldCheck, Target } from "lucide-react";
 import axios from "axios";
+
+// Haversine distance in meters
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3;
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
 
 function MarkAttendanceContent() {
   const router = useRouter();
@@ -23,17 +39,15 @@ function MarkAttendanceContent() {
   const expStr = searchParams.get("exp");
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
-
+  
   useEffect(() => {
     if (status === "unauthenticated") {
-      // Encode current URL to return back after login
       const currentPath = encodeURIComponent(window.location.href);
       router.push(`/login?redirect=${currentPath}`);
     }
   }, [status, router]);
 
   useEffect(() => {
-    // Basic countdown timer if exp is provided
     if (expStr) {
       const expTime = parseInt(expStr, 10);
       if (!isNaN(expTime) && expTime > 0) {
@@ -49,7 +63,6 @@ function MarkAttendanceContent() {
     }
   }, [expStr]);
 
-  // Automatically request location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -60,7 +73,6 @@ function MarkAttendanceContent() {
   }, []);
 
   const generateFingerprint = async () => {
-    // Generate a simple device fingerprint for this demo
     const nav = window.navigator;
     const screen = window.screen;
     const str = `${nav.userAgent}|${nav.language}|${screen.width}x${screen.height}|${new Date().getTimezoneOffset()}`;
@@ -70,13 +82,56 @@ function MarkAttendanceContent() {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
+  
+  // Liveness Check & Impossible Travel State
+  const [livenessStatus, setLivenessStatus] = useState<"idle" | "active" | "failed">("idle");
+  const [livenessTarget, setLivenessTarget] = useState({ x: 0, y: 0 });
 
-  const handleMarkAttendance = async () => {
+  const initiateAttendance = () => {
     if (!sessionId || !token) {
       setError("Invalid QR code. Missing session data.");
       return;
     }
     
+    // Impossible Travel Check
+    const lastCheckinStr = localStorage.getItem("attendai_last_checkin");
+    if (lastCheckinStr && geoData) {
+      try {
+        const last = JSON.parse(lastCheckinStr);
+        const dist = getDistance(geoData.lat, geoData.lng, last.lat, last.lng);
+        const timeDiffMs = new Date().getTime() - last.timestamp;
+        
+        // If distance > 100 meters and time elapsed < 2 minutes (120000 ms), flag impossible travel
+        if (dist > 100 && timeDiffMs < 120000) {
+          setError(`Impossible Travel Detected: You moved ${Math.round(dist)}m in ${Math.round(timeDiffMs/1000)}s. Proxy flagged.`);
+          return;
+        }
+      } catch(e) {
+        console.warn("Failed to parse last checkin data");
+      }
+    }
+
+    // Start Liveness Check
+    setLivenessTarget({
+      x: Math.floor(Math.random() * 200) - 100, // random x between -100 and +100
+      y: Math.floor(Math.random() * 100) - 50   // random y between -50 and +50
+    });
+    setLivenessStatus("active");
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (livenessStatus === "active") {
+      timer = setTimeout(() => {
+        setLivenessStatus("failed");
+        setError("Liveness check failed. Are you a bot? Try again.");
+      }, 3000); // 3 seconds to click
+    }
+    return () => clearTimeout(timer);
+  }, [livenessStatus]);
+
+  const handleMarkAttendance = async () => {
+    setLivenessStatus("idle");
     setLoading(true);
     setError(null);
     
@@ -99,6 +154,14 @@ function MarkAttendanceContent() {
 
       if (res.data.success) {
         setSuccess(`Attendance marked for ${subjectName || 'this session'}`);
+        // Save current check-in location and time
+        if (geoData) {
+          localStorage.setItem("attendai_last_checkin", JSON.stringify({
+            lat: geoData.lat,
+            lng: geoData.lng,
+            timestamp: new Date().getTime()
+          }));
+        }
         setTimeout(() => {
           router.push("/student/dashboard");
         }, 3000);
@@ -200,8 +263,8 @@ function MarkAttendanceContent() {
           </AnimatePresence>
 
           <button
-            onClick={handleMarkAttendance}
-            disabled={loading || !!success || isExpired}
+            onClick={initiateAttendance}
+            disabled={loading || !!success || isExpired || livenessStatus === "active"}
             className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[15px] font-bold shadow-lg shadow-zinc-900/20 dark:shadow-white/10 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all disabled:opacity-50 disabled:scale-100 active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 size={20} className="animate-spin" /> : <Fingerprint size={20} />}
@@ -215,6 +278,67 @@ function MarkAttendanceContent() {
           </div>
         </div>
       </motion.div>
+
+      {/* Liveness Modal */}
+      <AnimatePresence>
+        {livenessStatus === "active" && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4"
+            >
+              <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl relative pointer-events-auto border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                <div className="text-center mb-6">
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center justify-center gap-2">
+                    <Target className="text-indigo-500" />
+                    Liveness Check
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-1">Tap the target before time runs out!</p>
+                </div>
+                
+                {/* 3s Progress Bar */}
+                <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-6">
+                  <motion.div
+                    initial={{ width: "100%" }}
+                    animate={{ width: 0 }}
+                    transition={{ duration: 3, ease: "linear" }}
+                    className="h-full bg-indigo-500"
+                  />
+                </div>
+
+                {/* Target Area */}
+                <div className="relative w-full h-48 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+                  <motion.button
+                    initial={{ x: 0, y: 0 }}
+                    animate={{ 
+                      x: livenessTarget.x, 
+                      y: livenessTarget.y 
+                    }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    onClick={handleMarkAttendance}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center active:scale-90"
+                  >
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1] }} 
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="absolute inset-0 rounded-full border-2 border-white/50"
+                    />
+                    <Fingerprint size={20} />
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Decorative */}
       <p className="mt-8 text-xs text-zinc-400 font-medium flex items-center gap-1.5 opacity-60">
