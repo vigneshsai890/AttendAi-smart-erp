@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { useSession, getAuthToken } from "@/components/AuthProvider";
 import { finalizeStudentProfile } from "@/lib/identity";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  GraduationCap, Building2, 
-  BookOpen, Sparkles, Loader2, 
+import {
+  GraduationCap, Building2,
+  BookOpen, Sparkles, Loader2,
   ChevronRight, CheckCircle2,
-  Database, Briefcase
+  Database, Briefcase, UserCircle2, ShieldCheck, ChevronLeft
 } from "lucide-react";
-import Magnetic from "@/components/Magnetic";
 
 const DEPARTMENTS = [
   { code: "CSE", name: "Computer Science & Engineering" },
@@ -31,8 +30,8 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { data: sessionData, status } = useSession();
   const sessionLoading = status === "loading";
-  const user = sessionData?.user as any; // Cast for custom ERP fields
-  
+  const user = sessionData?.user as any;
+
   const [step, setStep] = useState(1);
   const [department, setDepartment] = useState("");
   const [specialization, setSpecialization] = useState("");
@@ -91,21 +90,12 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
     try {
-      // Get the Firebase auth token
       const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error("Authentication token not available. Please log in again.");
-      }
-
+      if (!authToken) throw new Error("Authentication token not available. Please log in again.");
       if (!user?.id) throw new Error("No session found. Please log in again.");
-      
-      console.log("[ONBOARD] Finalizing profile for userId:", user.id, "department:", department, "spec:", specialization);
-      
+
       const profile = await finalizeStudentProfile(user.id, specialization, department, authToken);
-      
-      console.log("[ONBOARD] Profile created, updating MongoDB record...");
-      
-      // Update the user record via our API — send auth token!
+
       const updateRes = await fetch("/api/user/update-profile", {
         method: "POST",
         headers: {
@@ -122,17 +112,12 @@ export default function OnboardingPage() {
 
       if (!updateRes.ok) {
         const errData = await updateRes.json().catch(() => ({}));
-        console.error("[ONBOARD] Profile update failed:", errData);
         throw new Error(errData.error || "Failed to update profile record");
       }
 
-      console.log("[ONBOARD] Profile update successful!");
-
-      // Refresh session to pick up isProfileComplete: true
       router.refresh();
-
       setResult(profile);
-      setStep(3); // Result/Welcome screen
+      setStep(3);
     } catch (err: any) {
       console.error("[ONBOARD] Error:", err);
       setError(err.message || "Failed to finalize profile");
@@ -142,208 +127,222 @@ export default function OnboardingPage() {
   };
 
   if (sessionLoading) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-      <Loader2 className="w-10 h-10 text-white/20 animate-spin" />
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center text-zinc-400">
+      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="w-8 h-8 border-2 border-zinc-200 dark:border-zinc-800 border-t-zinc-900 dark:border-t-white rounded-full mb-4" />
+      <p className="text-sm font-medium animate-pulse">Initializing setup...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Background Matrix */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1),transparent_70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      </div>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col font-sans">
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-[640px] z-10"
-      >
-        <div className="bg-[#0c0c0e]/80 border border-white/5 rounded-[4.5rem] p-12 backdrop-blur-3xl shadow-[0_0_100px_rgba(0,0,0,0.8)] relative overflow-hidden ring-1 ring-white/10">
-          
-          <AnimatePresence mode="wait">
-            {user?.role === "FACULTY" && (
-              <motion.div 
-                key="faculty-welcome"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center space-y-12"
-              >
-                <div className="space-y-4">
-                  <div className="w-24 h-24 bg-white text-black rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-[0_30px_60px_rgba(255,255,255,0.15)] rotate-6">
-                    <Briefcase size={48} strokeWidth={3} />
+      {/* Top Navigation Bar */}
+      <header className="p-6 md:p-8 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-zinc-900 dark:bg-white rounded-xl flex items-center justify-center shrink-0">
+            <GraduationCap className="w-4 h-4 text-white dark:text-zinc-900" />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-white">AttendAI<span className="text-zinc-400">.</span></span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <UserCircle2 size={16} className="text-zinc-500" />
+          <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{user?.name}</span>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex items-center justify-center p-6 pb-20">
+
+        {/* Background Grid Pattern */}
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-pattern)" className="text-zinc-900 dark:text-white" />
+          </svg>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-[600px] z-10"
+        >
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 md:p-12 shadow-2xl shadow-zinc-200/50 dark:shadow-black/50 relative overflow-hidden">
+
+            <AnimatePresence mode="wait">
+              {/* --- FACULTY BYPASS --- */}
+              {user?.role === "FACULTY" && (
+                <motion.div
+                  key="faculty-welcome"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center space-y-8"
+                >
+                  <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <Briefcase size={36} strokeWidth={2.5} />
                   </div>
-                  <h1 className="text-5xl font-black tracking-tighter italic">WELCOME <span className="text-white/20">{user.name?.split(' ')[0]?.toUpperCase() || "FACULTY"}</span></h1>
-                  <p className="text-[13px] text-white/30 font-bold uppercase tracking-widest">Faculty Neural Link Established.</p>
-                </div>
-                
-                {error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] font-bold text-center">
-                    {error}
-                  </div>
-                )}
 
-                <div className="pt-8">
-                  <Magnetic strength={0.2}>
-                    <button 
-                      onClick={handleFacultyFinalize}
-                      disabled={loading}
-                      className="w-full py-6 rounded-[3rem] bg-indigo-500 text-white hover:bg-indigo-400 transition-all text-[11px] font-black uppercase tracking-[0.4em] italic shadow-[0_20px_50px_rgba(79,70,229,0.3)] disabled:opacity-50"
-                    >
-                      {loading ? <Loader2 size={16} className="animate-spin inline-block" /> : <>Enter Faculty Dashboard <ChevronRight className="inline-block ml-2 w-4 h-4" /></>}
-                    </button>
-                  </Magnetic>
-                </div>
-              </motion.div>
-            )}
-
-            {user?.role !== "FACULTY" && step === 1 && (
-              <motion.div 
-                key="step1"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="space-y-10"
-              >
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-6 ring-1 ring-white/5">
-                    <Sparkles size={10} /> Sequence Initialization
-                  </div>
-                  <h1 className="text-5xl font-black tracking-tighter italic">CHOOSE YOUR <span className="text-white/20">DOMAIN</span></h1>
-                  <p className="text-[14px] text-white/30 font-bold uppercase tracking-wide mt-4">Select your primary academic node to begin synchronization.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {DEPARTMENTS.map(d => (
-                    <button 
-                      key={d.code}
-                      onClick={() => { setDepartment(d.code); setStep(2); }}
-                      className="group p-8 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/20 transition-all text-left relative overflow-hidden active:scale-[0.98]"
-                    >
-                      <div className="absolute top-0 right-0 p-6 text-white/[0.02] group-hover:text-white/[0.05] transition-all -z-10 group-hover:scale-110">
-                        <Building2 size={80} strokeWidth={0.5} />
-                      </div>
-                      <div className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-2 font-mono">{d.code}</div>
-                      <div className="text-[17px] font-black text-white italic leading-tight">{d.name}</div>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {step === 2 && (
-              <motion.div 
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-10"
-              >
-                <div className="flex items-center justify-between">
                   <div>
-                    <button onClick={() => setStep(1)} className="text-[10px] font-black text-white/20 hover:text-white/40 transition-colors uppercase tracking-widest mb-4">← Back to Nodes</button>
-                    <h1 className="text-5xl font-black tracking-tighter italic">NEURAL <span className="text-white/20">LINK</span></h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-3">Welcome, Faculty</h1>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-md mx-auto">
+                      Your account has been successfully provisioned. You can now start managing classes, generating attendance sessions, and tracking student performance.
+                    </p>
                   </div>
-                  <div className="px-5 py-2 rounded-full border border-white/10 bg-white/5 text-[10px] font-black text-white/40 uppercase tracking-widest">{department} CLUSTER</div>
-                </div>
 
-                <div className="space-y-4">
-                  <p className="text-[11px] text-white/20 font-black uppercase tracking-[0.4em] mb-6">Select Specialization Node</p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {SPECIALIZATIONS[department]?.map(s => (
-                      <button 
-                        key={s}
-                        onClick={() => setSpecialization(s)}
-                        className={`p-6 rounded-[2rem] border transition-all text-left flex items-center justify-between group ${specialization === s ? "bg-white text-black border-white" : "bg-white/[0.02] border-white/5 hover:border-white/20"}`}
+                  {error && (
+                    <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm font-semibold">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleFacultyFinalize}
+                    disabled={loading}
+                    className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all font-bold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>Enter Faculty Dashboard <ChevronRight size={18} /></>}
+                  </button>
+                </motion.div>
+              )}
+
+              {/* --- STUDENT STEP 1: DEPARTMENT --- */}
+              {user?.role !== "FACULTY" && step === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-8"
+                >
+                  <div className="text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-6">
+                      <Sparkles size={14} /> Step 1 of 2
+                    </div>
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white mb-3">Select Department</h1>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Choose your primary academic department to proceed.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {DEPARTMENTS.map(d => (
+                      <button
+                        key={d.code}
+                        onClick={() => { setDepartment(d.code); setStep(2); }}
+                        className="group flex flex-col items-center justify-center p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all text-center relative overflow-hidden"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${specialization === s ? "bg-black/5" : "bg-white/5 group-hover:bg-white/10"}`}>
-                            <BookOpen size={18} className={specialization === s ? "text-black" : "text-white/30"} />
-                          </div>
-                          <span className="text-[15px] font-black uppercase tracking-tight italic">{s}</span>
-                        </div>
-                        {specialization === s && <CheckCircle2 size={20} className="text-black" />}
+                        <Building2 size={32} className="text-zinc-400 dark:text-zinc-500 mb-4 group-hover:text-indigo-500 transition-colors" strokeWidth={1.5} />
+                        <span className="text-sm font-bold text-zinc-900 dark:text-white mb-1 group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{d.code}</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 px-2">{d.name}</span>
                       </button>
                     ))}
                   </div>
-                </div>
+                </motion.div>
+              )}
 
-                {error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-[12px] font-bold text-center">
-                    {error}
+              {/* --- STUDENT STEP 2: SPECIALIZATION --- */}
+              {user?.role !== "FACULTY" && step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div>
+                    <button onClick={() => setStep(1)} className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors mb-6">
+                      <ChevronLeft size={14} /> Back to Departments
+                    </button>
+                    <div className="flex items-center justify-between mb-3">
+                      <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Specialization</h1>
+                      <div className="px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-bold text-zinc-500">{department}</div>
+                    </div>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Select your specialization to complete registration.</p>
                   </div>
-                )}
 
-                <Magnetic strength={0.3}>
-                  <button 
+                  <div className="space-y-3">
+                    {SPECIALIZATIONS[department]?.map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setSpecialization(s)}
+                        className={`w-full p-5 rounded-2xl border transition-all text-left flex items-center justify-between group
+                          ${specialization === s
+                            ? "bg-zinc-900 text-white border-zinc-900 dark:bg-white dark:text-zinc-900 dark:border-white shadow-md"
+                            : "bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-zinc-300 dark:bg-zinc-800/50 dark:text-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
+                          }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <BookOpen size={18} className={specialization === s ? "text-white dark:text-zinc-900" : "text-zinc-400"} />
+                          <span className="text-sm font-bold">{s}</span>
+                        </div>
+                        {specialization === s && <CheckCircle2 size={18} className="text-white dark:text-zinc-900" />}
+                      </button>
+                    ))}
+                  </div>
+
+                  {error && (
+                    <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm font-semibold">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
                     onClick={handleFinalize}
                     disabled={!specialization || loading}
-                    className="w-full py-6 rounded-[2.5rem] bg-indigo-500 text-white text-[11px] font-black uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:bg-indigo-400 active:scale-[0.98] transition-all disabled:opacity-20 flex items-center justify-center gap-3"
+                    className="w-full py-4 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
                   >
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <>Finalize ERP Credentials <ChevronRight size={14} /></>}
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>Finalize Enrollment <ChevronRight size={18} /></>}
                   </button>
-                </Magnetic>
-              </motion.div>
-            )}
+                </motion.div>
+              )}
 
-            {user?.role !== "FACULTY" && step === 3 && (
-              <motion.div 
-                key="welcome"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center space-y-12"
-              >
-                <div className="space-y-4">
-                  <div className="w-24 h-24 bg-white text-black rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-[0_30px_60px_rgba(255,255,255,0.15)] rotate-6">
-                    <CheckCircle2 size={48} strokeWidth={3} />
-                  </div>
-                  <h1 className="text-6xl font-black tracking-tighter italic">CREDENTIALS <span className="text-white/20">DEPLOYED</span></h1>
-                  <p className="text-[13px] text-white/30 font-bold uppercase tracking-widest">Synchronization complete. Your neural identity is live.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 text-white/[0.02] -z-10 group-hover:scale-110 transition-transform">
-                      <GraduationCap size={60} />
+              {/* --- STUDENT STEP 3: SUCCESS --- */}
+              {user?.role !== "FACULTY" && step === 3 && (
+                <motion.div
+                  key="welcome"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center space-y-10"
+                >
+                  <div className="space-y-4">
+                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                      <ShieldCheck size={36} strokeWidth={2.5} />
                     </div>
-                    <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] mb-4">Student ID Node</div>
-                    <div className="text-2xl font-mono font-black text-indigo-400 tracking-tighter">{result?.studentId}</div>
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Registration Complete</h1>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto">Your academic profile has been successfully generated.</p>
                   </div>
-                  <div className="p-8 rounded-[3rem] bg-white/[0.03] border border-white/5 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 text-white/[0.02] -z-10 group-hover:scale-110 transition-transform">
-                      <Database size={60} />
+
+                  <div className="grid grid-cols-2 gap-4 text-left">
+                    <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 text-zinc-100 dark:text-zinc-800 -z-10 group-hover:scale-110 transition-transform">
+                        <GraduationCap size={48} />
+                      </div>
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Student ID</div>
+                      <div className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight">{result?.studentId}</div>
                     </div>
-                    <div className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] mb-4">Registry Hash</div>
-                    <div className="text-2xl font-mono font-black text-purple-400 tracking-tighter">{result?.regId}</div>
+                    <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 text-zinc-100 dark:text-zinc-800 -z-10 group-hover:scale-110 transition-transform">
+                        <Database size={48} />
+                      </div>
+                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Registry Hash</div>
+                      <div className="text-xl font-black text-zinc-900 dark:text-white tracking-tight line-clamp-1">{result?.regId}</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="pt-8">
-                  <Magnetic strength={0.2}>
-                    <button 
-                      onClick={() => router.push("/student/dashboard")}
-                      className="w-full py-6 rounded-[3rem] border border-white/10 hover:bg-white/5 transition-all text-[11px] font-black uppercase tracking-[0.4em] italic"
-                    >
-                      Enter ERP Environment <ArrowRight className="inline-block ml-2 w-4 h-4" />
-                    </button>
-                  </Magnetic>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-
-      {/* Decorative Glows */}
-      <div className="absolute bottom-10 left-10 text-[10px] text-white/5 font-black uppercase tracking-[1em] vertical-text">SECURE PROTOCOL CLONE-7</div>
-      <div className="absolute top-10 right-10 text-[10px] text-white/5 font-black uppercase tracking-[1em] vertical-text">D-CAMPUS BACKEND SYNC</div>
+                  <button
+                    onClick={() => router.push("/student/dashboard")}
+                    className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all font-bold shadow-lg flex items-center justify-center gap-2"
+                  >
+                    Go to Dashboard <ChevronRight size={18} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </main>
     </div>
-  );
-}
-
-function ArrowRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
   );
 }
