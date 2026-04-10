@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 
-const MONGO_URI = process.env.MONGO_URI || "";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://vigneshsaisai412_db_user:Qmewj1Fu2CNbYFz0@cluster1.4omhez7.mongodb.net/smart_erp_realtime?appName=Cluster1";
+
+// Global cache for MongoDB connection
+let cachedClient: MongoClient | null = null;
+let cachedDb: any = null;
+
+async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+  const client = new MongoClient(MONGO_URI, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  });
+  await client.connect();
+  const db = client.db("attendai");
+  cachedClient = client;
+  cachedDb = db;
+  return { client, db };
+}
 
 export async function POST(req: Request) {
   try {
@@ -11,18 +30,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const client = new MongoClient(MONGO_URI);
+    const { db } = await connectToDatabase();
+    
     try {
-      await client.connect();
-      // Explicitly target 'attendai' database to prevent data loss in 'test' DB
-      const db = client.db("attendai");
       const collection = db.collection("user");
 
       // Check if user already exists
       const existingUser = await collection.findOne({ email });
       if (existingUser) {
-        // If they exist but don't have a firebaseUid, we could potentially link them here, 
-        // but for now let's just return an error or update them.
+        // If they exist but don't have a firebaseUid, we could potentially link them here
         if (!existingUser.firebaseUid) {
            await collection.updateOne({ _id: existingUser._id }, { $set: { firebaseUid } });
            return NextResponse.json({ message: "Linked existing user to Firebase", userId: existingUser._id.toString() }, { status: 200 });
@@ -47,7 +63,7 @@ export async function POST(req: Request) {
       }, { status: 201 });
 
     } finally {
-      await client.close();
+      // Keep cached
     }
   } catch (error: any) {
     console.error("Signup error:", error);

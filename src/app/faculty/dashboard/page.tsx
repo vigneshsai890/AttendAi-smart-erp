@@ -1244,22 +1244,23 @@ export default function FacultyDashboard() {
       <AnimatePresence>
         {isPickerOpen && (
           <>
-            <motion.div 
-              key="picker-backdrop" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              key="picker-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md z-[60]"
-              onClick={() => setIsPickerOpen(false)} 
+              onClick={() => setIsPickerOpen(false)}
             />
-            <motion.div 
-              key="picker-modal"
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[480px] md:rounded-3xl md:max-h-[80vh]"
-            >
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none">
+              <motion.div
+                key="picker-modal"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="w-full max-w-[480px] bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col pointer-events-auto"
+              >
               <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md z-10">
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Setup Class Session</h3>
                 <button onClick={() => setIsPickerOpen(false)} className="p-2 -mr-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors">
@@ -1315,6 +1316,7 @@ export default function FacultyDashboard() {
                 </motion.button>
               </div>
             </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

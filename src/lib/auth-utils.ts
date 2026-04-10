@@ -4,6 +4,25 @@ import { ENV } from "@/lib/env";
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://vigneshsaisai412_db_user:Qmewj1Fu2CNbYFz0@cluster1.4omhez7.mongodb.net/smart_erp_realtime?appName=Cluster1";
 
+// Global cache for MongoDB connection
+let cachedClient: MongoClient | null = null;
+let cachedDb: any = null;
+
+async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+  const client = new MongoClient(MONGO_URI, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  });
+  await client.connect();
+  const db = client.db("attendai");
+  cachedClient = client;
+  cachedDb = db;
+  return { client, db };
+}
+
 /**
  * Robustly fetch the current session user from MongoDB directly.
  * Completely avoids HTTP proxy timeouts and Render cold starts.
@@ -30,12 +49,10 @@ export async function getSessionUser(req: Request) {
 
     if (!uid) return null;
 
-    // 2. Connect to MongoDB directly
-    const client = new MongoClient(MONGO_URI);
-    await client.connect();
+    // 2. Connect to MongoDB using cached connection
+    const { db } = await connectToDatabase();
     
     try {
-      const db = client.db("attendai");
       const users = db.collection("user");
       
       let user = await users.findOne({ firebaseUid: uid });
@@ -74,7 +91,7 @@ export async function getSessionUser(req: Request) {
         };
       }
     } finally {
-      await client.close();
+      // Don't close the client! Keep it cached.
     }
   } catch (error: any) {
     console.error("[AUTH_UTILS] Fatal Mongo sync error:", error);
