@@ -70,7 +70,7 @@ router.post('/session/create', async (req: Request, res: Response) => {
       period: period || '',
       courseName: courseName || '',
       qrCode: uuidv4(),
-      qrExpiry: new Date(Date.now() + 15 * 1000),
+      qrExpiry: new Date(Date.now() + 60 * 1000),
       latitude: latitude ?? null,
       longitude: longitude ?? null,
       geoRadius: geoRadius ?? 100,
@@ -101,7 +101,7 @@ router.patch('/session/update', async (req: Request, res: Response) => {
 
     if (action === 'REFRESH_QR') {
       session.qrCode = uuidv4();
-      session.qrExpiry = new Date(Date.now() + 15 * 1000);
+      session.qrExpiry = new Date(Date.now() + 60 * 1000);
       await session.save();
 
       return res.json({
