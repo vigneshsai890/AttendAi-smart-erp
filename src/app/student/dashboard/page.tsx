@@ -12,9 +12,10 @@ import {
   LayoutDashboard, BookOpen, Bell, LogOut, Sun, Moon,
   Activity, Zap, CheckCircle2, AlertCircle,
   TrendingUp, ChevronRight, GraduationCap,
-  Target, Eye
+  Target, Eye, QrCode, X
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 interface Subject {
   id: string; code: string; name: string; facultyName: string;
@@ -148,6 +149,17 @@ function StudentDashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "subjects" | "notifications">("overview");
   const [chartData, setChartData] = useState<any[]>([]);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScan = (result: any) => {
+    if (result && result.length > 0) {
+      const url = result[0].rawValue;
+      if (url.includes('/student/mark-attendance')) {
+        setIsScannerOpen(false);
+        router.push(url);
+      }
+    }
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -511,6 +523,61 @@ function StudentDashboardContent() {
           </button>
         </div>
       </nav>
+
+      {/* ── Floating In-App QR Scanner ────────────────────────────────── */}
+      <AnimatePresence>
+        {isScannerOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-6"
+          >
+            <div className="absolute top-10 right-6 md:right-10 z-[110]">
+              <button 
+                onClick={() => setIsScannerOpen(false)}
+                className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white backdrop-blur-md border border-white/20 active:scale-95 transition-transform"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="w-full max-w-md bg-transparent rounded-3xl overflow-hidden shadow-2xl relative ring-1 ring-white/10">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10 pointer-events-none" />
+              
+              <Scanner 
+                onScan={handleScan}
+              />
+
+              <div className="absolute bottom-10 left-0 right-0 z-20 flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                  <QrCode size={32} className="text-indigo-400" />
+                </div>
+                <h3 className="text-white font-bold text-lg mb-1">Scan Attendance QR</h3>
+                <p className="text-white/60 text-sm">Point your camera at the professor's screen</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Action Button (FAB) */}
+      {!isScannerOpen && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsScannerOpen(true)}
+          className="fixed bottom-24 right-6 md:bottom-10 md:right-10 z-[60] bg-indigo-600 text-white p-4 rounded-full shadow-[0_10px_40px_rgba(79,70,229,0.4)] flex items-center justify-center gap-3 pr-6 group border border-indigo-500"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">
+            <QrCode size={18} />
+          </div>
+          <span className="font-bold tracking-wide text-sm hidden md:block">Scan QR</span>
+          <span className="font-bold tracking-wide text-sm md:hidden">Scan</span>
+        </motion.button>
+      )}
 
     </div>
   );
