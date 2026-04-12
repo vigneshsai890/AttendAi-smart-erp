@@ -245,6 +245,28 @@ export default function FacultyDashboard() {
     try {
       const res = await axios.get("/api/faculty/dashboard");
       if (res.data.stats) setDashboardData(res.data);
+      
+      // Restore active session state if page was refreshed
+      if (res.data.activeSession) {
+        setActiveSessionId((prev) => {
+           if (!prev) {
+             // Only fetch QR if we are just now discovering the active session
+             axios.get(`/api/attendance/session/${res.data.activeSession.id}/qr`)
+               .then(qrRes => setQrImageUrl(qrRes.data.qrDataUrl))
+               .catch(console.error);
+           }
+           return res.data.activeSession.id;
+        });
+      }
+      
+      if (res.data.presentStudents) {
+        // Prevent overwriting newly joined students if the API is slightly behind
+        setPresentStudents((prev) => {
+          if (prev.length >= res.data.presentStudents.length) return prev;
+          return res.data.presentStudents;
+        });
+      }
+
     } catch {
       showToast("Failed to load dashboard data");
     }

@@ -59,8 +59,29 @@ router.post('/session/create', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Faculty not found for this user' });
     }
 
+    // Try to find the actual course in the DB to ensure courseId is populated
+    let actualCourseId = courseId;
+    if (!actualCourseId && courseName) {
+      // Find course by name, try to match department if provided
+      let query: any = { name: courseName };
+      if (department) {
+         // Create regex to match department loosely if needed, or exact
+         query.department = new RegExp(department.replace(/[^a-zA-Z0-9]/g, '.*'), 'i');
+      }
+      let course = await Course.findOne(query);
+      
+      // Fallback to just name if department regex fails
+      if (!course) {
+        course = await Course.findOne({ name: courseName });
+      }
+      
+      if (course) {
+        actualCourseId = course._id;
+      }
+    }
+
     const session = await AttendanceSession.create({
-      courseId: courseId || null,
+      courseId: actualCourseId || null,
       facultyId: faculty._id,
       sessionDate: new Date(),
       startTime: nowHHMM(),

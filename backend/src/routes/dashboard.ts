@@ -322,10 +322,10 @@ router.get('/student', async (req: Request, res: Response) => {
       totalClassesAll += totalSessions;
 
       return {
-        courseId: cid,
-        courseCode: course.code,
-        courseName: course.name,
-        totalSessions,
+        id: cid,
+        code: course.code,
+        name: course.name,
+        total: totalSessions,
         attended,
         percentage,
         status,
@@ -499,9 +499,24 @@ router.get('/faculty', async (req: Request, res: Response) => {
       status: 'ACTIVE',
     }).populate('courseId');
 
-    // Use the primary (first) course assignment
-    const primaryAssignment = courseAssignments[0];
-    const course = primaryAssignment?.courseId;
+    // Use the primary (first) course assignment, or fallback to the active session's course, or the most recent session's course
+    let course: any = courseAssignments[0]?.courseId;
+
+    if (!course && activeSessions.length > 0) {
+      course = activeSessions[0].courseId;
+    }
+
+    if (!course) {
+      const recentSession = await AttendanceSession.findOne({ facultyId: faculty._id }).sort({ createdAt: -1 }).populate('courseId');
+      if (recentSession && recentSession.courseId) {
+        course = recentSession.courseId;
+      }
+    }
+
+    if (!course) {
+      // Ultimate fallback: Just grab any course from their department
+      course = await Course.findOne({ departmentId: faculty.departmentId });
+    }
 
     if (!course) {
       return res.json({
@@ -643,14 +658,15 @@ router.get('/faculty', async (req: Request, res: Response) => {
     // Session summary for active session
     let sessionSummary = { present: 0, absent: 0, flagged: 0, percentage: 0 };
     const activeSession = activeSessions[0] as unknown as { _id: string; courseId: unknown; courseName: string; qrCode: string; qrExpiry: Date };
+    let presentStudentsList: any[] = [];
 
     if (activeSession) {
       const activeSessionRecords = await AttendanceRecord.find({
         sessionId: activeSession._id,
-      });
+      }).populate('userId', 'name email role');
 
       const presentCount = (activeSessionRecords as unknown as Array<{ status: string }>).filter(
-        (r) => r.status === 'PRESENT' || r.status === 'LATE'
+        (r) => r.status === 'PRESENT' || r.status === 'LATE' || r.status === 'PROXY'
       ).length;
       const flaggedCount = (activeSessionRecords as unknown as Array<{ flagged: boolean }>).filter((r) => r.flagged).length;
       const absentCount = enrolledCount - presentCount;
@@ -661,6 +677,21 @@ router.get('/faculty', async (req: Request, res: Response) => {
         flagged: flaggedCount,
         percentage: enrolledCount > 0 ? Math.round((presentCount / enrolledCount) * 100) : 0,
       };
+
+      presentStudentsList = activeSessionRecords.map((r: any) => ({
+        _id: r._id,
+        sessionId: r.sessionId,
+        userId: r.userId?._id,
+        status: r.status,
+        riskScore: r.riskScore,
+        flagged: r.flagged,
+        markedAt: r.markedAt,
+        user: {
+          name: r.userId?.name,
+          email: r.userId?.email,
+          role: r.userId?.role
+        }
+      }));
     }
 
     // Format active session payload
@@ -704,12 +735,13 @@ router.get('/faculty', async (req: Request, res: Response) => {
         totalStudents: enrolledCount,
         avgAttendance,
         atRiskStudents,
-        fraudFlagCount: fraudFlags.length,
+        fraudFlagCount: flaggedRecords.length,
       },
       students,
       fraudFlags,
       sessionSummary,
       activeSession: activeSessionPayload,
+      presentStudents: presentStudentsList,
     });
   } catch (error) {
     console.error('Faculty dashboard error:', error);
