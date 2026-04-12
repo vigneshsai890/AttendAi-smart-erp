@@ -94,6 +94,21 @@ const io = new Server(server, {
   }
 });
 
+io.on('connection', (socket) => {
+  console.log(`⚡️ Client connected: ${socket.id}`);
+  
+  socket.on('join-session', (sessionId) => {
+    if (sessionId) {
+      socket.join(sessionId.toString());
+      console.log(`🎓 Client joined session room: ${sessionId}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
+
 app.use(express.json());
 app.use(morgan('dev'));
 
