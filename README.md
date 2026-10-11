@@ -1,3 +1,45 @@
+<div align="center">
+
+<img src="docs/architecture.svg" alt="AttendAI Smart ERP architecture map" width="100%" />
+
+</div>
+
+# AttendAI Smart ERP
+
+> A full-stack workspace for operational workflows, frontend surfaces and service integrations.
+
+A Next.js-based smart ERP workspace whose repository contains frontend and backend surfaces plus integrations for authentication, messaging, QR scanning and reporting.
+
+<div align="center">
+
+`Next.js · React · TypeScript · MongoDB / Firebase integrations` &nbsp;·&nbsp; `web UI → application routes → services / data integrations`
+
+</div>
+
+## `01 / SYSTEM CARD`
+
+- **Primary boundary:** `frontend → backend / route handlers → persistence + external services`
+- **Documentation stance:** architecture and presentation only; application source is intentionally untouched.
+- **Visual language:** Y2K terminal grid, brutalist labels, maximalist contrast, readable static SVG fallback.
+
+## `02 / ARCHITECTURE`
+
+The map above is a compact view of the repository's visible runtime boundary. It is designed to answer three questions quickly: where input enters, where policy or domain logic lives, and where external side effects leave the system.
+
+![Architecture map for AttendAI Smart ERP](docs/architecture.svg)
+
+## `03 / DESIGN NOTES`
+
+- This is a repository-level map based on the visible project structure and package manifest.
+- The existing create-next-app run instructions are preserved below rather than replaced with unverified product claims.
+
+This upgrade adds documentation assets only. It does not change source files, dependency manifests, tests, workflows or runtime configuration.
+
+## `04 / EXISTING PROJECT DOCUMENTATION`
+
+<details open>
+<summary>Read the original project notes</summary>
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -37,3 +79,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 
 <!-- Triggering fresh Render deployment for Universal Auth Hub at Sat Apr  4 02:19:24 IST 2026 -->
+
+</details>
+
